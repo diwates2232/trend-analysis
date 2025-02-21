@@ -324,3 +324,104 @@ const storeStatusInHistory = (ip, status) => {
 
   deviceStatus.set(ip, currentDeviceStatus);
 };
+
+
+
+
+
+
+
+
+const storeStatusInHistory = (ip, status) => {
+  const currentDate = moment().tz("Asia/Kolkata").format("YYYY-MM-DD");
+  const currentWeek = moment().tz("Asia/Kolkata").week();
+  const currentMonth = moment().tz("Asia/Kolkata").month() + 1;
+
+  let currentDeviceStatus = deviceStatus.get(ip);
+
+  if (!currentDeviceStatus) {
+    currentDeviceStatus = {
+      status: "Unknown",
+      failCount: 0,
+      lastOnline: null,
+      lastOffline: null,  // Timestamp for when the device went offline
+      statusHistory: {
+        day: {},
+        week: {},
+        month: {}
+      }
+    };
+  }
+
+  const statusHistory = currentDeviceStatus.statusHistory;
+
+  // Ensure that the statusHistory object is initialized
+  if (!statusHistory) {
+    currentDeviceStatus.statusHistory = {
+      day: {},
+      week: {},
+      month: {}
+    };
+  }
+
+  // Initialize statusHistory if it's undefined
+  if (!statusHistory.day) statusHistory.day = {};
+  if (!statusHistory.week) statusHistory.week = {};
+  if (!statusHistory.month) statusHistory.month = {};
+
+  // Store status by day
+  if (!statusHistory.day[currentDate]) {
+    statusHistory.day[currentDate] = { uptime: 0, downtime: 0, downtimeDuration: 0 }; // Add downtimeDuration
+  }
+
+  if (status === "Online") {
+    if (currentDeviceStatus.lastOffline) {
+      const downtimeDuration = moment().diff(moment(currentDeviceStatus.lastOffline), 'seconds');
+      statusHistory.day[currentDate].downtimeDuration += downtimeDuration;
+      statusHistory.day[currentDate].downtime++;
+    }
+    statusHistory.day[currentDate].uptime++;
+    currentDeviceStatus.lastOffline = null;
+  } else {
+    statusHistory.day[currentDate].downtime++;
+    currentDeviceStatus.lastOffline = new Date();
+  }
+
+  // Store status by week
+  if (!statusHistory.week[currentWeek]) {
+    statusHistory.week[currentWeek] = { uptime: 0, downtime: 0, downtimeDuration: 0 };
+  }
+
+  if (status === "Online") {
+    if (currentDeviceStatus.lastOffline) {
+      const downtimeDuration = moment().diff(moment(currentDeviceStatus.lastOffline), 'seconds');
+      statusHistory.week[currentWeek].downtimeDuration += downtimeDuration;
+      statusHistory.week[currentWeek].downtime++;
+    }
+    statusHistory.week[currentWeek].uptime++;
+    currentDeviceStatus.lastOffline = null;
+  } else {
+    statusHistory.week[currentWeek].downtime++;
+    currentDeviceStatus.lastOffline = new Date();
+  }
+
+  // Store status by month
+  if (!statusHistory.month[currentMonth]) {
+    statusHistory.month[currentMonth] = { uptime: 0, downtime: 0, downtimeDuration: 0 };
+  }
+
+  if (status === "Online") {
+    if (currentDeviceStatus.lastOffline) {
+      const downtimeDuration = moment().diff(moment(currentDeviceStatus.lastOffline), 'seconds');
+      statusHistory.month[currentMonth].downtimeDuration += downtimeDuration;
+      statusHistory.month[currentMonth].downtime++;
+    }
+    statusHistory.month[currentMonth].uptime++;
+    currentDeviceStatus.lastOffline = null;
+  } else {
+    statusHistory.month[currentMonth].downtime++;
+    currentDeviceStatus.lastOffline = new Date();
+  }
+
+  deviceStatus.set(ip, currentDeviceStatus);
+};
