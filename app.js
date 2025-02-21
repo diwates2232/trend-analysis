@@ -422,4 +422,73 @@ app.listen(PORT, () => {
 
 
 
+// Function to store status in history
+const storeStatusInHistory = (ip, status) => {
+  const currentDate = moment().tz("Asia/Kolkata").format("YYYY-MM-DD");
+  const currentWeek = moment().tz("Asia/Kolkata").week();
+  const currentMonth = moment().tz("Asia/Kolkata").month() + 1;
+
+  // Fetch device status or initialize if not available
+  let currentDeviceStatus = deviceStatus.get(ip);
+
+  if (!currentDeviceStatus) {
+    // Initialize device status if it's not set
+    currentDeviceStatus = {
+      status: "Unknown",
+      failCount: 0,
+      lastOnline: null,
+      statusHistory: {
+        day: {},
+        week: {},
+        month: {}
+      }
+    };
+  }
+
+  const statusHistory = currentDeviceStatus.statusHistory;
+
+  // Ensure statusHistory objects are initialized
+  if (!statusHistory.day) statusHistory.day = {};
+  if (!statusHistory.week) statusHistory.week = {};
+  if (!statusHistory.month) statusHistory.month = {};
+
+  // Store status by day
+  if (!statusHistory.day[currentDate]) {
+    statusHistory.day[currentDate] = { uptime: 0, downtime: 0 };
+  }
+  if (status === "Online") {
+    statusHistory.day[currentDate].uptime++;
+  } else {
+    statusHistory.day[currentDate].downtime++;
+  }
+
+  // Store status by week
+  if (!statusHistory.week[currentWeek]) {
+    statusHistory.week[currentWeek] = { uptime: 0, downtime: 0 };
+  }
+  if (status === "Online") {
+    statusHistory.week[currentWeek].uptime++;
+  } else {
+    statusHistory.week[currentWeek].downtime++;
+  }
+
+  // Store status by month
+  if (!statusHistory.month[currentMonth]) {
+    statusHistory.month[currentMonth] = { uptime: 0, downtime: 0 };
+  }
+  if (status === "Online") {
+    statusHistory.month[currentMonth].uptime++;
+  } else {
+    statusHistory.month[currentMonth].downtime++;
+  }
+
+  // Save updated device status back to the deviceStatus map
+  deviceStatus.set(ip, currentDeviceStatus);
+};
+
+
+
+
+
+
 
