@@ -416,3 +416,51 @@ app.listen(PORT, () => {
   pingDevices(); // Initial device status check
   setInterval(pingDevices, 120000); // Repeat every 2 minutes
 });
+
+
+
+
+
+
+
+// Function to store status in history
+const storeStatusInHistory = (ip, status) => {
+  const currentDate = moment().tz("Asia/Kolkata").format("YYYY-MM-DD");
+  const currentWeek = moment().tz("Asia/Kolkata").week();
+  const currentMonth = moment().tz("Asia/Kolkata").month() + 1;
+
+  const currentDeviceStatus = deviceStatus.get(ip) || { statusHistory: { day: {}, week: {}, month: {} } };
+  const statusHistory = currentDeviceStatus.statusHistory;
+
+  // Store status by day
+  if (!statusHistory.day[currentDate]) {
+    statusHistory.day[currentDate] = { uptime: 0, downtime: 0 };
+  }
+  if (status === "Online") {
+    statusHistory.day[currentDate].uptime++;
+  } else {
+    statusHistory.day[currentDate].downtime++;
+  }
+
+  // Store status by week
+  if (!statusHistory.week[currentWeek]) {
+    statusHistory.week[currentWeek] = { uptime: 0, downtime: 0 };
+  }
+  if (status === "Online") {
+    statusHistory.week[currentWeek].uptime++;
+  } else {
+    statusHistory.week[currentWeek].downtime++;
+  }
+
+  // Store status by month
+  if (!statusHistory.month[currentMonth]) {
+    statusHistory.month[currentMonth] = { uptime: 0, downtime: 0 };
+  }
+  if (status === "Online") {
+    statusHistory.month[currentMonth].uptime++;
+  } else {
+    statusHistory.month[currentMonth].downtime++;
+  }
+
+  deviceStatus.set(ip, { ...currentDeviceStatus, statusHistory });
+};
