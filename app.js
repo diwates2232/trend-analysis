@@ -24,7 +24,7 @@ app.use(bodyParser.json());
 // Routes
 app.use("/api/regions", regionRoutes);
 
-// Device status map: { ip: { status, failCount } }
+// Device status map: { ip: { status, failCount, lastOnline } }
 let deviceStatus = new Map();
 
 // Function to flush ARP cache (helps avoid false positives)
@@ -97,11 +97,11 @@ const pingDevices = async () => {
     const isAlive = await checkDeviceStatus(ip);
 
     // Get current device status
-    const current = deviceStatus.get(ip) || { status: "Unknown", failCount: 0 };
+    const current = deviceStatus.get(ip) || { status: "Unknown", failCount: 0, lastOnline: null };
 
     if (isAlive) {
-      // Reset fail count on successful response
-      deviceStatus.set(ip, { status: "Online", failCount: 0 });
+      // Reset fail count on successful response and update last online time
+      deviceStatus.set(ip, { status: "Online", failCount: 0, lastOnline: new Date() });
       if (current.status !== "Online") {
         updatedStatus[ip] = "Online";
       }
@@ -109,7 +109,7 @@ const pingDevices = async () => {
       // Increment fail count for each failed attempt
       const failCount = current.failCount + 1;
       const newStatus = failCount >= 3 ? "Offline" : "Online";
-      deviceStatus.set(ip, { status: newStatus, failCount });
+      deviceStatus.set(ip, { status: newStatus, failCount, lastOnline: current.lastOnline });
       if (current.status !== newStatus) {
         updatedStatus[ip] = newStatus;
       }
@@ -141,6 +141,25 @@ app.get("/api/devices/status", (req, res) => {
     Array.from(deviceStatus.entries()).map(([ip, { status }]) => [ip, status])
   );
   res.json(statusObj);
+});
+
+// Endpoint: Fetch uptime for all devices
+app.get("/api/devices/uptime", (req, res) => {
+  const uptimeData = {};
+
+  deviceStatus.forEach((value, ip) => {
+    if (value.status === "Online" && value.lastOnline) {
+      const uptime = new Date() - new Date(value.lastOnline); // Calculate uptime in milliseconds
+      uptimeData[ip] = {
+        status: value.status,
+        uptime: Math.floor(uptime / 1000), // Uptime in seconds
+      };
+    } else {
+      uptimeData[ip] = { status: value.status, uptime: 0 };
+    }
+  });
+
+  res.json(uptimeData);
 });
 
 // Error handling
