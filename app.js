@@ -144,7 +144,7 @@ app.get("/api/devices/status", (req, res) => {
 });
 
 // Endpoint: Fetch uptime for all devices
-app.get("/api/devices/uptime", (req, res) => {
+app.get("/api/regions/devices/uptime", (req, res) => {
   const uptimeData = {};
 
   deviceStatus.forEach((value, ip) => {
