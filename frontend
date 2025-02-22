@@ -1,1 +1,67 @@
+const baseUrl = "http://localhost:80/api/regions";
+let refreshInterval = 300000; // 5 minutes (300,000 ms)
+let countdownTime = refreshInterval / 1000; // Convert to seconds
+let countdownTimer, autoRefreshTimer;
 
+document.addEventListener("DOMContentLoaded", () => {
+    let defaultRegion = "global";
+    startAutoRefresh(defaultRegion);
+
+    document.querySelectorAll(".region-button").forEach((button) => {
+        button.addEventListener("click", () => {
+            let region = button.getAttribute("data-region");
+            document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
+
+            fetchSummary(region);
+            fetchDetails(region);
+
+            // Restart auto-refresh when region changes
+            startAutoRefresh(region);
+        });
+    });
+
+    document.getElementById("close-modal").addEventListener("click", () => {
+        document.getElementById("modal").style.display = "none";
+    });
+});
+
+function startAutoRefresh(regionName) {
+    fetchData(regionName); // Fetch data initially
+
+    // Clear existing timers
+    clearInterval(countdownTimer);
+    clearInterval(autoRefreshTimer);
+
+    const countdownDisplay = document.getElementById("countdown");
+
+    function updateCountdown() {
+        countdownDisplay.innerText = `Refreshing in ${countdownTime} seconds`;
+        countdownTime--;
+        if (countdownTime < 0) countdownTime = refreshInterval / 1000;
+    }
+
+    // Update countdown every second
+    countdownTimer = setInterval(updateCountdown, 1000);
+    updateCountdown(); // Update immediately
+
+    // Refresh data every 5 minutes
+    autoRefreshTimer = setInterval(() => {
+        fetchData(regionName);
+        countdownTime = refreshInterval / 1000; // Reset countdown
+        updateCountdown();
+    }, refreshInterval);
+}
+
+function fetchData(regionName) {
+    Promise.all([
+        fetch(`${baseUrl}/summary/${regionName}`).then((res) => res.json()),
+        fetch(`${baseUrl}/details/${regionName}`).then((res) => res.json()),
+    ])
+    .then(([summary, details]) => {
+        console.log("Summary Data:", summary);
+        console.log("Details Data:", details);
+        updateSummary(summary);
+        updateDetails(details);
+    })
+    .catch((error) => console.error("Error fetching data:", error));
+}
