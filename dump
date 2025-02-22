@@ -1,3 +1,25 @@
+if (!downtimeTracking[ip]) {
+  downtimeTracking[ip] = { lastOffline: Date.now(), totalDowntime: 0 };
+} else {
+  // Calculate the duration since last offline record
+  const lastOfflineTime = downtimeTracking[ip].lastOffline;
+  const downtimeMinutes = Math.floor((Date.now() - lastOfflineTime) / 60000); // Convert ms to minutes
+
+  // Update downtime duration
+  uptimeDowntimeStats[ip].daily[day].downtimeDuration += downtimeMinutes;
+  uptimeDowntimeStats[ip].weekly[week].downtimeDuration += downtimeMinutes;
+  uptimeDowntimeStats[ip].monthly[month].downtimeDuration += downtimeMinutes;
+
+  // Reset last offline time to now
+  downtimeTracking[ip].lastOffline = Date.now();
+}
+
+
+
+
+
+
+
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
