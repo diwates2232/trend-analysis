@@ -1,1 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision Watch Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Vision Watch Dashboard</h1>
+        </header>
+        <main>
+            <div class="device-summary">
+                <h2>Device Downtime & Uptime</h2>
+                <div id="devices" class="device-container">
+                    <!-- Device data will be injected here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+#app {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+h1 {
+    font-size: 2.5em;
+    color: #333;
+}
+
+.device-summary {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.device-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: space-between;
+}
+
+.device-card {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    padding: 20px;
+    margin: 10px;
+    border-radius: 8px;
+    width: 250px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.device-card h3 {
+    margin-top: 0;
+    color: #007BFF;
+}
+
+.summary {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.details p {
+    margin: 5px 0;
+}
+
+
+
+
+
+
+
+
+// Fetching the device downtime-uptime data from the API
+fetch('http://localhost/api/devices/downtime-uptime')
+    .then(response => response.json())
+    .then(data => {
+        // Get the container element where the device cards will be inserted
+        const devicesContainer = document.getElementById('devices');
+
+        // Loop through the data and create a card for each device
+        for (const deviceIp in data) {
+            const deviceData = data[deviceIp];
+            
+            // Create the device card element
+            const deviceCard = document.createElement('div');
+            deviceCard.className = 'device-card';
+            
+            // Device IP
+            const deviceTitle = document.createElement('h3');
+            deviceTitle.textContent = deviceIp;
+            deviceCard.appendChild(deviceTitle);
+            
+            // Uptime & Downtime Summary
+            const summary = document.createElement('div');
+            summary.className = 'summary';
+            summary.innerHTML = `
+                <div>Uptime: ${deviceData.daily.uptime}%</div>
+                <div>Downtime: ${deviceData.daily.downtime}%</div>
+            `;
+            deviceCard.appendChild(summary);
+            
+            // Detailed data for daily, weekly, and monthly
+            const details = document.createElement('div');
+            details.className = 'details';
+            details.innerHTML = `
+                <h4>Details:</h4>
+                <p><strong>Daily:</strong> Uptime: ${deviceData.daily.uptime}%, Downtime: ${deviceData.daily.downtime}%</p>
+                <p><strong>Weekly:</strong> Uptime: ${deviceData.weekly.uptime}%, Downtime: ${deviceData.weekly.downtime}%</p>
+                <p><strong>Monthly:</strong> Uptime: ${deviceData.monthly.uptime}%, Downtime: ${deviceData.monthly.downtime}%</p>
+            `;
+            deviceCard.appendChild(details);
+            
+            // Append the card to the devices container
+            devicesContainer.appendChild(deviceCard);
+        }
+    })
+    .catch(error => console.error('Error fetching data:', error));
+
+
+
 
