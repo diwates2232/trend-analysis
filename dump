@@ -1,3 +1,35 @@
+fetch(`http://localhost/api/devices/downtime-uptime/${ip}`)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Ping failed for ${ip}: ${response.statusText}`);
+        }
+        return response.json();  // Expecting a JSON response
+    })
+    .then(data => {
+        const newStatus = data.status.toLowerCase();  // Assuming the status is in the response data
+        const statusDot = card.querySelector(".status-dot");
+        const statusText = card.querySelector(".device-status");
+
+        if (newStatus === "online") {
+            statusDot.style.backgroundColor = "green";
+            statusText.textContent = "Online";
+            card.dataset.status = "online";
+        } else {
+            statusDot.style.backgroundColor = "red";
+            statusText.textContent = "Offline";
+            card.dataset.status = "offline";
+        }
+    })
+    .catch(error => {
+        console.error(`Ping failed for ${ip}:`, error);
+    });
+
+
+
+
+
+
+
 const baseUrl = "http://localhost:80/api/regions";
 
 document.addEventListener("DOMContentLoaded", () => {
