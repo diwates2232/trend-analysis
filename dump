@@ -1,3 +1,38 @@
+if (!downtimeTracking[ip]) {
+  // If the device just went offline, start tracking its downtime
+  downtimeTracking[ip] = { lastOffline: Date.now(), totalDowntime: 0 };
+} else {
+  // Device is still offline, calculate the new duration
+  const lastOfflineTime = downtimeTracking[ip].lastOffline;
+  const downtimeMinutes = Math.floor((Date.now() - lastOfflineTime) / 60000); // Convert ms to minutes
+
+  if (downtimeMinutes > 0) {  // Only update if at least 1 minute has passed
+    uptimeDowntimeStats[ip].daily[day].downtimeDuration += downtimeMinutes;
+    uptimeDowntimeStats[ip].weekly[week].downtimeDuration += downtimeMinutes;
+    uptimeDowntimeStats[ip].monthly[month].downtimeDuration += downtimeMinutes;
+
+    // Update total downtime
+    downtimeTracking[ip].totalDowntime += downtimeMinutes;
+
+    // Update last offline time to the current timestamp (to avoid counting same duration multiple times)
+    downtimeTracking[ip].lastOffline = Date.now();
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
