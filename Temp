@@ -1,1 +1,264 @@
+const express = require("express");
+const xlsx = require("xlsx");
+const ping = require("ping");
+const cors = require("cors");
+const path = require("path");
 
+const app = express();
+const PORT = 5000;
+
+// Enable CORS
+app.use(cors());
+
+// Store device data and uptime/downtime statistics
+let allData = { cameras: [], archivers: [], controllers: [], servers: [] };
+let uptimeDowntimeStats = {};
+
+// File paths for Excel data
+const FILE_PATHS = {
+    cameras: path.join(__dirname, "data", "CameraData.xlsx"),
+    archivers: path.join(__dirname, "data", "ArchiverData.xlsx"),
+    controllers: path.join(__dirname, "data", "ControllerData.xlsx"),
+    servers: path.join(__dirname, "data", "ServerData.xlsx")
+};
+
+// Function to read data from Excel files
+const readExcelData = (filePath) => {
+    try {
+        const workbook = xlsx.readFile(filePath);
+        const sheetName = workbook.SheetNames[0];
+        return xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    } catch (error) {
+        console.error(`❌ Error reading file: ${filePath}`, error);
+        return [];
+    }
+};
+
+// Load all devices into `allData`
+async function fetchAllDevices() {
+    console.log("🔄 Loading device data...");
+    allData = {
+        cameras: readExcelData(FILE_PATHS.cameras),
+        archivers: readExcelData(FILE_PATHS.archivers),
+        controllers: readExcelData(FILE_PATHS.controllers),
+        servers: readExcelData(FILE_PATHS.servers)
+    };
+    console.log("✅ Device data loaded successfully!");
+    return allData;
+}
+
+// Function to check device status (ping)
+async function checkDeviceStatus(ip) {
+    try {
+        const result = await ping.promise.probe(ip, { timeout: 2 });
+        return result.alive;
+    } catch (error) {
+        console.error(`❌ Error pinging ${ip}:`, error);
+        return false;
+    }
+}
+
+// Function to update uptime/downtime statistics
+async function updateUptimeDowntimeStats() {
+    console.log("🔄 Checking device status...");
+
+    const allDevices = [
+        ...allData.cameras,
+        ...allData.archivers,
+        ...allData.controllers,
+        ...allData.servers
+    ];
+
+    for (const device of allDevices) {
+        const ip = device.ip_address;
+        const isOnline = await checkDeviceStatus(ip);
+        const now = new Date();
+
+        if (!uptimeDowntimeStats[ip]) {
+            uptimeDowntimeStats[ip] = { online: isOnline, lastChange: now, downtimeRecords: [] };
+        }
+
+        const stats = uptimeDowntimeStats[ip];
+
+        if (isOnline !== stats.online) {
+            const downtimeDuration = (now - stats.lastChange) / (1000 * 60); // in minutes
+            if (!isOnline && downtimeDuration > 5) {
+                stats.downtimeRecords.push({ start: stats.lastChange, end: now, duration: downtimeDuration });
+            }
+            stats.online = isOnline;
+            stats.lastChange = now;
+        }
+    }
+
+    console.log("✅ Device status updated!");
+}
+
+// Function to start periodic device monitoring
+function startMonitoring() {
+    setInterval(updateUptimeDowntimeStats, 60000);
+}
+
+// ================== API ENDPOINTS ==================
+
+// ✅ API: Fetch all devices
+app.get("/api/devices", (req, res) => {
+    res.status(200).json(allData);
+});
+
+// ✅ API: Fetch details for a specific region
+app.get("/api/regions/details/:region", (req, res) => {
+    const region = req.params.region.toLowerCase();
+    console.log(`Fetching details for region: ${region}`);
+
+    if (!allData || !allData.cameras || !allData.archivers || !allData.controllers || !allData.servers) {
+        return res.status(500).json({ error: "Device data not properly initialized." });
+    }
+
+    const regionDetails = {
+        cameras: allData.cameras.filter(device => device.location?.toLowerCase() === region),
+        archivers: allData.archivers.filter(device => device.location?.toLowerCase() === region),
+        controllers: allData.controllers.filter(device => device.location?.toLowerCase() === region),
+        servers: allData.servers.filter(device => device.location?.toLowerCase() === region)
+    };
+
+    res.status(200).json(regionDetails);
+});
+
+// ✅ API: Get uptime/downtime data for a region
+app.get('/api/region/devices/downtime-uptime/:region', (req, res) => {
+    const region = req.params.region.toLowerCase();
+    console.log(`Fetching downtime-uptime data for region: ${region}`);
+
+    if (!allData || !allData.cameras || !allData.archivers || !allData.controllers || !allData.servers) {
+        return res.status(500).json({ error: "Device data not properly initialized." });
+    }
+
+    const regionDevices = [
+        ...allData.cameras,
+        ...allData.archivers,
+        ...allData.controllers,
+        ...allData.servers
+    ].filter(device => device.location?.toLowerCase() === region);
+
+    if (regionDevices.length === 0) {
+        return res.status(404).json({ error: "No devices found for this region." });
+    }
+
+    const regionData = {};
+    for (const device of regionDevices) {
+        const ip = device.ip_address;
+        if (uptimeDowntimeStats[ip]) {
+            regionData[ip] = uptimeDowntimeStats[ip];
+        } else {
+            regionData[ip] = { message: "No downtime records available for this device." };
+        }
+    }
+
+    res.status(200).json({ region, uptimeDowntimeData: regionData });
+});
+
+// ✅ API: Fetch global uptime/downtime data
+app.get('/api/devices/global-uptime-downtime', (req, res) => {
+    console.log("Fetching global uptime-downtime summary...");
+
+    if (!uptimeDowntimeStats || Object.keys(uptimeDowntimeStats).length === 0) {
+        return res.status(404).json({ error: "No uptime/downtime records available." });
+    }
+
+    res.status(200).json({ uptimeDowntimeStats });
+});
+
+// ✅ API: Fetch individual device status
+app.get('/api/device/status/:ip', (req, res) => {
+    const ip = req.params.ip;
+    console.log(`Fetching status for device with IP: ${ip}`);
+
+    if (!uptimeDowntimeStats[ip]) {
+        return res.status(404).json({ error: "No records found for this IP." });
+    }
+
+    res.status(200).json(uptimeDowntimeStats[ip]);
+});
+
+// ✅ API: Trigger manual status check
+app.get('/api/devices/check-status', async (req, res) => {
+    console.log("Manually checking device status...");
+    await updateUptimeDowntimeStats();
+    res.status(200).json({ message: "Device status updated!" });
+});
+
+// ================== SERVER STARTUP ==================
+
+// Load data and start the server
+fetchAllDevices().then(() => {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on http://localhost:${PORT}`);
+        startMonitoring();
+    });
+});
+
+
+
+
+
+
+const express = require("express");
+const cors = require("cors");
+const { fetchAllDevices, fetchGlobalData, fetchRegionData, fetchAllIpAddress } = require("./services/excelservice");
+
+const app = express();
+const PORT = 5000;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// API: Get all devices
+app.get("/api/devices", async (req, res) => {
+    try {
+        const data = await fetchAllDevices();
+        res.status(200).json(data);
+    } catch (error) {
+        console.error("❌ Error fetching devices:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+// API: Get global summary & details
+app.get("/api/regions/details/global", async (req, res) => {
+    try {
+        const data = await fetchGlobalData();
+        res.status(200).json(data);
+    } catch (error) {
+        console.error("❌ Error fetching global data:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+// API: Get region summary & details
+app.get("/api/regions/details/:region", async (req, res) => {
+    const region = req.params.region;
+    try {
+        const data = await fetchRegionData(region);
+        res.status(200).json(data);
+    } catch (error) {
+        console.error(`❌ Error fetching data for region ${region}:`, error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+// API: Get all IP addresses
+app.get("/api/devices/ips", (req, res) => {
+    try {
+        const ipAddresses = fetchAllIpAddress();
+        res.status(200).json({ ipAddresses });
+    } catch (error) {
+        console.error("❌ Error fetching IP addresses:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+// Start the server
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
