@@ -1,3 +1,16 @@
+const path = require("path");
+
+// Correct file paths
+const FILE_PATHS = {
+  cameras: path.join(__dirname, "data", "CameraData.xlsx"),
+  archivers: path.join(__dirname, "data", "ArchiverData.xlsx"),
+  controllers: path.join(__dirname, "data", "ControllerData.xlsx"),
+  servers: path.join(__dirname, "data", "ServerData.xlsx")
+};
+
+
+
+
 const express = require("express");
 const xlsx = require("xlsx");
 const ping = require("ping");
