@@ -1,3 +1,27 @@
+
+// Declare the variable 'region' at the top before usage
+let region;
+
+document.addEventListener("DOMContentLoaded", function() {
+    // Initialize 'region' after the document is fully loaded
+    region = "some value"; // Assign your actual value here
+
+    // Now you can safely use 'region' without errors
+    console.log(region);  // This should now work
+    initializeContent();
+});
+
+function initializeContent() {
+    // Any function that relies on the 'region' variable can now use it safely
+    console.log("Initializing content with region:", region);
+    // Continue with the rest of your logic
+}
+
+
+
+
+
+
 app.js
 
 
