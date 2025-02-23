@@ -1,8 +1,6 @@
 app.js
 
 
-const trendApiUrl = `http://localhost:80/api/region/devices/downtime-uptime/${region}`;
-
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -172,7 +170,8 @@ script.js
 
 
 const baseUrl = "http://localhost:80/api/regions";
-const trendApiUrl = 'http://localhost:80/api/region/devices/downtime-uptime/${region}'; // New API endpoint for trend analysis
+
+const trendApiUrl = `http://localhost:80/api/region/devices/downtime-uptime/${region}`;
 
 document.addEventListener("DOMContentLoaded", () => {
     // Fetch summary and details for the default region (global)
@@ -292,11 +291,15 @@ function fetchDetails(regionName) {
 }
 
 // Function to fetch trend data
+
+
+let region="SomeRegion";
 function fetchTrendData(region) {
-    const trendApiUrl='http://localhost:80/api/region/devices/downtime-uptime/${region}';
+    const trendApiUrl=(`http://localhost:80/api/region/devices/downtime-uptime/${region}`);
 
     fetch(trendApiUrl)
     
+
         .then((response) => {
             if (!response.ok) {
                 throw new Error("Error fetching downtime-uptime trend data.");
@@ -312,6 +315,8 @@ function fetchTrendData(region) {
             alert("Failed to load trend data. Please check the console for details.");
         });
 }
+
+
 
 
 // Function to update trend analysis in UI
@@ -562,8 +567,4 @@ function showModal(name, ip, location, status) {
         document.getElementById("modal").style.display = "block";
     }
     
-
-
-
-
-
+    
