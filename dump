@@ -1,5 +1,8 @@
 app.js
 
+
+const trendApiUrl = `http://localhost:80/api/region/devices/downtime-uptime/${region}`;
+
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
