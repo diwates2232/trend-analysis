@@ -1,3 +1,124 @@
+const xlsx = require("xlsx");
+const path = require("path");
+const ping = require("ping");
+
+// Paths for Excel files
+const archiverPath = path.join(__dirname, "../data/ArchiverData.xlsx");
+const controllerPath = path.join(__dirname, "../data/ControllerData.xlsx");
+const cameraPath = path.join(__dirname, "../data/CameraData.xlsx");
+const serverPath = path.join(__dirname, "../data/ServerData.xlsx");
+
+// Cache to store preloaded data
+let allData = {};
+
+// Function to normalize column headers
+const normalizeHeaders = (data) => {
+    return data.map((row) => {
+        const normalizedRow = {};
+        for (const key in row) {
+            const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+            normalizedRow[normalizedKey] = row[key];
+        }
+        return normalizedRow;
+    });
+};
+
+// Function to read and parse Excel data
+const loadExcelData = () => {
+    try {
+        allData = {
+            archivers: normalizeHeaders(xlsx.utils.sheet_to_json(xlsx.readFile(archiverPath).Sheets["Sheet1"])),
+            controllers: normalizeHeaders(xlsx.utils.sheet_to_json(xlsx.readFile(controllerPath).Sheets["Sheet1"])),
+            cameras: normalizeHeaders(xlsx.utils.sheet_to_json(xlsx.readFile(cameraPath).Sheets["Sheet1"])),
+            servers: normalizeHeaders(xlsx.utils.sheet_to_json(xlsx.readFile(serverPath).Sheets["Sheet1"])),
+        };
+        console.log("✅ Excel Data Loaded Successfully.");
+    } catch (error) {
+        console.error("❌ Error loading Excel files:", error);
+    }
+};
+
+// Function to ping devices and update status
+const pingDevices = async (devices) => {
+    const pingPromises = devices.map(async (device) => {
+        if (device.ip_address) {
+            try {
+                const result = await ping.promise.probe(device.ip_address, { timeout: 2 });
+                device.status = result.alive ? "Online" : "Offline";
+            } catch (error) {
+                console.error(`❌ Error pinging ${device.ip_address}:`, error);
+                device.status = "Unknown";
+            }
+        }
+    });
+    await Promise.all(pingPromises);
+};
+
+// Fetch all devices
+const fetchAllDevices = async () => {
+    await pingDevices([...allData.cameras, ...allData.archivers, ...allData.controllers, ...allData.servers]);
+    return allData;
+};
+
+// Fetch all IPs
+const fetchAllIpAddress = () => {
+    const mergedDevices = [...allData.cameras, ...allData.archivers, ...allData.controllers, ...allData.servers];
+    return mergedDevices.map(device => device.ip_address).filter(ip => ip);
+};
+
+// Fetch global summary & details
+const fetchGlobalData = async () => {
+    await pingDevices([...allData.cameras, ...allData.archivers, ...allData.controllers, ...allData.servers]);
+    return { summary: calculateSummary(allData), details: allData };
+};
+
+// Fetch region-specific data
+const fetchRegionData = async (regionName) => {
+    console.log(`Fetching data for region: ${regionName}`);
+    const lowerRegion = regionName.toLowerCase();
+
+    const devices = {
+        cameras: allData.cameras.filter(row => row.location?.toLowerCase() === lowerRegion),
+        archivers: allData.archivers.filter(row => row.location?.toLowerCase() === lowerRegion),
+        controllers: allData.controllers.filter(row => row.location?.toLowerCase() === lowerRegion),
+        servers: allData.servers.filter(row => row.location?.toLowerCase() === lowerRegion),
+    };
+
+    await pingDevices([...devices.cameras, ...devices.archivers, ...devices.controllers, ...devices.servers]);
+
+    return { summary: calculateSummary(devices), details: devices };
+};
+
+// Calculate device summary
+const calculateSummary = (devices) => {
+    let summary = { totalDevices: 0, totalOnline: 0, totalOffline: 0 };
+
+    for (const key in devices) {
+        const total = devices[key].length;
+        const online = devices[key].filter(device => device.status === "Online").length;
+        const offline = total - online;
+
+        summary[key] = { total, online, offline };
+        summary.totalDevices += total;
+        summary.totalOnline += online;
+        summary.totalOffline += offline;
+    }
+
+    return summary;
+};
+
+// Load Excel data on startup
+loadExcelData();
+
+module.exports = { fetchAllDevices, fetchGlobalData, fetchRegionData, fetchAllIpAddress };
+
+
+
+
+
+
+
+
 const FILE_PATHS = {
     cameras: path.join(__dirname, "src", "data", "CameraData.xlsx"),
     archivers: path.join(__dirname, "src", "data", "ArchiverData.xlsx"),
