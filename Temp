@@ -1,3 +1,34 @@
+const fetchRegionData = async (regionName) => {
+    console.log(`Fetching data for region: ${regionName}`);
+    
+    const filteredCameras = allData.cameras.filter(row => {
+        console.log(`Camera Location: ${row.location}`);
+        return row.location?.toLowerCase() === regionName.toLowerCase();
+    });
+
+    console.log(`Filtered Cameras:`, filteredCameras);
+
+    const filteredArchivers = allData.archivers.filter(row => row.location?.toLowerCase() === regionName.toLowerCase());
+    const filteredControllers = allData.controllers.filter(row => row.location?.toLowerCase() === regionName.toLowerCase());
+    const filteredServers = allData.servers.filter(row => row.location?.toLowerCase() === regionName.toLowerCase());
+
+    const devices = { cameras: filteredCameras, archivers: filteredArchivers, controllers: filteredControllers, servers: filteredServers };
+
+    console.log(`Filtered Devices:`, devices);
+
+    await pingDevices([...filteredCameras, ...filteredArchivers, ...filteredControllers, ...filteredServers]);
+
+    const summary = calculateSummary(devices);
+    return { summary, details: devices };
+};
+
+
+
+
+
+
+
+
 app.get('/api/region/devices/downtime-uptime/:region', (req, res) => {
     const region = req.params.region;
     console.log(`Fetching downtime-uptime data for region: ${region}`);
