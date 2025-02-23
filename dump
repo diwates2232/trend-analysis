@@ -306,11 +306,21 @@ app.get("/api/devices/status", (req, res) => {
   res.json(deviceStatus);
 });
 
-// New endpoint to get downtime/uptime summary
-app.get("/api/region/devices/downtime-uptime", (req, res) => {
 
-  res.json(uptimeDowntimeStats);
+
+
+
+// New endpoint to get downtime/uptime summary
+app.get('/api/region/devices/downtime-uptime/:region', (req, res) => {
+  const region = req.params.region;
+  console.log(`Fetching downtime-uptime data for region: ${region}`);
+  
+  // Sample response, replace this with actual logic
+  res.json({ message: `Data for ${region}`, data: [] });
 });
+
+
+
 
 // Ping a specific device dynamically
 app.get("/api/ping/:ip", async (req, res) => {
