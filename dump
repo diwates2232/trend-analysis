@@ -1,5 +1,178 @@
+app.js
+
+
+
+
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const ping = require("ping");
+const regionRoutes = require("./routes/regionRoutes");
+const { fetchAllIpAddress } = require("./services/excelService");
+
+const app = express();
+const PORT = process.env.PORT || 80;
+
+// Middleware
+app.use(cors({
+  origin: "http://127.0.0.1:5500", // Match your frontend's origin
+  methods: "GET,POST,PUT,DELETE",
+  allowedHeaders: "Content-Type,Authorization",
+}));
+app.use(bodyParser.json());
+
+// Routes
+app.use("/api/regions", regionRoutes);
+
+// Store device statuses and downtime tracking
+const devices = fetchAllIpAddress();
+let deviceStatus = {};
+let downtimeTracking = {}; // { ip: { lastOffline: timestamp, downtimeDuration: minutes } }
+let uptimeDowntimeStats = {}; // Store daily, weekly, and monthly uptime/downtime
+
+// Function to get the current date, week, and month keys
+const getDateKeys = () => {
+  const now = new Date();
+  const day = now.toISOString().split("T")[0]; // YYYY-MM-DD format
+  const week = Math.ceil(now.getDate() / 7); // Week number in the month
+  const month = now.getMonth() + 1; // Month number
+  return { day, week, month };
+};
+
+// Function to update device status and track downtime/uptime
+async function pingDevices() {
+  const { day, week, month } = getDateKeys();
+
+  for (const ip of devices) {
+    try {
+      const result = await ping.promise.probe(ip);
+      const isOnline = result.alive;
+      
+      if (!uptimeDowntimeStats[ip]) {
+        uptimeDowntimeStats[ip] = { daily: {}, weekly: {}, monthly: {} };
+      }
+
+      // Initialize if not present
+      if (!uptimeDowntimeStats[ip].daily[day]) {
+        uptimeDowntimeStats[ip].daily[day] = { uptime: 0, downtime: 0, downtimeDuration: 0 };
+      }
+      if (!uptimeDowntimeStats[ip].weekly[week]) {
+        uptimeDowntimeStats[ip].weekly[week] = { uptime: 0, downtime: 0, downtimeDuration: 0 };
+      }
+      if (!uptimeDowntimeStats[ip].monthly[month]) {
+        uptimeDowntimeStats[ip].monthly[month] = { uptime: 0, downtime: 0, downtimeDuration: 0 };
+      }
+
+      if (isOnline) {
+        // If previously offline, calculate downtime duration
+        if (downtimeTracking[ip] && downtimeTracking[ip].lastOffline) {
+          const lastOfflineTime = downtimeTracking[ip].lastOffline;
+          const downtimeMinutes = Math.floor((Date.now() - lastOfflineTime) / 60000); // Convert ms to minutes
+
+          // Update downtime duration
+          uptimeDowntimeStats[ip].daily[day].downtimeDuration += downtimeMinutes;
+          uptimeDowntimeStats[ip].weekly[week].downtimeDuration += downtimeMinutes;
+          uptimeDowntimeStats[ip].monthly[month].downtimeDuration += downtimeMinutes;
+
+          // Reset tracking
+          delete downtimeTracking[ip];
+        }
+
+        // Increase uptime count
+        uptimeDowntimeStats[ip].daily[day].uptime += 1;
+        uptimeDowntimeStats[ip].weekly[week].uptime += 1;
+        uptimeDowntimeStats[ip].monthly[month].uptime += 1;
+      } else {
+        // If the device just went offline, store the timestamp
+
+
+        if (!downtimeTracking[ip]) {
+          // If the device just went offline, start tracking its downtime
+          downtimeTracking[ip] = { lastOffline: Date.now(), totalDowntime: 0 };
+        } else {
+          // Device is still offline, calculate the new duration
+          const lastOfflineTime = downtimeTracking[ip].lastOffline;
+          const downtimeMinutes = Math.floor((Date.now() - lastOfflineTime) / 60000); // Convert ms to minutes
+        
+          if (downtimeMinutes > 0) {  // Only update if at least 1 minute has passed
+            uptimeDowntimeStats[ip].daily[day].downtimeDuration += downtimeMinutes;
+            uptimeDowntimeStats[ip].weekly[week].downtimeDuration += downtimeMinutes;
+            uptimeDowntimeStats[ip].monthly[month].downtimeDuration += downtimeMinutes;
+        
+            // Update total downtime
+            downtimeTracking[ip].totalDowntime += downtimeMinutes;
+        
+            // Update last offline time to the current timestamp (to avoid counting same duration multiple times)
+            downtimeTracking[ip].lastOffline = Date.now();
+          }
+        }
+
+
+        // Increase downtime count
+        uptimeDowntimeStats[ip].daily[day].downtime += 1;
+        uptimeDowntimeStats[ip].weekly[week].downtime += 1;
+        uptimeDowntimeStats[ip].monthly[month].downtime += 1;
+      }
+
+      deviceStatus[ip] = isOnline ? "Online" : "Offline";
+    } catch (error) {
+      console.error(`Error pinging ${ip}:`, error);
+      deviceStatus[ip] = "Offline";
+    }
+  }
+
+  console.log("Updated device status:", deviceStatus);
+}
+
+// Ping devices every 30 seconds
+setInterval(pingDevices, 30000);
+
+// Get real-time status of all devices
+app.get("/api/devices/status", (req, res) => {
+  res.json(deviceStatus);
+});
+
+// New endpoint to get downtime/uptime summary
+app.get("/api/region/devices/downtime-uptime", (req, res) => {
+  res.json(uptimeDowntimeStats);
+});
+
+// Ping a specific device dynamically
+app.get("/api/ping/:ip", async (req, res) => {
+  const ip = req.params.ip;
+
+  try {
+    const result = await ping.promise.probe(ip);
+    res.json({ ip, status: result.alive ? "Online" : "Offline" });
+  } catch (error) {
+    console.error(`Ping error for ${ip}:`, error);
+    res.json({ ip, status: "Offline" });
+  }
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send("Something went wrong!");
+});
+
+// Start Server
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+  pingDevices(); // Start pinging devices immediately
+});
+
+
+
+
+
+
+script.js
+
+
 const baseUrl = "http://localhost:80/api/regions";
-const trendApiUrl = "http://localhost:80/api/devices/downtime-uptime"; // New API endpoint for trend analysis
+const trendApiUrl = 'http://localhost:80/api/region/devices/downtime-uptime/${region}'; // New API endpoint for trend analysis
 
 document.addEventListener("DOMContentLoaded", () => {
     // Fetch summary and details for the default region (global)
@@ -119,8 +292,11 @@ function fetchDetails(regionName) {
 }
 
 // Function to fetch trend data
-function fetchTrendData(regionName) {
-    fetch(`${trendApiUrl}/${regionName}`)
+function fetchTrendData(region) {
+    const trendApiUrl='http://localhost:80/api/region/devices/downtime-uptime/${region}';
+
+    fetch(trendApiUrl)
+    
         .then((response) => {
             if (!response.ok) {
                 throw new Error("Error fetching downtime-uptime trend data.");
@@ -129,13 +305,14 @@ function fetchTrendData(regionName) {
         })
         .then((trendData) => {
             console.log("Trend Data:", trendData);
-            updateTrendAnalysis(trendData);
+        
         })
         .catch((error) => {
             console.error("Error fetching trend data:", error);
             alert("Failed to load trend data. Please check the console for details.");
         });
 }
+
 
 // Function to update trend analysis in UI
 function updateTrendAnalysis(data) {
@@ -375,6 +552,181 @@ function updateDetails(data) {
 }
 
 function showModal(name, ip, location, status) {
-    document.getElementById("modal-title").textContent = `Details for ${name}`;
-    document.getElementById("modal-body").innerHTML = `
-        <li><strong>Name:</strong> ${name}</li
+        document.getElementById("modal-title").textContent = `Details for ${name}`;
+        document.getElementById("modal-body").innerHTML = `
+            <li><strong>Name:</strong> ${name}</li>
+            <li><strong>IP:</strong> ${ip}</li>
+            <li><strong>Location:</strong> ${location}</li>
+            <li><strong>Status:</strong> ${status}</li>
+        `;
+        document.getElementById("modal").style.display = "block";
+    }
+    
+
+
+
+
+
+index.html
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+   
+    <div class="container">
+        <div id="sidebar">
+            <h2 style="color:rgb(223, 205, 38);">Regions</h2>
+            <button class="region-button" data-region="global">Global</button>
+            <button class="region-button" data-region="apac">APAC</button>
+            <button class="region-button" data-region="emea">EMEA</button>
+            <button class="region-button" data-region="laca">LACA</button>
+            <button class="region-button" data-region="namer">NAMER</button>
+
+            <div id="countdown" 
+            style="font-size: 16px; font-weight: bold; color:rgb(223, 205, 38);
+            padding: 10px;
+            display: block;">
+            </div>
+
+            <div class="filter-buttons">
+                <button id="filter-all" class="status-filter active" data-status="all"
+                style="display: block;
+                 width: 100%;
+                 padding: 15px;
+                 margin-bottom: 10px;
+                 border: none;
+                 background-color: #e8f0f1;
+                color: rgb(26, 23, 23);
+                font-size: 16px;
+                cursor: pointer;
+               text-align: center;
+                border-radius: 5px;
+                transition: background-color 0.3s ease;">All Devices</button>
+
+                <button id="filter-online" class="status-filter" data-status="online" 
+                style="display: block;
+                 width: 100%;
+                 padding: 15px;
+                 margin-bottom: 10px;
+                 border: none;
+                 background-color: #1c9c47;
+                color: rgb(26, 23, 23);
+                font-size: 16px;
+                cursor: pointer;
+               text-align: center;
+                border-radius: 5px;
+                transition: background-color 0.3s ease;">Online Devices</button>
+
+                <button id="filter-offline"  class="status-filter" data-status="offline"
+                style="display: block;
+                 width: 100%;
+                 padding: 15px;
+                 margin-bottom: 10px;
+                 border: none;
+                 background-color: #db2410;
+                color: rgb(26, 23, 23);
+                font-size: 16px;
+                cursor: pointer;
+               text-align: center;
+                border-radius: 5px;
+                transition: background-color 0.3s ease;">Offline Devices</button>
+            </div>
+
+            <label for="device-filter" style="color:rgb(223, 205, 38);
+            font-size: 16px;
+            border: none;
+            font-weight: bold;
+            text-align: start;
+            border-radius: 5px;
+            width: 100%;">Filter by Device Type:</label>
+            <select id="device-filter">
+                <option value="all">All</option>
+                <option value="cameras">Cameras</option>
+                <option value="archivers">Archivers</option>
+                <option value="controllers">Controllers</option>
+                <option value="servers">Servers</option>
+            </select>
+            
+            <!-- Link to the trend analysis page -->
+            <button id="trend-analysis-link" style="width: 100%; padding: 15px; margin-top: 20px; border: none; background-color: #007bff; color: white; font-size: 16px; cursor: pointer; text-align: center; border-radius: 5px; transition: background-color 0.3s ease;">View Trend Analysis</button>
+        </div>
+
+        <div id="content">
+            <h1 id="region-title" style="color:rgb(255, 0, 0); font-weight: bold; text-align: start;">Global Summary</h1>
+            <div class="summary">
+                <div class="card">
+                    <h3>Total Devices</h3>
+                    <p>Total: <span id="total-devices">Loading...</span></p>
+                    <p>Online: <span id="online-devices">Loading...</span></p>
+                    <p>Offline: <span id="offline-devices">Loading...</span></p>
+                </div>
+
+                <div class="card">
+                    <h3>Cameras</h3>
+                    <p>Total: <span id="camera-total">Loading...</span></p>
+                    <p>Online: <span id="camera-online">Loading...</span></p>
+                    <p>Offline: <span id="camera-offline">Loading...</span></p>
+                </div>
+            
+                <div class="card">
+                    <h3>Archivers</h3>
+                    <p>Total: <span id="archiver-total">Loading...</span></p>
+                    <p>Online: <span id="archiver-online">Loading...</span></p>
+                    <p>Offline: <span id="archiver-offline">Loading...</span></p>
+                </div>
+            
+                <div class="card">
+                    <h3>Controllers</h3>
+                    <p>Total: <span id="controller-total">Loading...</span></p>
+                    <p>Online: <span id="controller-online">Loading...</span></p>
+                    <p>Offline: <span id="controller-offline">Loading...</span></p>
+                </div>
+
+                <div class="card">
+                    <h3>Servers</h3>
+                    <p>Total: <span id="server-total">Loading...</span></p>
+                    <p>Online: <span id="server-online">Loading...</span></p>
+                    <p>Offline: <span id="server-offline">Loading...</span></p>
+                </div>
+            </div>
+
+            <div id="details-section">
+                <h2 style="color:rgb(255, 0, 0)">Device Details</h2>
+                <div id="device-details">Loading...</div>
+                <div id="details-container"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal for Device Details -->
+    <div id="modal">
+        <div class="modal-content">
+            <span id="close-modal">&times;</span>
+            <h3 id="modal-title">Device Details</h3>
+            <ul id="modal-body"></ul>
+            <button id="refresh-button">Refresh Data</button>
+            <div id="device-details"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <img src="images/FooterLogo.png" alt="Company Logo" class="footer-logo">
+        <p>&copy;2025 VisionWatch | Powered by <strong>Western Union Services India Pvt Ltd.</strong></p>
+        <p>Contact:
+        <a href="mailto:gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com">gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com</a> |
+        <a href="tel:+91 20 67632394">+91 2067632394 </a>
+        </p>
+    </footer>  
+</body>
+</html>
+
