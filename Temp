@@ -1,1 +1,163 @@
+const express = require("express");
+const xlsx = require("xlsx");
+const ping = require("ping");
+const cors = require("cors");
 
+const app = express();
+const PORT = 5000;
+
+// Enable CORS
+app.use(cors());
+
+// Global storage for device data
+let allData = {
+  cameras: [],
+  archivers: [],
+  controllers: [],
+  servers: []
+};
+
+// Store uptime and downtime stats
+let uptimeDowntimeStats = {};
+
+// File paths for device data
+const FILE_PATHS = {
+  cameras: "Desktop/Backend/src/data/CameraData.xlsx",
+  archivers: "Desktop/Backend/src/data/ArchiverData.xlsx",
+  controllers: "Desktop/Backend/src/data/ControllerData.xlsx",
+  servers: "Desktop/Backend/src/data/ServerData.xlsx"
+};
+
+// Function to read data from Excel
+const readExcelData = (filePath) => {
+  try {
+    const workbook = xlsx.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    return xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+  } catch (error) {
+    console.error(`❌ Error reading file: ${filePath}`, error);
+    return [];
+  }
+};
+
+// Load all devices into allData
+async function fetchAllDevices() {
+  console.log("🔄 Loading device data...");
+  allData = {
+    cameras: readExcelData(FILE_PATHS.cameras),
+    archivers: readExcelData(FILE_PATHS.archivers),
+    controllers: readExcelData(FILE_PATHS.controllers),
+    servers: readExcelData(FILE_PATHS.servers)
+  };
+  console.log("✅ Device data loaded successfully!");
+  return allData;
+}
+
+// API: Get device details by region
+app.get("/api/regions/details/:region", (req, res) => {
+  const region = req.params.region.toLowerCase();
+  console.log(`Fetching details for region: ${region}`);
+
+  if (!allData || !allData.cameras || !allData.archivers || !allData.controllers || !allData.servers) {
+    return res.status(500).json({ error: "Device data not properly initialized." });
+  }
+
+  const regionDetails = {
+    cameras: allData.cameras.filter(device => device.location?.toLowerCase() === region),
+    archivers: allData.archivers.filter(device => device.location?.toLowerCase() === region),
+    controllers: allData.controllers.filter(device => device.location?.toLowerCase() === region),
+    servers: allData.servers.filter(device => device.location?.toLowerCase() === region)
+  };
+
+  res.status(200).json(regionDetails);
+});
+
+// API: Get downtime/uptime data for a region
+app.get('/api/region/devices/downtime-uptime/:region', (req, res) => {
+  const region = req.params.region.toLowerCase();
+  console.log(`Fetching downtime-uptime data for region: ${region}`);
+
+  if (!allData || !allData.cameras || !allData.archivers || !allData.controllers || !allData.servers) {
+    return res.status(500).json({ error: "Device data not properly initialized." });
+  }
+
+  const regionDevices = [];
+
+  [...allData.cameras, ...allData.archivers, ...allData.controllers, ...allData.servers].forEach(device => {
+    if (device.location?.toLowerCase() === region) {
+      regionDevices.push(device.ip_address);
+    }
+  });
+
+  if (regionDevices.length === 0) {
+    return res.status(404).json({ error: "No devices found for this region." });
+  }
+
+  const regionData = {};
+  for (const ip of regionDevices) {
+    if (uptimeDowntimeStats[ip]) {
+      regionData[ip] = uptimeDowntimeStats[ip];
+    }
+  }
+
+  res.status(200).json({ region, uptimeDowntimeData: regionData });
+});
+
+// Function to check device status (ping)
+async function checkDeviceStatus(ip) {
+  try {
+    const result = await ping.promise.probe(ip, { timeout: 2 });
+    return result.alive;
+  } catch (error) {
+    console.error(`❌ Error pinging ${ip}:`, error);
+    return false;
+  }
+}
+
+// Function to update uptime/downtime statistics
+async function updateUptimeDowntimeStats() {
+  console.log("🔄 Checking device status...");
+
+  const allDevices = [
+    ...allData.cameras,
+    ...allData.archivers,
+    ...allData.controllers,
+    ...allData.servers
+  ];
+
+  for (const device of allDevices) {
+    const ip = device.ip_address;
+    const isOnline = await checkDeviceStatus(ip);
+    const now = new Date();
+
+    if (!uptimeDowntimeStats[ip]) {
+      uptimeDowntimeStats[ip] = { online: isOnline, lastChange: now, downtimeRecords: [] };
+    }
+
+    const stats = uptimeDowntimeStats[ip];
+
+    if (isOnline !== stats.online) {
+      const downtimeDuration = (now - stats.lastChange) / (1000 * 60); // in minutes
+      if (!isOnline && downtimeDuration > 5) {
+        stats.downtimeRecords.push({ start: stats.lastChange, end: now, duration: downtimeDuration });
+      }
+      stats.online = isOnline;
+      stats.lastChange = now;
+    }
+  }
+
+  console.log("✅ Device status updated!");
+}
+
+// Function to start periodic device monitoring
+function startMonitoring() {
+  setInterval(updateUptimeDowntimeStats, 60000);
+}
+
+// Load data and start the server
+fetchAllDevices().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    startMonitoring();
+  });
+});
