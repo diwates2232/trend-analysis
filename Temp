@@ -1,1 +1,222 @@
+const xlsx = require("xlsx");
+const path = require("path");
+const ping = require("ping");
+
+// Paths for Excel files
+const archiverPath = path.join(__dirname, "../data/ArchiverData.xlsx");
+const controllerPath = path.join(__dirname, "../data/ControllerData.xlsx");
+const cameraPath = path.join(__dirname, "../data/CameraData.xlsx");
+const serverPath = path.join(__dirname, "../data/ServerData.xlsx");
+
+// Cache to store preloaded data
+let allData = {};
+
+// Function to normalize column headers
+const normalizeHeaders = (data) => {
+    return data.map((row) => {
+        const normalizedRow = {};
+        for (const key in row) {
+            const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+            normalizedRow[normalizedKey] = row[key];
+        }
+        return normalizedRow;
+    });
+};
+
+const loadExcelData = () => {
+    if (Object.keys(allData).length === 0) { // Load only if not already loaded
+        const archiverWorkbook = xlsx.readFile(archiverPath);
+        const controllerWorkbook = xlsx.readFile(controllerPath);
+        const cameraWorkbook = xlsx.readFile(cameraPath);
+        const serverWorkbook = xlsx.readFile(serverPath);
+
+        allData = {
+            archivers: normalizeHeaders(xlsx.utils.sheet_to_json(archiverWorkbook.Sheets[archiverWorkbook.SheetNames[0]])),
+            controllers: normalizeHeaders(xlsx.utils.sheet_to_json(controllerWorkbook.Sheets[controllerWorkbook.SheetNames[0]])),
+            cameras: normalizeHeaders(xlsx.utils.sheet_to_json(cameraWorkbook.Sheets[cameraWorkbook.SheetNames[0]])),
+            servers: normalizeHeaders(xlsx.utils.sheet_to_json(serverWorkbook.Sheets[serverWorkbook.SheetNames[0]])),
+        };
+        console.log("✅ Excel Data Loaded.");
+    }
+};
+
+// Function to fetch all device data
+const fetchAllDevices = () => {
+    return allData;
+};
+
+// Function to fetch all IP addresses
+const fetchAllIpAddress = () => {
+    const devices = {
+        cameras: allData.cameras || [],
+        archivers: allData.archivers || [],
+        controllers: allData.controllers || [],
+        servers: allData.servers || [],
+    };
+
+    const merged = [...devices.cameras, ...devices.archivers, ...devices.controllers, ...devices.servers];
+    const addresses = merged.map(device => device.ip_address).filter(ip => ip); // Remove undefined IPs
+    return addresses;
+};
+
+// Function to compute global summary and details
+const fetchGlobalData = async () => {
+    const devices = {
+        cameras: allData.cameras,
+        archivers: allData.archivers,
+        controllers: allData.controllers,
+        servers: allData.servers,
+    };
+
+    await pingDevices([...devices.cameras, ...devices.archivers, ...devices.controllers, ...devices.servers]);
+
+    const summary = calculateSummary(devices);
+    return { summary, details: devices };
+};
+
+// Function to compute region summary and details
+const fetchRegionData = async (regionName) => {
+    console.log(`Fetching data for region: ${regionName}`);
+    
+    const filteredCameras = allData.cameras.filter(row => row.location?.toLowerCase() === regionName.toLowerCase());
+    const filteredArchivers = allData.archivers.filter(row => row.location?.toLowerCase() === regionName.toLowerCase());
+    const filteredControllers = allData.controllers.filter(row => row.location?.toLowerCase() === regionName.toLowerCase());
+    const filteredServers = allData.servers.filter(row => row.location?.toLowerCase() === regionName.toLowerCase());
+
+    const devices = { cameras: filteredCameras, archivers: filteredArchivers, controllers: filteredControllers, servers: filteredServers };
+
+    console.log(`Filtered Devices:`, devices);
+
+    await pingDevices([...filteredCameras, ...filteredArchivers, ...filteredControllers, ...filteredServers]);
+
+    const summary = calculateSummary(devices);
+    return { summary, details: devices };
+};
+
+// Function to compute summary
+const calculateSummary = (devices) => {
+    const summary = {};
+
+    for (const [key, deviceList] of Object.entries(devices)) {
+        const total = deviceList.length;
+        const online = deviceList.filter(device => device.status === "Online").length;
+        const offline = total - online;
+
+        summary[key] = { total, online, offline };
+    }
+
+    return {
+        totalDevices: Object.values(summary).reduce((sum, { total }) => sum + total, 0),
+        totalOnlineDevices: Object.values(summary).reduce((sum, { online }) => sum + online, 0),
+        totalOfflineDevices: Object.values(summary).reduce((sum, { offline }) => sum + offline, 0),
+        ...summary,
+    };
+};
+
+// Function to fetch uptime data
+const fetchDeviceUptimeData = () => {
+    return deviceDowntimeData;
+};
+
+// Preload data
+loadExcelData();
+
+module.exports = { fetchAllDevices, fetchGlobalData, fetchRegionData, fetchAllIpAddress, fetchDeviceUptimeData };
+
+
+
+
+
+
+
+
+
+
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const ping = require("ping");
+const regionRoutes = require("./routes/regionRoutes");
+const { fetchAllDevices, fetchAllIpAddress } = require("./services/excelService");
+
+const app = express();
+const PORT = process.env.PORT || 80;
+
+// Middleware
+app.use(cors({
+  origin: "http://127.0.0.1:5500",
+  methods: "GET,POST,PUT,DELETE",
+  allowedHeaders: "Content-Type,Authorization",
+}));
+app.use(bodyParser.json());
+
+// Routes
+app.use("/api/regions", regionRoutes);
+
+let allData = {};
+
+// Load all device data on startup
+async function loadAllDevices() {
+  try {
+    allData = fetchAllDevices();
+    console.log("✅ Successfully loaded device data:", JSON.stringify(allData, null, 2));
+
+    devices = fetchAllIpAddress();
+    console.log("✅ Successfully loaded IP addresses:", devices);
+  } catch (error) {
+    console.error("❌ Error loading device data:", error);
+  }
+}
+
+let deviceStatus = {};
+let devices = [];
+
+// Function to ping devices
+async function pingDevices() {
+  if (devices.length === 0) {
+    console.log("⚠ No devices found to ping.");
+    return;
+  }
+
+  for (const ip of devices) {
+    try {
+      const result = await ping.promise.probe(ip);
+      deviceStatus[ip] = result.alive ? "Online" : "Offline";
+    } catch (error) {
+      console.error(`Error pinging ${ip}:`, error);
+      deviceStatus[ip] = "Offline";
+    }
+  }
+
+  console.log("Updated device status:", deviceStatus);
+}
+
+// Ping devices every 30 seconds
+setInterval(pingDevices, 30000);
+
+// API Routes
+app.get("/api/devices/status", (req, res) => {
+  res.json(deviceStatus);
+});
+
+// Ping a specific device
+app.get("/api/ping/:ip", async (req, res) => {
+  const ip = req.params.ip;
+  try {
+    const result = await ping.promise.probe(ip);
+    res.json({ ip, status: result.alive ? "Online" : "Offline" });
+  } catch (error) {
+    console.error(`Ping error for ${ip}:`, error);
+    res.json({ ip, status: "Offline" });
+  }
+});
+
+// Start Server
+loadAllDevices().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    pingDevices(); 
+  });
+});
 
