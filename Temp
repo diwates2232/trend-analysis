@@ -1,3 +1,50 @@
+const { fetchAllDevices } = require("./services/excelService"); // Import function to fetch all devices
+
+async function loadAllDevices() {
+  try {
+    allData = await fetchAllDevices(); // Fetch device data from Excel or database
+    console.log("✅ Successfully loaded device data:", allData);
+  } catch (error) {
+    console.error("❌ Error loading device data:", error);
+  }
+}
+
+// Load devices before starting the server
+loadAllDevices();
+
+
+
+async function fetchAllDevices() {
+  try {
+    const cameras = await readExcelFile("Desktop/Backend/src/data/CameraData.xlsx");
+    const archivers = await readExcelFile("Desktop/Backend/src/data/ArchiverData.xlsx");
+    const controllers = await readExcelFile("Desktop/Backend/src/data/ControllerData.xlsx");
+    const servers = await readExcelFile("Desktop/Backend/src/data/ServerData.xlsx");
+
+    const allDevices = {
+      cameras,
+      archivers,
+      controllers,
+      servers
+    };
+
+    console.log("📌 Data fetched from Excel:", JSON.stringify(allDevices, null, 2)); // Debugging log
+    return allDevices;
+  } catch (error) {
+    console.error("❌ Error fetching devices:", error);
+    return { cameras: [], archivers: [], controllers: [], servers: [] };
+  }
+}
+
+
+
+
+
+
+
+
+
+
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
