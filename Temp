@@ -1,4 +1,22 @@
+app.get('/api/region/devices/downtime-uptime/:region', (req, res) => {
+    const region = req.params.region;
+    console.log(`Fetching downtime-uptime data for region: ${region}`);
+    
+    // Sample response, replace this with actual logic
+    res.json({ message: `Data for ${region}`, data: [] });
+});
+
+
+
+
+
+
+
+
+
 function fetchTrendData(region) {
+
+
     const trendApiUrl = `http://localhost:80/api/region/devices/downtime-uptime/${region}`;
     fetch(trendApiUrl)
 
