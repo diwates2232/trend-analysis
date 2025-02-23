@@ -1,3 +1,36 @@
+// Get downtime/uptime summary for a specific region
+app.get('/api/region/devices/downtime-uptime/:region', (req, res) => {
+    const region = req.params.region.toLowerCase();
+    console.log(`Fetching downtime-uptime data for region: ${region}`);
+
+    const regionDevices = Object.keys(uptimeDowntimeStats).filter(ip => {
+        // Check if the IP belongs to the requested region
+        return allData.cameras.some(device => device.ip_address === ip && device.location?.toLowerCase() === region) ||
+               allData.archivers.some(device => device.ip_address === ip && device.location?.toLowerCase() === region) ||
+               allData.controllers.some(device => device.ip_address === ip && device.location?.toLowerCase() === region) ||
+               allData.servers.some(device => device.ip_address === ip && device.location?.toLowerCase() === region);
+    });
+
+    if (regionDevices.length === 0) {
+        return res.status(404).json({ error: "No devices found for this region." });
+    }
+
+    // Collect uptime/downtime data for the found devices
+    const regionData = {};
+    for (const ip of regionDevices) {
+        regionData[ip] = uptimeDowntimeStats[ip];
+    }
+
+    res.status(200).json({ region, uptimeDowntimeData: regionData });
+});
+
+
+
+
+
+
+
+
 const fetchRegionData = async (regionName) => {
     console.log(`Fetching data for region: ${regionName}`);
     
