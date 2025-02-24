@@ -1,3 +1,67 @@
+app.get("/api/region/devices/downtime-uptime/:region", (req, res) => {
+    const region = req.params.region.toLowerCase();
+    console.log(`Fetching downtime-uptime data for region: ${region}`);
+
+    // Get the current date keys
+    const { day, week, month } = getDateKeys();
+
+    // Fetch devices for the given region
+    const regionDevices = Object.keys(uptimeDowntimeStats).filter((ip) => {
+        const device = allData.cameras.find(d => d.ip_address === ip) ||
+                       allData.archivers.find(d => d.ip_address === ip) ||
+                       allData.controllers.find(d => d.ip_address === ip) ||
+                       allData.servers.find(d => d.ip_address === ip);
+
+        return device && device.location?.toLowerCase() === region;
+    });
+
+    if (regionDevices.length === 0) {
+        return res.status(404).json({ message: `No devices found for region: ${region}` });
+    }
+
+    // Aggregate uptime and downtime statistics
+    let dailySummary = { totalUptime: 0, totalDowntime: 0, totalDowntimeDuration: 0 };
+    let weeklySummary = { totalUptime: 0, totalDowntime: 0, totalDowntimeDuration: 0 };
+    let monthlySummary = { totalUptime: 0, totalDowntime: 0, totalDowntimeDuration: 0 };
+
+    regionDevices.forEach(ip => {
+        const stats = uptimeDowntimeStats[ip] || { daily: {}, weekly: {}, monthly: {} };
+
+        // Daily aggregation
+        if (stats.daily[day]) {
+            dailySummary.totalUptime += stats.daily[day].uptime || 0;
+            dailySummary.totalDowntime += stats.daily[day].downtime || 0;
+            dailySummary.totalDowntimeDuration += stats.daily[day].downtimeDuration || 0;
+        }
+
+        // Weekly aggregation
+        if (stats.weekly[week]) {
+            weeklySummary.totalUptime += stats.weekly[week].uptime || 0;
+            weeklySummary.totalDowntime += stats.weekly[week].downtime || 0;
+            weeklySummary.totalDowntimeDuration += stats.weekly[week].downtimeDuration || 0;
+        }
+
+        // Monthly aggregation
+        if (stats.monthly[month]) {
+            monthlySummary.totalUptime += stats.monthly[month].uptime || 0;
+            monthlySummary.totalDowntime += stats.monthly[month].downtime || 0;
+            monthlySummary.totalDowntimeDuration += stats.monthly[month].downtimeDuration || 0;
+        }
+    });
+
+    res.status(200).json({
+        region: region,
+        dailySummary,
+        weeklySummary,
+        monthlySummary
+    });
+});
+
+
+
+
+
+
 excelService.js
 
 
