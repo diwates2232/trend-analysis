@@ -1,541 +1,585 @@
-app.get("/api/region/devices/downtime-uptime/:region", (req, res) => {
-  try {
-    const region = req.params.region.toLowerCase();
-    console.log(`Fetching downtime-uptime data for region: ${region}`);
+Script.js
 
-    if (!uptimeDowntimeStats) {
-      console.error("uptimeDowntimeStats is undefined or empty");
-      return res.status(500).json({ message: "Server error: Data not available" });
-    }
 
-    const { day, week, month } = getDateKeys();
-    if (!day || !week || !month) {
-      console.error("Error getting date keys");
-      return res.status(500).json({ message: "Error generating date keys" });
-    }
+const baseUrl = "http://localhost:80/api/regions";
 
-    // Find devices in the given region
-    const regionDevices = Object.keys(uptimeDowntimeStats).map(ip => {
-      const device = allData.cameras.find(d => d.ip_address === ip) ||
-                     allData.archivers.find(d => d.ip_address === ip) ||
-                     allData.controllers.find(d => d.ip_address === ip) ||
-                     allData.servers.find(d => d.ip_address === ip);
+// Declare the variable 'region' at the top before usage
+let region;
 
-      if (device && device.location?.toLowerCase() === region) {
-        return { ip, name: device.name, stats: uptimeDowntimeStats[ip] };
-      }
-      return null;
-    }).filter(d => d !== null);
+document.addEventListener("DOMContentLoaded", function() {
+    // Initialize 'region' after the document is fully loaded
+    region = "Global"; // Assign your actual value here
 
-    if (regionDevices.length === 0) {
-      console.warn(`No devices found for region: ${region}`);
-      return res.status(404).json({ message: `No devices found for region: ${region}` });
-    }
-
-    let dailySummary = { totalUptime: 0, totalDowntime: 0, totalDowntimeDuration: 0 };
-    let weeklySummary = { totalUptime: 0, totalDowntime: 0, totalDowntimeDuration: 0 };
-    let monthlySummary = { totalUptime: 0, totalDowntime: 0, totalDowntimeDuration: 0 };
-
-    let deviceDetails = regionDevices.map(({ ip, name, stats }) => {
-      const dailyStats = stats.daily[day] || { uptime: 0, downtime: 0, downtimeDuration: 0 };
-      const weeklyStats = stats.weekly[week] || { uptime: 0, downtime: 0, downtimeDuration: 0 };
-      const monthlyStats = stats.monthly[month] || { uptime: 0, downtime: 0, downtimeDuration: 0 };
-
-      dailySummary.totalUptime += dailyStats.uptime;
-      dailySummary.totalDowntime += dailyStats.downtime;
-      dailySummary.totalDowntimeDuration += dailyStats.downtimeDuration;
-
-      weeklySummary.totalUptime += weeklyStats.uptime;
-      weeklySummary.totalDowntime += weeklyStats.downtime;
-      weeklySummary.totalDowntimeDuration += weeklyStats.downtimeDuration;
-
-      monthlySummary.totalUptime += monthlyStats.uptime;
-      monthlySummary.totalDowntime += monthlyStats.downtime;
-      monthlySummary.totalDowntimeDuration += monthlyStats.downtimeDuration;
-
-      return {
-        ip,
-        name,
-        status: deviceStatus[ip] || "Unknown",
-        daily: dailyStats,
-        weekly: weeklyStats,
-        monthly: monthlyStats
-      };
-    });
-
-    return res.status(200).json({
-      region: region,
-      dailySummary,
-      weeklySummary,
-      monthlySummary,
-      deviceDetails
-    });
-
-  } catch (error) {
-    console.error("Error in API:", error);
-    return res.status(500).json({ message: "Something went wrong!", error: error.message });
-  }
+    // Now you can safely use 'region' without errors
+    console.log(region);  // This should now work
+    initializeContent();
 });
 
-
-
-
-
-
-
-
-
-
-
-const device = allData.cameras.find(d => d.ip_address === ip) ||
-               allData.archivers.find(d => d.ip_address === ip) ||
-               allData.controllers.find(d => d.ip_address === ip) ||
-               allData.servers.find(d => d.ip_address === ip);
-
-
-
-console.log("All Data Loaded from Excel:", JSON.stringify(allData, null, 2));
-
-
-return device && device.location?.toLowerCase() === region.toLowerCase();
-
-
-console.log("Current Uptime/Downtime Stats:", JSON.stringify(uptimeDowntimeStats, null, 2));
-
-
-
-console.log(`Fetching downtime-uptime data for region: ${region}`);
-console.log("UptimeDowntimeStats:", JSON.stringify(uptimeDowntimeStats, null, 2));
-console.log("AllData:", JSON.stringify(allData, null, 2));
-
-
-
-
-
-
-
-
-
-
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-const ping = require("ping");
-const regionRoutes = require("./routes/regionRoutes");
-const { fetchAllIpAddress, allData } = require("./services/excelService");
-
-const app = express();
-const PORT = process.env.PORT || 80;
-
-// Middleware
-app.use(cors({
-  origin: "http://127.0.0.1:5500", // Match your frontend's origin
-  methods: "GET,POST,PUT,DELETE",
-  allowedHeaders: "Content-Type,Authorization",
-}));
-app.use(bodyParser.json());
-
-// Routes
-app.use("/api/regions", regionRoutes);
-
-// Store device statuses and downtime tracking
-const devices = fetchAllIpAddress();
-let deviceStatus = {};
-let downtimeTracking = {};
-let uptimeDowntimeStats = {};
-
-// Logging allData at startup
-console.log("All Device Data Loaded from Excel:");
-console.log(JSON.stringify(allData, null, 2));
-
-// Function to get date keys
-const getDateKeys = () => {
-  const now = new Date();
-  const day = now.toISOString().split("T")[0]; // YYYY-MM-DD
-  const week = Math.ceil(now.getDate() / 7); // Week in the month
-  const month = now.getMonth() + 1; // Month number
-  return { day, week, month };
-};
-
-// Function to ping devices and update status
-async function pingDevices() {
-  const { day, week, month } = getDateKeys();
-
-  for (const ip of devices) {
-    try {
-      const result = await ping.promise.probe(ip);
-      const isOnline = result.alive;
-
-      if (!uptimeDowntimeStats[ip]) {
-        uptimeDowntimeStats[ip] = { daily: {}, weekly: {}, monthly: {} };
-      }
-
-      if (!uptimeDowntimeStats[ip].daily[day]) {
-        uptimeDowntimeStats[ip].daily[day] = { uptime: 0, downtime: 0, downtimeDuration: 0 };
-      }
-      if (!uptimeDowntimeStats[ip].weekly[week]) {
-        uptimeDowntimeStats[ip].weekly[week] = { uptime: 0, downtime: 0, downtimeDuration: 0 };
-      }
-      if (!uptimeDowntimeStats[ip].monthly[month]) {
-        uptimeDowntimeStats[ip].monthly[month] = { uptime: 0, downtime: 0, downtimeDuration: 0 };
-      }
-
-      if (isOnline) {
-        if (downtimeTracking[ip]?.lastOffline) {
-          const lastOfflineTime = downtimeTracking[ip].lastOffline;
-          const downtimeMinutes = Math.floor((Date.now() - lastOfflineTime) / 60000);
-          uptimeDowntimeStats[ip].daily[day].downtimeDuration += downtimeMinutes;
-          uptimeDowntimeStats[ip].weekly[week].downtimeDuration += downtimeMinutes;
-          uptimeDowntimeStats[ip].monthly[month].downtimeDuration += downtimeMinutes;
-          delete downtimeTracking[ip];
-        }
-        uptimeDowntimeStats[ip].daily[day].uptime += 1;
-        uptimeDowntimeStats[ip].weekly[week].uptime += 1;
-        uptimeDowntimeStats[ip].monthly[month].uptime += 1;
-      } else {
-        if (!downtimeTracking[ip]) {
-          downtimeTracking[ip] = { lastOffline: Date.now(), totalDowntime: 0 };
-        } else {
-          const lastOfflineTime = downtimeTracking[ip].lastOffline;
-          const downtimeMinutes = Math.floor((Date.now() - lastOfflineTime) / 60000);
-          if (downtimeMinutes > 0) {
-            uptimeDowntimeStats[ip].daily[day].downtimeDuration += downtimeMinutes;
-            uptimeDowntimeStats[ip].weekly[week].downtimeDuration += downtimeMinutes;
-            uptimeDowntimeStats[ip].monthly[month].downtimeDuration += downtimeMinutes;
-            downtimeTracking[ip].totalDowntime += downtimeMinutes;
-            downtimeTracking[ip].lastOffline = Date.now();
-          }
-        }
-        uptimeDowntimeStats[ip].daily[day].downtime += 1;
-        uptimeDowntimeStats[ip].weekly[week].downtime += 1;
-        uptimeDowntimeStats[ip].monthly[month].downtime += 1;
-      }
-
-      deviceStatus[ip] = isOnline ? "Online" : "Offline";
-    } catch (error) {
-      console.error(`Error pinging ${ip}:`, error);
-      deviceStatus[ip] = "Offline";
-    }
-  }
+function initializeContent() {
+    // Any function that relies on the 'region' variable can now use it safely
+    console.log("Initializing content with region:", region);
+    // Continue with the rest of your logic
 }
 
-// Start pinging devices every 30 seconds
-setInterval(pingDevices, 30000);
+const trendApiUrl = `http://localhost:80/api/region/devices/downtime-uptime/${region}`;
 
-// Get device status
-app.get("/api/devices/status", (req, res) => {
-  res.json(deviceStatus);
-});
+document.addEventListener("DOMContentLoaded", () => {
+    // Fetch summary and details for the default region (global)
+    fetchSummary("global");
+    fetchDetails("global");
 
-// Get downtime/uptime summary for a region
-app.get("/api/region/devices/downtime-uptime/:region", (req, res) => {
-  try {
-    const region = req.params.region.toLowerCase();
-    console.log(`Fetching downtime-uptime data for region: ${region}`);
-
-    if (!uptimeDowntimeStats) {
-      return res.status(500).json({ message: "Server error: Data not available" });
-    }
-
-    const { day, week, month } = getDateKeys();
-
-    // Find devices in the given region
-    const regionDevices = Object.keys(uptimeDowntimeStats).filter((ip) => {
-      const device = allData.cameras.find(d => d.ip_address === ip) ||
-                     allData.archivers.find(d => d.ip_address === ip) ||
-                     allData.controllers.find(d => d.ip_address === ip) ||
-                     allData.servers.find(d => d.ip_address === ip);
-
-      return device && device.location?.toLowerCase() === region.toLowerCase();
+    // Add event listeners to region buttons
+    const regionButtons = document.querySelectorAll(".region-button");
+    regionButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+            const region = button.getAttribute("data-region");
+            document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
+            fetchSummary(region);
+            fetchDetails(region);
+            fetchTrendData(region); // Fetch trend data when region is changed
+        });
     });
 
-    console.log("Devices Found in Region:", regionDevices);
-
-    if (regionDevices.length === 0) {
-      return res.status(404).json({ message: `No devices found for region: ${region}` });
-    }
-
-    let dailySummary = { totalUptime: 0, totalDowntime: 0, totalDowntimeDuration: 0 };
-    let weeklySummary = { totalUptime: 0, totalDowntime: 0, totalDowntimeDuration: 0 };
-    let monthlySummary = { totalUptime: 0, totalDowntime: 0, totalDowntimeDuration: 0 };
-
-    regionDevices.forEach(ip => {
-      const stats = uptimeDowntimeStats[ip] || { daily: {}, weekly: {}, monthly: {} };
-
-      if (stats.daily[day]) {
-        dailySummary.totalUptime += stats.daily[day].uptime || 0;
-        dailySummary.totalDowntime += stats.daily[day].downtime || 0;
-        dailySummary.totalDowntimeDuration += stats.daily[day].downtimeDuration || 0;
-      }
-
-      if (stats.weekly[week]) {
-        weeklySummary.totalUptime += stats.weekly[week].uptime || 0;
-        weeklySummary.totalDowntime += stats.weekly[week].downtime || 0;
-        weeklySummary.totalDowntimeDuration += stats.weekly[week].downtimeDuration || 0;
-      }
-
-      if (stats.monthly[month]) {
-        monthlySummary.totalUptime += stats.monthly[month].uptime || 0;
-        monthlySummary.totalDowntime += stats.monthly[month].downtime || 0;
-        monthlySummary.totalDowntimeDuration += stats.monthly[month].downtimeDuration || 0;
-      }
+    // Close modal on button click
+    document.getElementById("close-modal").addEventListener("click", () => {
+        document.getElementById("modal").style.display = "none";
     });
-
-    return res.status(200).json({ region, dailySummary, weeklySummary, monthlySummary });
-
-  } catch (error) {
-    console.error("Error in API:", error);
-    return res.status(500).json({ message: "Something went wrong!", error: error.message });
-  }
 });
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  pingDevices();
-});
+let refreshInterval = 300000; // 5 minutes (300,000 ms)
+let countdownTime = refreshInterval / 1000; // Convert to seconds
 
+function fetchData(regionName) {
+    const summaryUrl = `${baseUrl}/summary/${regionName}`;
+    const detailsUrl = `${baseUrl}/details/${regionName}`;
 
-
-
-
-
-
-
-
-
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-const ping = require("ping");
-const regionRoutes = require("./routes/regionRoutes");
-const { fetchAllIpAddress } = require("./services/excelService");
-const {allData}=require("./services/excelService");
-
-const app = express();
-const PORT = process.env.PORT || 80;
-
-// Middleware
-app.use(cors({
-  origin: "http://127.0.0.1:5500", // Match your frontend's origin
-  methods: "GET,POST,PUT,DELETE",
-  allowedHeaders: "Content-Type,Authorization",
-}));
-app.use(bodyParser.json());
-
-// Routes
-app.use("/api/regions", regionRoutes);
-
-// Store device statuses and downtime tracking
-const devices = fetchAllIpAddress();
-let deviceStatus = {};
-let downtimeTracking = {}; // { ip: { lastOffline: timestamp, downtimeDuration: minutes } }
-let uptimeDowntimeStats = {}; // Store daily, weekly, and monthly uptime/downtime
-
-// Function to get the current date, week, and month keys
-const getDateKeys = () => {
-  const now = new Date();
-  const day = now.toISOString().split("T")[0]; // YYYY-MM-DD format
-  const week = Math.ceil(now.getDate() / 7); // Week number in the month
-  const month = now.getMonth() + 1; // Month number
-  return { day, week, month };
-};
-
-// Function to update device status and track downtime/uptime
-async function pingDevices() {
-  const { day, week, month } = getDateKeys();
-
-  for (const ip of devices) {
-    try {
-      const result = await ping.promise.probe(ip);
-      const isOnline = result.alive;
-      
-      if (!uptimeDowntimeStats[ip]) {
-        uptimeDowntimeStats[ip] = { daily: {}, weekly: {}, monthly: {} };
-      }
-
-      // Initialize if not present
-      if (!uptimeDowntimeStats[ip].daily[day]) {
-        uptimeDowntimeStats[ip].daily[day] = { uptime: 0, downtime: 0, downtimeDuration: 0 };
-      }
-      if (!uptimeDowntimeStats[ip].weekly[week]) {
-        uptimeDowntimeStats[ip].weekly[week] = { uptime: 0, downtime: 0, downtimeDuration: 0 };
-      }
-      if (!uptimeDowntimeStats[ip].monthly[month]) {
-        uptimeDowntimeStats[ip].monthly[month] = { uptime: 0, downtime: 0, downtimeDuration: 0 };
-      }
-
-      if (isOnline) {
-        // If previously offline, calculate downtime duration
-        if (downtimeTracking[ip] && downtimeTracking[ip].lastOffline) {
-          const lastOfflineTime = downtimeTracking[ip].lastOffline;
-          const downtimeMinutes = Math.floor((Date.now() - lastOfflineTime) / 60000); // Convert ms to minutes
-
-          // Update downtime duration
-          uptimeDowntimeStats[ip].daily[day].downtimeDuration += downtimeMinutes;
-          uptimeDowntimeStats[ip].weekly[week].downtimeDuration += downtimeMinutes;
-          uptimeDowntimeStats[ip].monthly[month].downtimeDuration += downtimeMinutes;
-
-          // Reset tracking
-          delete downtimeTracking[ip];
-        }
-
-        // Increase uptime count
-        uptimeDowntimeStats[ip].daily[day].uptime += 1;
-        uptimeDowntimeStats[ip].weekly[week].uptime += 1;
-        uptimeDowntimeStats[ip].monthly[month].uptime += 1;
-      } else {
-        // If the device just went offline, store the timestamp
-
-
-        if (!downtimeTracking[ip]) {
-          // If the device just went offline, start tracking its downtime
-          downtimeTracking[ip] = { lastOffline: Date.now(), totalDowntime: 0 };
-        } else {
-          // Device is still offline, calculate the new duration
-          const lastOfflineTime = downtimeTracking[ip].lastOffline;
-          const downtimeMinutes = Math.floor((Date.now() - lastOfflineTime) / 60000); // Convert ms to minutes
-        
-          if (downtimeMinutes > 0) {  // Only update if at least 1 minute has passed
-            uptimeDowntimeStats[ip].daily[day].downtimeDuration += downtimeMinutes;
-            uptimeDowntimeStats[ip].weekly[week].downtimeDuration += downtimeMinutes;
-            uptimeDowntimeStats[ip].monthly[month].downtimeDuration += downtimeMinutes;
-        
-            // Update total downtime
-            downtimeTracking[ip].totalDowntime += downtimeMinutes;
-        
-            // Update last offline time to the current timestamp (to avoid counting same duration multiple times)
-            downtimeTracking[ip].lastOffline = Date.now();
-          }
-        }
-
-
-        // Increase downtime count
-        uptimeDowntimeStats[ip].daily[day].downtime += 1;
-        uptimeDowntimeStats[ip].weekly[week].downtime += 1;
-        uptimeDowntimeStats[ip].monthly[month].downtime += 1;
-      }
-
-      deviceStatus[ip] = isOnline ? "Online" : "Offline";
-    } catch (error) {
-      console.error(`Error pinging ${ip}:`, error);
-      deviceStatus[ip] = "Offline";
-    }
-  }
-
-  console.log("Updated device status:", deviceStatus);
+    Promise.all([
+        fetch(summaryUrl).then((res) => res.json()),
+        fetch(detailsUrl).then((res) => res.json())
+    ])
+    .then(([summary, details]) => {
+        console.log("Summary Data:", summary);
+        console.log("Details Data:", details);
+        updateSummary(summary);
+        updateDetails(details);
+    })
+    .catch((error) => {
+        console.error("Error fetching data:", error);
+    });
 }
 
-// Ping devices every 30 seconds
-setInterval(pingDevices, 30000);
+// Function to start auto-refresh with a countdown
+function startAutoRefresh(regionName) {
+    fetchData(regionName); // Fetch data initially
 
-// Get real-time status of all devices
-app.get("/api/devices/status", (req, res) => {
-  res.json(deviceStatus);
+    // Countdown Timer Display
+    const countdownDisplay = document.getElementById("countdown");
+    function updateCountdown() {
+        countdownDisplay.innerText = `Refreshing in ${countdownTime} seconds`;
+        countdownTime--;
+        if (countdownTime < 0) countdownTime = refreshInterval / 1000;
+    }
+    
+    // Start countdown every second
+    setInterval(updateCountdown, 1000);
+
+    // Refresh data every 5 minutes
+    setInterval(() => {
+        fetchData(regionName); // Fetch fresh data
+        countdownTime = refreshInterval / 1000; // Reset countdown
+    }, refreshInterval);
+}
+
+// Call function with the selected region when the page loads
+document.addEventListener("DOMContentLoaded", () => {
+    let regionName = "Global"; // Default region
+    startAutoRefresh(regionName);
+    fetchTrendData(regionName); // Fetch trend data on page load
 });
 
+function fetchSummary(regionName) {
+    const summaryUrl = `${baseUrl}/summary/${regionName}`;
+
+    fetch(summaryUrl)
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error("Error fetching summary data from API.");
+            }
+            return response.json();
+        })
+        .then((summary) => {
+            console.log("Summary Data:", summary);
+            updateSummary(summary);
+        })
+        .catch((error) => {
+            console.error("Error fetching summary:", error);
+            alert("Failed to load summary data. Please check the console for details.");
+        });
+}
 
 
 
-// New endpoint to get downtime/uptime summary
-app.get("/api/region/devices/downtime-uptime/:region", (req, res) => {
-  try {
-      const region = req.params.region.toLowerCase();
-      console.log(`Fetching downtime-uptime data for region: ${region}`);
+function fetchDetails(regionName) {
+    const detailsUrl = `${baseUrl}/details/${regionName}`;
 
-      // Validate uptimeDowntimeStats
-      if (!uptimeDowntimeStats) {
-          console.error("uptimeDowntimeStats is undefined or empty");
-          return res.status(500).json({ message: "Server error: Data not available" });
-      }
+    fetch(detailsUrl)
+        .then((response) => response.json())
+        .then((details) => {
+            console.log("Details Data:", details);
+            updateDetails(details);
+            
+            // Start live pinging every 10 seconds
+            setInterval(() => {
+                pingAllDevices(details);
+                fetchLiveStatus(regionName); // Fetch live status every 10s
+            }, 10000);
+        })
+        .catch((error) => {
+            console.error("Error fetching details:", error);
+            document.getElementById("device-details").innerHTML = "<p>Failed to load device details.</p>";
+        });
+}
 
-      const { day, week, month } = getDateKeys();
-      if (!day || !week || !month) {
-          console.error("Error getting date keys");
-          return res.status(500).json({ message: "Error generating date keys" });
-      }
+// Function to fetch trend data
 
-      // Find devices in the given region
-      const regionDevices = Object.keys(uptimeDowntimeStats).filter((ip) => {
-          const device = allData.cameras.find(d => d.ip_address === ip) ||
-                         allData.archivers.find(d => d.ip_address === ip) ||
-                         allData.controllers.find(d => d.ip_address === ip) ||
-                         allData.servers.find(d => d.ip_address === ip);
 
-          return device && device.location?.toLowerCase() === region;
-      });
-
-      if (regionDevices.length === 0) {
-          console.warn(`No devices found for region: ${region}`);
-          return res.status(404).json({ message: `No devices found for region: ${region}` });
-      }
-
-      let dailySummary = { totalUptime: 0, totalDowntime: 0, totalDowntimeDuration: 0 };
-      let weeklySummary = { totalUptime: 0, totalDowntime: 0, totalDowntimeDuration: 0 };
-      let monthlySummary = { totalUptime: 0, totalDowntime: 0, totalDowntimeDuration: 0 };
-
-      regionDevices.forEach(ip => {
-          const stats = uptimeDowntimeStats[ip] || { daily: {}, weekly: {}, monthly: {} };
-
-          if (stats.daily[day]) {
-              dailySummary.totalUptime += stats.daily[day].uptime || 0;
-              dailySummary.totalDowntime += stats.daily[day].downtime || 0;
-              dailySummary.totalDowntimeDuration += stats.daily[day].downtimeDuration || 0;
-          }
-
-          if (stats.weekly[week]) {
-              weeklySummary.totalUptime += stats.weekly[week].uptime || 0;
-              weeklySummary.totalDowntime += stats.weekly[week].downtime || 0;
-              weeklySummary.totalDowntimeDuration += stats.weekly[week].downtimeDuration || 0;
-          }
-
-          if (stats.monthly[month]) {
-              monthlySummary.totalUptime += stats.monthly[month].uptime || 0;
-              monthlySummary.totalDowntime += stats.monthly[month].downtime || 0;
-              monthlySummary.totalDowntimeDuration += stats.monthly[month].downtimeDuration || 0;
-          }
-      });
-
-      return res.status(200).json({
-          region: region,
-          dailySummary,
-          weeklySummary,
-          monthlySummary
-      });
-
-  } catch (error) {
-      console.error("Error in API:", error);
-      return res.status(500).json({ message: "Something went wrong!", error: error.message });
-  }
-});
+function fetchTrendData(region) {
+    const trendApiUrl = `http://localhost:80/api/region/devices/downtime-uptime/${region}`;
+    fetch(trendApiUrl)
+    
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error("Error fetching downtime-uptime trend data.");
+            }
+            return response.json();
+        })
+        .then((trendData) => {
+            console.log("Trend Data:", trendData);
+        
+        })
+        .catch((error) => {
+            console.error("Error fetching trend data:", error);
+            alert("Failed to load trend data. Please check the console for details.");
+        });
+}
 
 
 
-// Ping a specific device dynamically
-app.get("/api/ping/:ip", async (req, res) => {
-  const ip = req.params.ip;
 
-  try {
-    const result = await ping.promise.probe(ip);
-    res.json({ ip, status: result.alive ? "Online" : "Offline" });
-  } catch (error) {
-    console.error(`Ping error for ${ip}:`, error);
-    res.json({ ip, status: "Offline" });
-  }
-});
+// Function to update trend analysis in UI
+function updateTrendAnalysis(data) {
+    const trendContainer = document.getElementById("trend-container");
+    trendContainer.innerHTML = ""; // Clear previous trend data
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send("Something went wrong!");
-});
+    // Display daily, weekly, and monthly downtime and uptime trends
+    const trends = ['daily', 'weekly', 'monthly'];
+    trends.forEach((period) => {
+        const trendData = data[period];
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  pingDevices(); // Start pinging devices immediately
-});
+        const trendCard = document.createElement("div");
+        trendCard.className = "trend-card";
+        trendCard.innerHTML = `
+            <h4>${period.charAt(0).toUpperCase() + period.slice(1)} Trend</h4>
+            <canvas id="${period}-chart"></canvas>
+        `;
+        trendContainer.appendChild(trendCard);
+
+        // Render chart using Chart.js or any other library
+        renderTrendChart(`${period}-chart`, trendData);
+    });
+}
+
+// Function to render charts
+function renderTrendChart(chartId, trendData) {
+    const ctx = document.getElementById(chartId).getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: trendData.labels, // e.g., days/weeks/months
+            datasets: [{
+                label: 'Downtime',
+                data: trendData.downtime, // Downtime data
+                borderColor: 'red',
+                fill: false
+            }, {
+                label: 'Uptime',
+                data: trendData.uptime, // Uptime data
+                borderColor: 'green',
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (tooltipItem) => {
+                            return `${tooltipItem.dataset.label}: ${tooltipItem.raw} hours`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Duration (hours)'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Function to ping all devices
+function pingAllDevices(details) {
+    for (const [key, devices] of Object.entries(details.details)) {
+        if (!Array.isArray(devices) || devices.length === 0) continue;
+
+        devices.forEach((device) => {
+            const ip = device.ip_address || "N/A";
+            const card = document.querySelector(`[data-ip="${ip}"]`);
+
+            if (!card) return; // If device is not found in UI, skip
+
+            // Ping the device API
+            fetch(`${baseUrl}/ping/${ip}`)
+                .then(response => response.json())
+                .then(statusData => {
+                    const newStatus = statusData.status.toLowerCase(); // Get live status
+
+                    // Update the UI instantly
+                    const statusDot = card.querySelector(".status-dot");
+                    const statusText = card.querySelector(".device-status");
+
+                    if (newStatus === "online") {
+                        statusDot.style.backgroundColor = "green";
+                        statusText.textContent = "Online";
+                        card.dataset.status = "online";
+                    } else {
+                        statusDot.style.backgroundColor = "red";
+                        statusText.textContent = "Offline";
+                        card.dataset.status = "offline";
+                    }
+                })
+                .catch(error => console.error(`Ping failed for ${ip}:`, error));
+        });
+    }
+}
+
+function updateSummary(data) {
+    document.getElementById("total-devices").textContent = data.summary?.totalDevices || "N/A";
+    document.getElementById("online-devices").textContent = data.summary?.totalOnlineDevices || "N/A";
+    document.getElementById("offline-devices").textContent = data.summary?.totalOfflineDevices || "N/A";
+
+    // Update Cameras summary
+    document.getElementById("camera-total").textContent = data.summary?.cameras?.total || "N/A";
+    document.getElementById("camera-online").textContent = data.summary?.cameras?.online || "N/A";
+    document.getElementById("camera-offline").textContent = data.summary?.cameras?.offline || "N/A";
+
+    // Update Archivers summary
+    document.getElementById("archiver-total").textContent = data.summary?.archivers?.total || "N/A";
+    document.getElementById("archiver-online").textContent = data.summary?.archivers?.online || "N/A";
+    document.getElementById("archiver-offline").textContent = data.summary?.archivers?.offline || "N/A";
+
+    // Update Controllers summary
+    document.getElementById("controller-total").textContent = data.summary?.controllers?.total || "N/A";
+    document.getElementById("controller-online").textContent = data.summary?.controllers?.online || "N/A";
+    document.getElementById("controller-offline").textContent = data.summary?.controllers?.offline || "N/A";
+
+    // Update Servers summary
+    document.getElementById("server-total").textContent = data.summary?.servers?.total || "N/A";
+    document.getElementById("server-online").textContent = data.summary?.servers?.online || "N/A";
+    document.getElementById("server-offline").textContent = data.summary?.servers?.offline || "N/A";
+}
+
+function updateDetails(data) {
+    const detailsContainer = document.getElementById("device-details");
+    const deviceFilter = document.getElementById("device-filter");
+    const onlineFilterButton = document.getElementById("filter-online");
+    const offlineFilterButton = document.getElementById("filter-offline");
+    const allFilterButton = document.getElementById("filter-all");
+
+    detailsContainer.innerHTML = ""; // Clear previous data
+
+    const offlineDevices = [];
+    const onlineDevices = [];
+    let allDevices = [];
+
+    // Fetch real-time status from the backend
+    fetch("http://localhost:80/api/devices/status")
+        .then((response) => response.json())
+        .then((realTimeStatus) => {
+            console.log("Live Status Data:", realTimeStatus);
+
+            // Loop through each device type
+            for (const [key, devices] of Object.entries(data.details)) {
+                if (!Array.isArray(devices) || devices.length === 0) continue;
+
+                const deviceType = key.toLowerCase(); // Convert to lowercase for filtering
+
+                devices.forEach((device) => {
+                    const deviceIP = device.ip_address || "N/A";
+                    const currentStatus = realTimeStatus[deviceIP] || device.status; // Use live status if available
+
+                    const card = document.createElement("div");
+                    card.className = "device-card";
+                    card.dataset.type = deviceType; // Store type for filtering
+                    card.dataset.status = currentStatus.toLowerCase(); // Store status for filtering
+
+                    // Create a status dot
+                    const statusDot = document.createElement("span");
+                    statusDot.className = "status-dot";
+                    statusDot.style.backgroundColor = currentStatus === "Online" ? "green" : "red";
+
+                    card.innerHTML = `
+                        <h3>${device.cameraname || device.controllername || device.archivername || device.servername || "Unknown Device"}</h3>
+                        <p>DEVICE TYPE: ${deviceType.toUpperCase()}</p>
+                        <p>IP: ${deviceIP}</p>
+                        <p>LOCATION: ${device.location || "N/A"}</p>
+                        <p>Status: ${currentStatus} ${statusDot.outerHTML}</p>
+                        <button class="details-button" onclick="showModal('${device.cameraname || device.controllername || device.archivername || device.servername || "Unknown Device"}', '${deviceIP}', '${device.location || "N/A"}', '${currentStatus}')">Details</button>
+                    `;
+
+                    allDevices.push(card);
+                    if (currentStatus === "Online") {
+                        onlineDevices.push(card);
+                    } else {
+                        offlineDevices.push(card);
+                    }
+                });
+            }
+
+            // Function to filter devices
+            function filterDevices() {
+                const selectedType = deviceFilter.value;
+                const selectedStatus = document.querySelector(".status-filter.active")?.dataset.status || "all";
+
+                detailsContainer.innerHTML = ""; // Clear current display
+
+                const filteredDevices = allDevices.filter((device) =>
+                    (selectedType === "all" || device.dataset.type === selectedType) &&
+                    (selectedStatus === "all" || device.dataset.status === selectedStatus)
+                );
+
+                filteredDevices.forEach((deviceCard) => {
+                    detailsContainer.appendChild(deviceCard);
+                });
+            }
+
+            // Initially display all devices
+            filterDevices();
+
+            // Add event listener to dropdown
+            deviceFilter.addEventListener("change", filterDevices);
+
+            // Add event listeners for status filters
+            [allFilterButton, onlineFilterButton, offlineFilterButton].forEach((button) => {
+                button.addEventListener("click", () => {
+                    document.querySelectorAll(".status-filter").forEach((btn) => btn.classList.remove("active"));
+                    button.classList.add("active");
+                    filterDevices();
+                });
+            });
+
+            // Append offline devices first, followed by online devices
+            [...offlineDevices, ...onlineDevices].forEach((deviceCard) => {
+                detailsContainer.appendChild(deviceCard);
+            });
+
+        })
+        .catch((error) => {
+            console.error("Error fetching real-time device status:", error);
+            detailsContainer.innerHTML = "<p>Failed to load device details.</p>";
+        });
+}
+
+function showModal(name, ip, location, status) {
+        document.getElementById("modal-title").textContent = `Details for ${name}`;
+        document.getElementById("modal-body").innerHTML = `
+            <li><strong>Name:</strong> ${name}</li>
+            <li><strong>IP:</strong> ${ip}</li>
+            <li><strong>Location:</strong> ${location}</li>
+            <li><strong>Status:</strong> ${status}</li>
+        `;
+        document.getElementById("modal").style.display = "block";
+    }
+    
+
+
+
+
+index.html
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+   
+    <div class="container">
+        <div id="sidebar">
+            <h2 style="color:rgb(223, 205, 38);">Regions</h2>
+            <button class="region-button" data-region="global">Global</button>
+            <button class="region-button" data-region="apac">APAC</button>
+            <button class="region-button" data-region="emea">EMEA</button>
+            <button class="region-button" data-region="laca">LACA</button>
+            <button class="region-button" data-region="namer">NAMER</button>
+
+            <div id="countdown" 
+            style="font-size: 16px; font-weight: bold; color:rgb(223, 205, 38);
+            padding: 10px;
+            display: block;">
+            </div>
+
+            <div class="filter-buttons">
+                <button id="filter-all" class="status-filter active" data-status="all"
+                style="display: block;
+                 width: 100%;
+                 padding: 15px;
+                 margin-bottom: 10px;
+                 border: none;
+                 background-color: #e8f0f1;
+                color: rgb(26, 23, 23);
+                font-size: 16px;
+                cursor: pointer;
+               text-align: center;
+                border-radius: 5px;
+                transition: background-color 0.3s ease;">All Devices</button>
+
+                <button id="filter-online" class="status-filter" data-status="online" 
+                style="display: block;
+                 width: 100%;
+                 padding: 15px;
+                 margin-bottom: 10px;
+                 border: none;
+                 background-color: #1c9c47;
+                color: rgb(26, 23, 23);
+                font-size: 16px;
+                cursor: pointer;
+               text-align: center;
+                border-radius: 5px;
+                transition: background-color 0.3s ease;">Online Devices</button>
+
+                <button id="filter-offline"  class="status-filter" data-status="offline"
+                style="display: block;
+                 width: 100%;
+                 padding: 15px;
+                 margin-bottom: 10px;
+                 border: none;
+                 background-color: #db2410;
+                color: rgb(26, 23, 23);
+                font-size: 16px;
+                cursor: pointer;
+               text-align: center;
+                border-radius: 5px;
+                transition: background-color 0.3s ease;">Offline Devices</button>
+            </div>
+
+            <label for="device-filter" style="color:rgb(223, 205, 38);
+            font-size: 16px;
+            border: none;
+            font-weight: bold;
+            text-align: start;
+            border-radius: 5px;
+            width: 100%;">Filter by Device Type:</label>
+            <select id="device-filter">
+                <option value="all">All</option>
+                <option value="cameras">Cameras</option>
+                <option value="archivers">Archivers</option>
+                <option value="controllers">Controllers</option>
+                <option value="servers">Servers</option>
+            </select>
+            
+            <!-- Link to the trend analysis page -->
+            <button id="trend-analysis-link" style="width: 100%; padding: 15px; margin-top: 20px; border: none; background-color: #007bff; color: white; font-size: 16px; cursor: pointer; text-align: center; border-radius: 5px; transition: background-color 0.3s ease;">View Trend Analysis</button>
+        </div>
+
+        <div id="content">
+            <h1 id="region-title" style="color:rgb(255, 0, 0); font-weight: bold; text-align: start;">Global Summary</h1>
+            <div class="summary">
+                <div class="card">
+                    <h3>Total Devices</h3>
+                    <p>Total: <span id="total-devices">Loading...</span></p>
+                    <p>Online: <span id="online-devices">Loading...</span></p>
+                    <p>Offline: <span id="offline-devices">Loading...</span></p>
+                </div>
+
+                <div class="card">
+                    <h3>Cameras</h3>
+                    <p>Total: <span id="camera-total">Loading...</span></p>
+                    <p>Online: <span id="camera-online">Loading...</span></p>
+                    <p>Offline: <span id="camera-offline">Loading...</span></p>
+                </div>
+            
+                <div class="card">
+                    <h3>Archivers</h3>
+                    <p>Total: <span id="archiver-total">Loading...</span></p>
+                    <p>Online: <span id="archiver-online">Loading...</span></p>
+                    <p>Offline: <span id="archiver-offline">Loading...</span></p>
+                </div>
+            
+                <div class="card">
+                    <h3>Controllers</h3>
+                    <p>Total: <span id="controller-total">Loading...</span></p>
+                    <p>Online: <span id="controller-online">Loading...</span></p>
+                    <p>Offline: <span id="controller-offline">Loading...</span></p>
+                </div>
+
+                <div class="card">
+                    <h3>Servers</h3>
+                    <p>Total: <span id="server-total">Loading...</span></p>
+                    <p>Online: <span id="server-online">Loading...</span></p>
+                    <p>Offline: <span id="server-offline">Loading...</span></p>
+                </div>
+            </div>
+
+            <div id="details-section">
+                <h2 style="color:rgb(255, 0, 0)">Device Details</h2>
+                <div id="device-details">Loading...</div>
+                <div id="details-container"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal for Device Details -->
+    <div id="modal">
+        <div class="modal-content">
+            <span id="close-modal">&times;</span>
+            <h3 id="modal-title">Device Details</h3>
+            <ul id="modal-body"></ul>
+            <button id="refresh-button">Refresh Data</button>
+            <div id="device-details"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <img src="images/FooterLogo.png" alt="Company Logo" class="footer-logo">
+        <p>&copy;2025 VisionWatch | Powered by <strong>Western Union Services India Pvt Ltd.</strong></p>
+        <p>Contact:
+        <a href="mailto:gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com">gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com</a> |
+        <a href="tel:+91 20 67632394">+91 2067632394 </a>
+        </p>
+    </footer>  
+</body>
+</html>
 
 
