@@ -1,4 +1,38 @@
+const trendApiUrl = `http://localhost:80/api/region/devices/downtime-uptime/${region}`;
 
+
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".region-button").forEach((button) => {
+        button.addEventListener("click", () => {
+            const region = button.getAttribute("data-region");
+            document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
+            fetchSummary(region);
+            fetchDetails(region);
+            fetchTrendData(region); // Fetch trend data when region is changed
+        });
+    });
+});
+
+
+
+
+let countdownInterval;
+function startAutoRefresh(regionName) {
+    fetchData(regionName); // Fetch data initially
+    clearInterval(countdownInterval); // Clear previous interval
+
+    const countdownDisplay = document.getElementById("countdown");
+    let countdownTime = refreshInterval / 1000; // Reset countdown
+
+    countdownInterval = setInterval(() => {
+        countdownDisplay.innerText = `Refreshing in ${countdownTime} seconds`;
+        countdownTime--;
+        if (countdownTime < 0) {
+            countdownTime = refreshInterval / 1000;
+            fetchData(regionName); // Fetch fresh data
+        }
+    }, 1000);
+}
 
 
 
