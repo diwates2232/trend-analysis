@@ -1,3 +1,65 @@
+const loadExcelData = () => {
+    if (Object.keys(allData).length === 0) { // Load only if not already loaded
+        const archiverWorkbook = xlsx.readFile(archiverPath);
+        const controllerWorkbook = xlsx.readFile(controllerPath);
+        const cameraWorkbook = xlsx.readFile(cameraPath);
+        const serverWorkbook = xlsx.readFile(serverPath);
+
+        allData = {
+            archivers: normalizeHeaders(xlsx.utils.sheet_to_json(archiverWorkbook.Sheets[archiverWorkbook.SheetNames[0]])),
+            controllers: normalizeHeaders(xlsx.utils.sheet_to_json(controllerWorkbook.Sheets[controllerWorkbook.SheetNames[0]])),
+            cameras: normalizeHeaders(xlsx.utils.sheet_to_json(cameraWorkbook.Sheets[cameraWorkbook.SheetNames[0]])),
+            servers: normalizeHeaders(xlsx.utils.sheet_to_json(serverWorkbook.Sheets[serverWorkbook.SheetNames[0]])),
+        };
+
+        console.log("Excel Data Loaded.");
+        console.log("Sample Archiver Data:", allData.archivers.slice(0, 5)); // Debugging
+        console.log("Sample Controller Data:", allData.controllers.slice(0, 5)); // Debugging
+        console.log("Sample Camera Data:", allData.cameras.slice(0, 5)); // Debugging
+        console.log("Sample Server Data:", allData.servers.slice(0, 5)); // Debugging
+    }
+};
+
+
+
+const fetchGlobalData = async () => {
+    console.log("Fetching Global Data...");
+
+    const devices = {
+        cameras: allData.cameras,
+        archivers: allData.archivers,
+        controllers: allData.controllers,
+        servers: allData.servers,
+    };
+
+    console.log("Global Devices Count:", {
+        cameras: devices.cameras.length,
+        archivers: devices.archivers.length,
+        controllers: devices.controllers.length,
+        servers: devices.servers.length,
+    });
+
+    if (
+        devices.cameras.length === 0 &&
+        devices.archivers.length === 0 &&
+        devices.controllers.length === 0 &&
+        devices.servers.length === 0
+    ) {
+        console.log("No global devices found!");  
+        throw new Error("No devices found for global.");
+    }
+
+    await pingDevices([...devices.cameras, ...devices.archivers, ...devices.controllers, ...devices.servers]);
+
+    const summary = calculateSummary(devices);
+    return { summary, details: devices };
+};
+
+
+
+
+
+
 
 
 
