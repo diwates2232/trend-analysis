@@ -1,3 +1,39 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const fetchRegionData = async (regionName) => {
     const normalizedRegion = regionName.trim().toLowerCase();
 
