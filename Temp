@@ -1,3 +1,33 @@
+const device = allData.cameras.find(d => d.ip_address === ip) ||
+               allData.archivers.find(d => d.ip_address === ip) ||
+               allData.controllers.find(d => d.ip_address === ip) ||
+               allData.servers.find(d => d.ip_address === ip);
+
+
+
+console.log("All Data Loaded from Excel:", JSON.stringify(allData, null, 2));
+
+
+return device && device.location?.toLowerCase() === region.toLowerCase();
+
+
+console.log("Current Uptime/Downtime Stats:", JSON.stringify(uptimeDowntimeStats, null, 2));
+
+
+
+console.log(`Fetching downtime-uptime data for region: ${region}`);
+console.log("UptimeDowntimeStats:", JSON.stringify(uptimeDowntimeStats, null, 2));
+console.log("AllData:", JSON.stringify(allData, null, 2));
+
+
+
+
+
+
+
+
+
+
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
