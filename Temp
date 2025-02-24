@@ -1,3 +1,48 @@
+const { loadExcelData, allData } = require('./excelService');
+
+
+
+
+app.get('/api/region/devices/downtime-uptime/:region', (req, res) => {
+    const region = req.params.region.toLowerCase();
+    console.log(`Fetching downtime-uptime data for region: ${region}`);
+
+    // Load Excel data before filtering
+    loadExcelData();
+
+    let regionDevices = [
+        ...allData.cameras.filter(device => device.location?.toLowerCase() === region),
+        ...allData.archivers.filter(device => device.location?.toLowerCase() === region),
+        ...allData.controllers.filter(device => device.location?.toLowerCase() === region),
+        ...allData.servers.filter(device => device.location?.toLowerCase() === region),
+    ];
+
+    if (regionDevices.length === 0) {
+        return res.status(404).json({ message: `No devices found for region: ${region}`, data: [] });
+    }
+
+    // Collect uptime/downtime stats
+    const downtimeUptimeData = regionDevices.map(device => {
+        const ip = device.ip_address;
+        return {
+            ip,
+            status: device.status || "Unknown",
+            daily: uptimeDowntimeStats[ip]?.daily || {},
+            weekly: uptimeDowntimeStats[ip]?.weekly || {},
+            monthly: uptimeDowntimeStats[ip]?.monthly || {}
+        };
+    });
+
+    res.status(200).json({ message: `Downtime-Uptime data for ${region}`, data: downtimeUptimeData });
+});
+
+
+
+
+
+
+
+
 app.get('/api/region/devices/downtime-uptime/:region', (req, res) => {
     const region = req.params.region.toLowerCase();
     console.log(`Fetching downtime-uptime data for region: ${region}`);
