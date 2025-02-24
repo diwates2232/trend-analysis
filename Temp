@@ -1,3 +1,35 @@
+<button id="viewTrendButton">View Trend Analysis</button>
+
+document.getElementById("viewTrendButton").disabled = false;
+
+<button id="viewTrendButton" type="button">View Trend Analysis</button>
+
+document.addEventListener("DOMContentLoaded", () => {
+    const viewTrendButton = document.getElementById("viewTrendButton");
+
+    if (viewTrendButton) {
+        viewTrendButton.addEventListener("click", () => {
+            console.log("View Trend Analysis button clicked!");
+            fetchTrendData(region);
+        });
+    } else {
+        console.error("View Trend Analysis button not found in the DOM.");
+    }
+});
+
+
+#viewTrendButton {
+    position: relative;
+    z-index: 1000;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+
+
+
+
+
 let region = "global"; // Declare it globally
 
 document.addEventListener("DOMContentLoaded", () => {
