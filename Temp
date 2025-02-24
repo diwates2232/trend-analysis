@@ -1,3 +1,38 @@
+const fetchRegionData = async (regionName) => {
+    const normalizedRegion = regionName.trim().toLowerCase();
+
+    if (normalizedRegion === "global") {
+        return await fetchGlobalData(); // Return global data when "Global" is requested
+    }
+
+    const devices = {
+        cameras: allData.cameras.filter(row => row.location?.trim().toLowerCase() === normalizedRegion),
+        archivers: allData.archivers.filter(row => row.location?.trim().toLowerCase() === normalizedRegion),
+        controllers: allData.controllers.filter(row => row.location?.trim().toLowerCase() === normalizedRegion),
+        servers: allData.servers.filter(row => row.location?.trim().toLowerCase() === normalizedRegion),
+    };
+
+    // Check if any devices exist for the requested region
+    const totalDevices = Object.values(devices).reduce((sum, list) => sum + list.length, 0);
+    if (totalDevices === 0) {
+        throw new Error(`No devices found for region: ${regionName}`);
+    }
+
+    await pingDevices([...devices.cameras, ...devices.archivers, ...devices.controllers, ...devices.servers]);
+
+    const summary = calculateSummary(devices);
+    return { summary, details: devices };
+};
+
+
+
+
+
+
+
+
+
+
 const xlsx = require("xlsx");
 const path = require("path");
 const ping = require("ping");
