@@ -2,6 +2,7 @@
 const xlsx = require("xlsx");
 const path = require("path");
 const ping = require("ping");
+const pLimit = require("p-limit");
 
 // Paths for Excel files
 const archiverPath = path.join(__dirname, "../data/ArchiverData.xlsx");
@@ -24,38 +25,41 @@ const normalizeHeaders = (data) => {
     });
 };
 
-const loadExcelData = () => {
-    if (Object.keys(allData).length === 0) { // Load only if not already loaded
-        const archiverWorkbook = xlsx.readFile(archiverPath);
-        const controllerWorkbook = xlsx.readFile(controllerPath);
-        const cameraWorkbook = xlsx.readFile(cameraPath);
-        const serverWorkbook = xlsx.readFile(serverPath);
+// Load Excel data
 
-        allData = {
-            archivers: normalizeHeaders(xlsx.utils.sheet_to_json(archiverWorkbook.Sheets[archiverWorkbook.SheetNames[0]])),
-            controllers: normalizeHeaders(xlsx.utils.sheet_to_json(controllerWorkbook.Sheets[controllerWorkbook.SheetNames[0]])),
-            cameras: normalizeHeaders(xlsx.utils.sheet_to_json(cameraWorkbook.Sheets[cameraWorkbook.SheetNames[0]])),
-            servers: normalizeHeaders(xlsx.utils.sheet_to_json(serverWorkbook.Sheets[serverWorkbook.SheetNames[0]])),
-        };
-        console.log("Excel Data Loaded.");
+const loadExcelData = () => {
+    if (Object.keys(allData).length === 0) { 
+        try {
+            const archiverWorkbook = xlsx.readFile(archiverPath);
+            const controllerWorkbook = xlsx.readFile(controllerPath);
+            const cameraWorkbook = xlsx.readFile(cameraPath);
+            const serverWorkbook = xlsx.readFile(serverPath);
+
+            allData = {
+                archivers: normalizeHeaders(xlsx.utils.sheet_to_json(archiverWorkbook.Sheets[archiverWorkbook.SheetNames[0]])),
+                controllers: normalizeHeaders(xlsx.utils.sheet_to_json(controllerWorkbook.Sheets[controllerWorkbook.SheetNames[0]])),
+                cameras: normalizeHeaders(xlsx.utils.sheet_to_json(cameraWorkbook.Sheets[cameraWorkbook.SheetNames[0]])),
+                servers: normalizeHeaders(xlsx.utils.sheet_to_json(serverWorkbook.Sheets[serverWorkbook.SheetNames[0]])),
+            };
+
+            console.log("Excel Data Loaded.");
+        } catch (error) {
+            console.error("Error loading Excel data:", error.message);
+        }
     }
 };
 
-// Function to fetch all IP addresses
-const fetchAllIpAddress = () => {
-    const devices = {
-        cameras: allData.cameras,
-        archivers: allData.archivers,
-        controllers: allData.controllers,
-        servers: allData.servers,
-    };
 
-    merged = [...devices.cameras , ...devices.archivers, ...devices.controllers, ...devices.servers];
-    addresses = merged.map(device => device.ip_address);
-    return addresses;
+
+
+// Fetch all IP addresses
+const fetchAllIpAddress = () => {
+    const merged = [...allData.cameras, ...allData.archivers, ...allData.controllers, ...allData.servers];
+    return merged.map(device => device.ip_address);
 };
 
-// Function to compute global summary and details
+// Fetch global summary and details
+
 const fetchGlobalData = async () => {
     const devices = {
         cameras: allData.cameras,
@@ -70,13 +74,16 @@ const fetchGlobalData = async () => {
     return { summary, details: devices };
 };
 
-// Function to compute region summary and details
+
+// Fetch region-wise summary and details
 const fetchRegionData = async (regionName) => {
+    const normalizedRegion = regionName.trim().toLowerCase();
+
     const devices = {
-        cameras: allData.cameras.filter(row => row.location?.toLowerCase() === regionName.toLowerCase()),
-        archivers: allData.archivers.filter(row => row.location?.toLowerCase() === regionName.toLowerCase()),
-        controllers: allData.controllers.filter(row => row.location?.toLowerCase() === regionName.toLowerCase()),
-        servers: allData.servers.filter(row => row.location?.toLowerCase() === regionName.toLowerCase()),
+        cameras: allData.cameras.filter(row => row.location?.trim().toLowerCase() === normalizedRegion),
+        archivers: allData.archivers.filter(row => row.location?.trim().toLowerCase() === normalizedRegion),
+        controllers: allData.controllers.filter(row => row.location?.trim().toLowerCase() === normalizedRegion),
+        servers: allData.servers.filter(row => row.location?.trim().toLowerCase() === normalizedRegion),
     };
 
     await pingDevices([...devices.cameras, ...devices.archivers, ...devices.controllers, ...devices.servers]);
@@ -85,7 +92,8 @@ const fetchRegionData = async (regionName) => {
     return { summary, details: devices };
 };
 
-// Helper function to calculate detailed summary
+
+// Calculate summary
 const calculateSummary = (devices) => {
     const summary = {};
 
@@ -105,40 +113,49 @@ const calculateSummary = (devices) => {
     };
 };
 
-const pLimit = require("p-limit");
+// Caching for ping results
+const cache = new Map();
+let deviceDowntimeData = {};
 
-const cache = new Map(); // Stores device status temporarily
-let deviceDowntimeData = {}; // Stores downtime and uptime information for devices
-
-// Monitor devices' status over time and track downtime/uptime
+// Ping devices and track uptime/downtime
 const pingDevices = async (devices) => {
-    const limit = pLimit(10); // Reduce concurrent ping requests to 10
+    const limit = pLimit(10); // Limit concurrent pings
     const pingPromises = devices.map((device) =>
         limit(async () => {
             const ipAddress = device.ip_address;
-            const currentTime = new Date().getTime();
-            if (cache.has(ipAddress)) {
-                device.status = cache.get(ipAddress); // Use cached status
-            } else {
-                device.status = ipAddress ? await pingDevice(ipAddress) : "IP Address Missing";
-                cache.set(ipAddress, device.status); // Store result in cache
+            const currentTime = Date.now();
+
+            if (!ipAddress) {
+                device.status = "IP Address Missing";
+                return;
             }
 
-            // Track downtime and uptime for devices that go offline for more than 5 minutes
-            if (device.status === "Offline") {
-                if (deviceDowntimeData[ipAddress]) {
-                    const lastOfflineTime = deviceDowntimeData[ipAddress].lastOfflineTime;
-                    if (currentTime - lastOfflineTime > 300000) { // More than 5 minutes of downtime
-                        deviceDowntimeData[ipAddress].downtime += 5; // Adding 5 minutes
-                    }
-                } else {
-                    deviceDowntimeData[ipAddress] = { downtime: 5, lastOfflineTime: currentTime }; // Initialize with 5 minutes of downtime
+            // Check if we have a cached result
+            if (cache.has(ipAddress)) {
+                const { status, timestamp } = cache.get(ipAddress);
+                if (currentTime - timestamp < 60000) { // Refresh every 60 seconds
+                    device.status = status;
+                    return;
+                }
+            }
+
+            // Perform ping
+            const status = await pingDevice(ipAddress);
+            device.status = status;
+            cache.set(ipAddress, { status, timestamp: currentTime });
+
+            // Track downtime/uptime
+            if (status === "Offline") {
+                if (!deviceDowntimeData[ipAddress]) {
+                    deviceDowntimeData[ipAddress] = { downtime: 5, lastOfflineTime: currentTime };
+                } else if (currentTime - deviceDowntimeData[ipAddress].lastOfflineTime > 300000) {
+                    deviceDowntimeData[ipAddress].downtime += 5;
+                    deviceDowntimeData[ipAddress].lastOfflineTime = currentTime;
                 }
             } else {
                 if (deviceDowntimeData[ipAddress]) {
-                    deviceDowntimeData[ipAddress].uptime += 5; // Adding 5 minutes of uptime
-                } else {
-                    deviceDowntimeData[ipAddress] = { uptime: 5 }; // Initialize with 5 minutes of uptime
+                    deviceDowntimeData[ipAddress].uptime = (deviceDowntimeData[ipAddress].uptime || 0) + 5;
+                    delete deviceDowntimeData[ipAddress].lastOfflineTime; 
                 }
             }
         })
@@ -147,8 +164,8 @@ const pingDevices = async (devices) => {
     await Promise.all(pingPromises);
 };
 
-// Function to ping a single device
-const pingDevice = (ip) => {
+// Ping a single device
+const pingDevice = async (ip) => {
     return new Promise((resolve) => {
         ping.sys.probe(ip, (isAlive) => {
             resolve(isAlive ? "Online" : "Offline");
@@ -156,12 +173,19 @@ const pingDevice = (ip) => {
     });
 };
 
-// Preload data
-loadExcelData();
-
-// Endpoint to fetch downtime/uptime data
+// Fetch downtime/uptime data
 const fetchDeviceUptimeData = () => {
     return deviceDowntimeData;
 };
 
-module.exports = { fetchGlobalData, fetchRegionData, fetchAllIpAddress, fetchDeviceUptimeData };
+// Preload data
+loadExcelData();
+
+// Export functions
+module.exports = { 
+    fetchGlobalData, 
+    fetchRegionData, 
+    fetchAllIpAddress, 
+    fetchDeviceUptimeData, 
+    allData 
+};
