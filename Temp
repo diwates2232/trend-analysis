@@ -1,3 +1,53 @@
+let region = "global"; // Declare it globally
+
+document.addEventListener("DOMContentLoaded", () => {
+    // Fetch initial data for default region
+    fetchSummary(region);
+    fetchDetails(region);
+    fetchTrendData(region);
+
+    // Select all region buttons
+    const regionButtons = document.querySelectorAll(".region-button");
+
+    // Attach event listeners correctly
+    regionButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+            region = button.getAttribute("data-region"); // Update global region variable
+            document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
+
+            fetchSummary(region);
+            fetchDetails(region);
+            fetchTrendData(region);
+        });
+    });
+});
+
+
+
+function fetchTrendData(region) {
+    const trendApiUrl = `http://localhost:80/api/region/devices/downtime-uptime/${region}`;
+    fetch(trendApiUrl)
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error("Error fetching downtime-uptime trend data.");
+            }
+            return response.json();
+        })
+        .then((trendData) => {
+            console.log("Trend Data:", trendData);
+        })
+        .catch((error) => {
+            console.error("Error fetching trend data:", error);
+            alert("Failed to load trend data. Please check the console for details.");
+        });
+}
+
+
+
+
+
+
+
 const trendApiUrl = `http://localhost:80/api/region/devices/downtime-uptime/${region}`;
 
 
