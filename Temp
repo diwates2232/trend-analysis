@@ -1,3 +1,23 @@
+const regionDevices = await excelService.loadExcelData(region); // Ensure this is correctly fetching data
+
+if (!regionDevices || !Array.isArray(regionDevices)) {
+    console.error("Error: regionDevices is not loaded correctly");
+    return res.status(500).json({ message: "Failed to load region devices" });
+}
+
+const downtimeUptimeData = regionDevices.map(device => {
+    return {
+        id: device.id,
+        status: device.status
+    };
+});
+
+res.json({ message: `Data for ${region}`, data: downtimeUptimeData });
+
+
+
+
+
 const { loadExcelData, allData } = require('./excelService');
 
 
