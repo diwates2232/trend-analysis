@@ -1,4 +1,229 @@
+const baseUrl = "http://localhost:80/api/regions";
 
+let region; // Declare region globally
+
+document.addEventListener("DOMContentLoaded", function () {
+    region = "Global"; // Default region
+    console.log("Initializing with region:", region);
+
+    initializeContent();
+    startAutoRefresh(region);
+    fetchTrendData(region);
+
+    // Attach event listeners to region buttons
+    document.querySelectorAll(".region-button").forEach((button) => {
+        button.addEventListener("click", () => {
+            region = button.getAttribute("data-region");
+            document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
+            fetchSummary(region);
+            fetchDetails(region);
+            fetchTrendData(region);
+        });
+    });
+
+    // Attach event listener for trend analysis button
+    const viewTrendButton = document.getElementById("viewTrendButton");
+    if (viewTrendButton) {
+        viewTrendButton.addEventListener("click", () => {
+            console.log("View Trend Analysis button clicked!");
+            fetchTrendData(region);
+        });
+    } else {
+        console.error("View Trend Analysis button not found in the DOM.");
+    }
+});
+
+function initializeContent() {
+    fetchSummary(region);
+    fetchDetails(region);
+    fetchTrendData(region);
+}
+
+// Function to fetch data periodically
+let refreshInterval = 300000; // 5 minutes (300,000 ms)
+let countdownTime = refreshInterval / 1000;
+
+function startAutoRefresh(regionName) {
+    fetchData(regionName);
+
+    const countdownDisplay = document.getElementById("countdown");
+    function updateCountdown() {
+        countdownDisplay.innerText = `Refreshing in ${countdownTime} seconds`;
+        countdownTime--;
+        if (countdownTime < 0) countdownTime = refreshInterval / 1000;
+    }
+
+    setInterval(updateCountdown, 1000);
+    setInterval(() => {
+        fetchData(regionName);
+        countdownTime = refreshInterval / 1000;
+    }, refreshInterval);
+}
+
+// Fetch Summary Data
+function fetchSummary(regionName) {
+    fetch(`${baseUrl}/summary/${regionName}`)
+        .then(response => response.json())
+        .then(summary => {
+            console.log("Summary Data:", summary);
+            updateSummary(summary);
+        })
+        .catch(error => {
+            console.error("Error fetching summary:", error);
+            alert("Failed to load summary data. Please check the console for details.");
+        });
+}
+
+// Fetch Details Data
+function fetchDetails(regionName) {
+    fetch(`${baseUrl}/details/${regionName}`)
+        .then(response => response.json())
+        .then(details => {
+            console.log("Details Data:", details);
+            updateDetails(details);
+
+            setInterval(() => {
+                pingAllDevices(details);
+                fetchLiveStatus(regionName);
+            }, 10000);
+        })
+        .catch(error => {
+            console.error("Error fetching details:", error);
+            document.getElementById("device-details").innerHTML = "<p>Failed to load device details.</p>";
+        });
+}
+
+// Fetch Trend Data
+function fetchTrendData(region) {
+    const trendApiUrl = `http://localhost:80/api/region/devices/downtime-uptime/${region}`;
+    fetch(trendApiUrl)
+        .then(response => response.json())
+        .then(trendData => {
+            console.log("Trend Data:", trendData);
+            updateTrendAnalysis(trendData);
+        })
+        .catch(error => {
+            console.error("Error fetching trend data:", error);
+            alert("Failed to load trend data. Please check the console for details.");
+        });
+}
+
+// Update Trend Analysis in UI
+function updateTrendAnalysis(data) {
+    const trendContainer = document.getElementById("trend-container");
+    trendContainer.innerHTML = ""; 
+
+    const trends = ["daily", "weekly", "monthly"];
+    trends.forEach(period => {
+        const trendData = data[period];
+
+        const trendCard = document.createElement("div");
+        trendCard.className = "trend-card";
+        trendCard.innerHTML = `
+            <h4>${period.charAt(0).toUpperCase() + period.slice(1)} Trend</h4>
+            <canvas id="${period}-chart"></canvas>
+        `;
+        trendContainer.appendChild(trendCard);
+
+        renderTrendChart(`${period}-chart`, trendData);
+    });
+}
+
+// Render Trend Charts
+function renderTrendChart(chartId, trendData) {
+    const ctx = document.getElementById(chartId).getContext("2d");
+    new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: trendData.labels,
+            datasets: [{
+                label: "Downtime",
+                data: trendData.downtime,
+                borderColor: "red",
+                fill: false
+            }, {
+                label: "Uptime",
+                data: trendData.uptime,
+                borderColor: "green",
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: { title: { display: true, text: "Time" } },
+                y: { title: { display: true, text: "Duration (hours)" } }
+            }
+        }
+    });
+}
+
+// Ping Devices to Get Live Status
+function pingAllDevices(details) {
+    for (const [key, devices] of Object.entries(details.details)) {
+        if (!Array.isArray(devices) || devices.length === 0) continue;
+
+        devices.forEach(device => {
+            const ip = device.ip_address || "N/A";
+            const card = document.querySelector(`[data-ip="${ip}"]`);
+
+            if (!card) return;
+
+            fetch(`${baseUrl}/ping/${ip}`)
+                .then(response => response.json())
+                .then(statusData => {
+                    const newStatus = statusData.status.toLowerCase();
+                    const statusDot = card.querySelector(".status-dot");
+                    const statusText = card.querySelector(".device-status");
+
+                    if (newStatus === "online") {
+                        statusDot.style.backgroundColor = "green";
+                        statusText.textContent = "Online";
+                        card.dataset.status = "online";
+                    } else {
+                        statusDot.style.backgroundColor = "red";
+                        statusText.textContent = "Offline";
+                        card.dataset.status = "offline";
+                    }
+                })
+                .catch(error => console.error(`Ping failed for ${ip}:`, error));
+        });
+    }
+}
+
+// Update Summary UI
+function updateSummary(data) {
+    document.getElementById("total-devices").textContent = data.summary?.totalDevices || "N/A";
+    document.getElementById("online-devices").textContent = data.summary?.totalOnlineDevices || "N/A";
+    document.getElementById("offline-devices").textContent = data.summary?.totalOfflineDevices || "N/A";
+}
+
+// Update Details UI
+function updateDetails(data) {
+    const detailsContainer = document.getElementById("device-details");
+    detailsContainer.innerHTML = "";
+
+    for (const [key, devices] of Object.entries(data.details)) {
+        if (!Array.isArray(devices) || devices.length === 0) continue;
+
+        devices.forEach(device => {
+            const deviceIP = device.ip_address || "N/A";
+            const currentStatus = device.status || "Unknown";
+
+            const card = document.createElement("div");
+            card.className = "device-card";
+            card.dataset.status = currentStatus.toLowerCase();
+
+            card.innerHTML = `
+                <h3>${device.cameraname || device.controllername || device.archivername || device.servername || "Unknown Device"}</h3>
+                <p>IP: ${deviceIP}</p>
+                <p>Status: ${currentStatus}</p>
+            `;
+
+            detailsContainer.appendChild(card);
+        });
+    }
+}
 
 
 
