@@ -1,3 +1,147 @@
+function fetchTrendData(region) {
+    const trendApiUrl = `http://localhost:80/api/region/devices/downtime-uptime/${region}`;
+    
+    fetch(trendApiUrl)
+        .then(response => response.json())
+        .then(data => {
+            console.log("Trend Data:", data);
+
+            if (data.deviceDetails && Array.isArray(data.deviceDetails)) {
+                // Extract downtime/uptime for each period and create chart data
+                const trendData = {
+                    daily: {
+                        labels: [],
+                        uptime: [],
+                        downtime: []
+                    },
+                    weekly: {
+                        labels: [],
+                        uptime: [],
+                        downtime: []
+                    },
+                    monthly: {
+                        labels: [],
+                        uptime: [],
+                        downtime: []
+                    }
+                };
+
+                // Loop through deviceDetails and populate trendData
+                data.deviceDetails.forEach(device => {
+                    // For daily data
+                    trendData.daily.labels.push(device.ip); // You can change labels based on your requirement
+                    trendData.daily.uptime.push(device.daily.uptime);
+                    trendData.daily.downtime.push(device.daily.downtime);
+
+                    // For weekly data
+                    trendData.weekly.labels.push(device.ip);
+                    trendData.weekly.uptime.push(device.weekly.uptime);
+                    trendData.weekly.downtime.push(device.weekly.downtime);
+
+                    // For monthly data
+                    trendData.monthly.labels.push(device.ip);
+                    trendData.monthly.uptime.push(device.monthly.uptime);
+                    trendData.monthly.downtime.push(device.monthly.downtime);
+                });
+
+                // Call function to update UI with the parsed trend data
+                updateTrendAnalysis(trendData);
+            } else {
+                console.error("Invalid device details structure:", data);
+            }
+        })
+        .catch(error => console.error("Error fetching trend data:", error));
+}
+
+
+
+
+function updateTrendAnalysis(trendData) {
+    const trendContainer = document.getElementById("trend-container");
+    trendContainer.innerHTML = ""; // Clear previous trend data
+
+    // Loop through daily, weekly, and monthly trends and render each one
+    const periods = ['daily', 'weekly', 'monthly'];
+    periods.forEach((period) => {
+        const periodData = trendData[period];
+
+        // Ensure all required data exists for the current period
+        if (periodData && periodData.labels && periodData.uptime && periodData.downtime) {
+            const trendCard = document.createElement("div");
+            trendCard.className = "trend-card";
+            trendCard.innerHTML = `
+                <h4>${period.charAt(0).toUpperCase() + period.slice(1)} Trend</h4>
+                <canvas id="${period}-chart"></canvas>
+            `;
+            trendContainer.appendChild(trendCard);
+
+            // Render the chart using Chart.js
+            renderTrendChart(`${period}-chart`, periodData);
+        } else {
+            console.error(`Missing data for ${period} trend`, periodData);
+        }
+    });
+}
+
+
+
+
+
+
+function renderTrendChart(chartId, periodData) {
+    const ctx = document.getElementById(chartId).getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: periodData.labels,
+            datasets: [
+                {
+                    label: 'Uptime',
+                    data: periodData.uptime,
+                    borderColor: 'green',
+                    fill: false
+                },
+                {
+                    label: 'Downtime',
+                    data: periodData.downtime,
+                    borderColor: 'red',
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (tooltipItem) => `${tooltipItem.dataset.label}: ${tooltipItem.raw} hours`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Device IP'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Duration (hours)'
+                    }
+                }
+            }
+        }
+    });
+}
+
+
+
+
 
 
 
