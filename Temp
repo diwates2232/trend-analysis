@@ -4,6 +4,77 @@ function fetchTrendData(region) {
     fetch(trendApiUrl)
         .then(response => response.json())
         .then(data => {
+            console.log("Trend Data:", data); // Verify the entire response
+
+            if (data.deviceDetails && Array.isArray(data.deviceDetails)) {
+                // Log each device to inspect its structure
+                data.deviceDetails.forEach(device => {
+                    console.log(device); // Log each device to see its properties (daily, weekly, monthly)
+                });
+
+                const trendData = {
+                    daily: {
+                        labels: [],
+                        uptime: [],
+                        downtime: []
+                    },
+                    weekly: {
+                        labels: [],
+                        uptime: [],
+                        downtime: []
+                    },
+                    monthly: {
+                        labels: [],
+                        uptime: [],
+                        downtime: []
+                    }
+                };
+
+                // Loop through deviceDetails and populate trendData
+                data.deviceDetails.forEach(device => {
+                    // Check if daily, weekly, and monthly data exist
+                    if (device.daily && device.weekly && device.monthly) {
+                        // For daily data
+                        trendData.daily.labels.push(device.ip); // You can change labels based on your requirement
+                        trendData.daily.uptime.push(device.daily.uptime || 0); // Default to 0 if undefined
+                        trendData.daily.downtime.push(device.daily.downtime || 0); // Default to 0 if undefined
+
+                        // For weekly data
+                        trendData.weekly.labels.push(device.ip);
+                        trendData.weekly.uptime.push(device.weekly.uptime || 0); // Default to 0 if undefined
+                        trendData.weekly.downtime.push(device.weekly.downtime || 0); // Default to 0 if undefined
+
+                        // For monthly data
+                        trendData.monthly.labels.push(device.ip);
+                        trendData.monthly.uptime.push(device.monthly.uptime || 0); // Default to 0 if undefined
+                        trendData.monthly.downtime.push(device.monthly.downtime || 0); // Default to 0 if undefined
+                    } else {
+                        console.warn("Missing daily/weekly/monthly data for device:", device.ip);
+                    }
+                });
+
+                // Call function to update UI with the parsed trend data
+                updateTrendAnalysis(trendData);
+            } else {
+                console.error("Invalid device details structure:", data);
+            }
+        })
+        .catch(error => console.error("Error fetching trend data:", error));
+}
+
+
+
+
+
+
+
+
+function fetchTrendData(region) {
+    const trendApiUrl = `http://localhost:80/api/region/devices/downtime-uptime/${region}`;
+    
+    fetch(trendApiUrl)
+        .then(response => response.json())
+        .then(data => {
             console.log("Trend Data:", data);
 
             if (data.deviceDetails && Array.isArray(data.deviceDetails)) {
