@@ -1,1 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+   
+    <div class="container">
+        <div id="sidebar">
+            <h2 style="color:rgb(223, 205, 38);">Regions</h2>
+            <button class="region-button" data-region="global">Global</button>
+            <button class="region-button" data-region="apac">APAC</button>
+            <button class="region-button" data-region="emea">EMEA</button>
+            <button class="region-button" data-region="laca">LACA</button>
+            <button class="region-button" data-region="namer">NAMER</button>
 
+            <div id="countdown" 
+            style="font-size: 16px; font-weight: bold; color:rgb(223, 205, 38);
+            padding: 10px;
+            display: block;">
+            </div>
+
+            <div class="filter-buttons">
+                <button id="filter-all" class="status-filter active" data-status="all"
+                style="display: block;
+                 width: 100%;
+                 padding: 15px;
+                 margin-bottom: 10px;
+                 border: none;
+                 background-color: #e8f0f1;
+                color: rgb(26, 23, 23);
+                font-size: 16px;
+                cursor: pointer;
+               text-align: center;
+                border-radius: 5px;
+                transition: background-color 0.3s ease;">All Devices</button>
+
+                <button id="filter-online" class="status-filter" data-status="online" 
+                style="display: block;
+                 width: 100%;
+                 padding: 15px;
+                 margin-bottom: 10px;
+                 border: none;
+                 background-color: #1c9c47;
+                color: rgb(26, 23, 23);
+                font-size: 16px;
+                cursor: pointer;
+               text-align: center;
+                border-radius: 5px;
+                transition: background-color 0.3s ease;">Online Devices</button>
+
+                <button id="filter-offline"  class="status-filter" data-status="offline"
+                style="display: block;
+                 width: 100%;
+                 padding: 15px;
+                 margin-bottom: 10px;
+                 border: none;
+                 background-color: #db2410;
+                color: rgb(26, 23, 23);
+                font-size: 16px;
+                cursor: pointer;
+               text-align: center;
+                border-radius: 5px;
+                transition: background-color 0.3s ease;">Offline Devices</button>
+            </div>
+
+            <label for="device-filter" style="color:rgb(223, 205, 38);
+            font-size: 16px;
+            border: none;
+            font-weight: bold;
+            text-align: start;
+            border-radius: 5px;
+            width: 100%;">Filter by Device Type:</label>
+            <select id="device-filter">
+                <option value="all">All</option>
+                <option value="cameras">Cameras</option>
+                <option value="archivers">Archivers</option>
+                <option value="controllers">Controllers</option>
+                <option value="servers">Servers</option>
+            </select>
+            
+            <button id="viewTrendButton" 
+            style="width: 100%; padding: 15px; margin-top: 10px; background-color: #4CAF50; 
+            color: white; font-size: 16px; cursor: pointer; text-align: center; border-radius: 5px;">
+            View Trend Analysis</button>
+        </div>
+
+        <div id="content">
+            <h1 id="region-title" style="color:rgb(255, 0, 0); font-weight: bold; text-align: start;">Global Summary</h1>
+            <div class="summary">
+                <div class="card">
+                    <h3>Total Devices</h3>
+                    <p>Total: <span id="total-devices">Loading...</span></p>
+                    <p>Online: <span id="online-devices">Loading...</span></p>
+                    <p>Offline: <span id="offline-devices">Loading...</span></p>
+                </div>
+
+                <div class="card">
+                    <h3>Cameras</h3>
+                    <p>Total: <span id="camera-total">Loading...</span></p>
+                    <p>Online: <span id="camera-online">Loading...</span></p>
+                    <p>Offline: <span id="camera-offline">Loading...</span></p>
+                </div>
+            
+                <div class="card">
+                    <h3>Archivers</h3>
+                    <p>Total: <span id="archiver-total">Loading...</span></p>
+                    <p>Online: <span id="archiver-online">Loading...</span></p>
+                    <p>Offline: <span id="archiver-offline">Loading...</span></p>
+                </div>
+            
+                <div class="card">
+                    <h3>Controllers</h3>
+                    <p>Total: <span id="controller-total">Loading...</span></p>
+                    <p>Online: <span id="controller-online">Loading...</span></p>
+                    <p>Offline: <span id="controller-offline">Loading...</span></p>
+                </div>
+
+                <div class="card">
+                    <h3>Servers</h3>
+                    <p>Total: <span id="server-total">Loading...</span></p>
+                    <p>Online: <span id="server-online">Loading...</span></p>
+                    <p>Offline: <span id="server-offline">Loading...</span></p>
+                </div>
+            </div>
+
+            <div id="details-section">
+                <h2 style="color:rgb(255, 0, 0)">Device Details</h2>
+                <div id="device-details">Loading...</div>
+                <div id="details-container"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal for Device Details -->
+    <div id="modal">
+        <div class="modal-content">
+            <div id="trend-container"></div>
+            <span id="close-modal">&times;</span>
+            <h3 id="modal-title">Device Details</h3>
+            <ul id="modal-body"></ul>
+            <button id="refresh-button">Refresh Data</button>
+            <div id="device-details"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+
+    <section id="trend-section">
+        <h2>Device Downtime and Uptime Trends</h2>
+        <div id="trend-container"></div> <!-- This is where trend data will be populated -->
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <img src="images/FooterLogo.png" alt="Company Logo" class="footer-logo">
+        <p>&copy;2025 VisionWatch | Powered by <strong>Western Union Services India Pvt Ltd.</strong></p>
+        <p>Contact:
+        <a href="mailto:gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com">gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com</a> |
+        <a href="tel:+91 20 67632394">+91 2067632394 </a>
+        </p>
+    </footer>  
+</body>
+</html>
+
+
+
+const baseUrl = "http://localhost:80/api/regions";
+let region = "Global"; // Default region
+let refreshTimer; // Store interval ID
+let countdownTime = 300; // 5 minutes (in seconds)
+
+// Consolidate DOMContentLoaded event listeners
+document.addEventListener("DOMContentLoaded", () => {
+    console.log("Initializing content for:", region);
+    setupEventListeners();
+    startAutoRefresh(region);
+
+    // Initial data fetch for default region
+    fetchSummary(region);
+    fetchDetails(region);
+    fetchTrendData(region);
+});
+
+function setupEventListeners() {
+    // Region button event listeners
+    document.querySelectorAll(".region-button").forEach((button) => {
+        button.addEventListener("click", () => {
+            region = button.getAttribute("data-region");
+            document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
+
+            fetchSummary(region);
+            fetchDetails(region);
+            fetchTrendData(region);
+
+            // Restart auto-refresh with the new region
+            resetAutoRefresh(region);
+        });
+    });
+
+    const viewTrendButton = document.getElementById("viewTrendButton");
+    if (viewTrendButton) {
+        viewTrendButton.addEventListener("click", () => {
+            console.log("View Trend Analysis button clicked!");
+            fetchTrendData(region);
+        });
+    } else {
+        console.error("View Trend Analysis button not found in the DOM.");
+    }
+}
+
+// Function to start auto-refresh with a countdown
+function startAutoRefresh(regionName) {
+    fetchData(regionName);
+    updateCountdown();
+
+    refreshTimer = setInterval(() => {
+        fetchData(regionName);
+        countdownTime = 300; // Reset countdown every 5 minutes
+    }, 300000); // 5 minutes
+
+    setInterval(updateCountdown, 1000);
+}
+
+function resetAutoRefresh(regionName) {
+    clearInterval(refreshTimer);
+    startAutoRefresh(regionName);
+}
+
+function updateCountdown() {
+    const countdownDisplay = document.getElementById("countdown");
+    countdownDisplay.innerText = `Refreshing in ${countdownTime} seconds`;
+    countdownTime--;
+    if (countdownTime < 0) countdownTime = 300; // Reset after countdown ends
+}
+
+// Function to fetch summary and details in parallel
+function fetchData(regionName) {
+    const summaryUrl = `${baseUrl}/summary/${regionName}`;
+    const detailsUrl = `${baseUrl}/details/${regionName}`;
+
+    Promise.all([
+        fetch(summaryUrl).then((res) => res.json()),
+        fetch(detailsUrl).then((res) => res.json())
+    ])
+    .then(([summary, details]) => {
+        console.log("Summary Data:", summary);
+        console.log("Details Data:", details);
+        updateSummary(summary);
+        updateDetails(details);
+    })
+    .catch((error) => {
+        console.error("Error fetching data:", error);
+    });
+}
+
+// Function to fetch summary
+function fetchSummary(regionName) {
+    const summaryUrl = `${baseUrl}/summary/${regionName}`;
+    fetch(summaryUrl)
+        .then(response => response.json())
+        .then(summary => updateSummary(summary))
+        .catch(error => console.error("Error fetching summary:", error));
+}
+
+// Function to fetch details
+function fetchDetails(regionName) {
+    const detailsUrl = `${baseUrl}/details/${regionName}`;
+    fetch(detailsUrl)
+        .then(response => response.json())
+        .then(details => updateDetails(details))
+        .catch(error => {
+            console.error("Error fetching details:", error);
+            document.getElementById("device-details").innerHTML = "<p>Failed to load device details.</p>";
+        });
+}
+
+// Function to fetch trend data
+function fetchTrendData(region) {
+    const trendApiUrl = `http://localhost:80/api/region/devices/downtime-uptime/${region}`;
+    fetch(trendApiUrl)
+        .then(response => response.json())
+        .then(trendData => updateTrendAnalysis(trendData))
+        .catch(error => console.error("Error fetching trend data:", error));
+}
+
+// Function to update summary UI
+function updateSummary(data) {
+    document.getElementById("total-devices").textContent = data.summary?.totalDevices || "N/A";
+    document.getElementById("online-devices").textContent = data.summary?.totalOnlineDevices || "N/A";
+    document.getElementById("offline-devices").textContent = data.summary?.totalOfflineDevices || "N/A";
+
+    // Cameras, Archivers, Controllers, and Servers Summary
+    updateDeviceSummary("camera", data.summary?.cameras);
+    updateDeviceSummary("archiver", data.summary?.archivers);
+    updateDeviceSummary("controller", data.summary?.controllers);
+    updateDeviceSummary("server", data.summary?.servers);
+}
+
+function updateDeviceSummary(type, data) {
+    document.getElementById(`${type}-total`).textContent = data?.total || "N/A";
+    document.getElementById(`${type}-online`).textContent = data?.online || "N/A";
+    document.getElementById(`${type}-offline`).textContent = data?.offline || "N/A";
+}
+
+// Function to update details UI
+function updateDetails(data) {
+    const detailsContainer = document.getElementById("device-details");
+    detailsContainer.innerHTML = ""; // Clear previous data
+    // Render each device's details (you can customize this part based on your structure)
+}
+
+// Function to update trend analysis UI
+function updateTrendAnalysis(trendData) {
+    const trendContainer = document.getElementById("trend-container");
+    trendContainer.innerHTML = ""; // Clear previous trend data
+    const periods = ['daily', 'weekly', 'monthly'];
+
+    periods.forEach((period) => {
+        const periodData = trendData[period];
+        if (periodData && periodData.labels && periodData.uptime && periodData.downtime) {
+            const trendCard = document.createElement("div");
+            trendCard.className = "trend-card";
+            trendCard.innerHTML = `
+                <h4>${period.charAt(0).toUpperCase() + period.slice(1)} Trend</h4>
+                <canvas id="${period}-chart"></canvas>
+            `;
+            trendContainer.appendChild(trendCard);
+
+            renderTrendChart(`${period}-chart`, periodData);
+        }
+    });
+}
+
+// Function to render trend chart using Chart.js
+function renderTrendChart(chartId, periodData) {
+    const ctx = document.getElementById(chartId).getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: periodData.labels,
+            datasets: [
+                {
+                    label: 'Uptime',
+                    data: periodData.uptime,
+                    borderColor: 'green',
+                    fill: false
+                },
+                {
+                    label: 'Downtime',
+                    data: periodData.downtime,
+                    borderColor: 'red',
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (tooltipItem) => `${tooltipItem.dataset.label}: ${tooltipItem.raw} hours`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Device IP'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Duration (hours)'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Function to ping all devices
+function pingAllDevices(details) {
+    for (const [key, devices] of Object.entries(details.details)) {
+        if (!Array.isArray(devices) || devices.length === 0) continue;
+
+        devices.forEach((device) => {
+            const ip = device.ip_address || "N/A";
+            const card = document.querySelector(`[data-ip="${ip}"]`);
+
+            if (!card) return; // If device is not found in UI, skip
+
+            // Ping the device API
+            fetch(`${baseUrl}/ping/${ip}`)
+                .then(response => response.json())
+                .then(statusData => {
+                    const newStatus = statusData.status.toLowerCase(); // Get live status
+
+                    // Update the UI instantly
+                    const statusDot = card.querySelector(".status-dot");
+                    const statusText = card.querySelector(".device-status");
+
+                    if (newStatus === "online") {
+                        statusDot.style.backgroundColor = "green";
+                        statusText.textContent = "Online";
+                        card.dataset.status = "online";
+                    } else {
+                        statusDot.style.backgroundColor = "red";
+                        statusText.textContent = "Offline";
+                        card.dataset.status = "offline";
+                    }
+                })
+                .catch(error => console.error(`Ping failed for ${ip}:`, error));
+        });
+    }
+}
