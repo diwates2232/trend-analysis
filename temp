@@ -1,3 +1,112 @@
+app.get("/api/region/summary/:region", (req, res) => {
+  try {
+    const region = req.params.region.toLowerCase();
+    console.log(`Fetching summary for region: ${region}`);
+
+    const { day, week, month } = getDateKeys();
+
+    let summary = {
+      daily: { totalUptime: 0, totalDowntime: 0, totalDowntimeDuration: 0 },
+      weekly: { totalUptime: 0, totalDowntime: 0, totalDowntimeDuration: 0 },
+      monthly: { totalUptime: 0, totalDowntime: 0, totalDowntimeDuration: 0 },
+    };
+
+    Object.keys(uptimeDowntimeStats).forEach(ip => {
+      const device = allData.cameras.find(d => d.ip_address === ip) ||
+                     allData.archivers.find(d => d.ip_address === ip) ||
+                     allData.controllers.find(d => d.ip_address === ip) ||
+                     allData.servers.find(d => d.ip_address === ip);
+
+      if (!device) return;
+
+      if (region !== "global" && device.location?.toLowerCase() !== region) return;
+
+      const stats = uptimeDowntimeStats[ip];
+
+      const dailyStats = stats.daily[day] || { uptime: 0, downtime: 0, downtimeDuration: 0 };
+      const weeklyStats = stats.weekly[week] || { uptime: 0, downtime: 0, downtimeDuration: 0 };
+      const monthlyStats = stats.monthly[month] || { uptime: 0, downtime: 0, downtimeDuration: 0 };
+
+      summary.daily.totalUptime += dailyStats.uptime;
+      summary.daily.totalDowntime += dailyStats.downtime;
+      summary.daily.totalDowntimeDuration += dailyStats.downtimeDuration;
+
+      summary.weekly.totalUptime += weeklyStats.uptime;
+      summary.weekly.totalDowntime += weeklyStats.downtime;
+      summary.weekly.totalDowntimeDuration += weeklyStats.downtimeDuration;
+
+      summary.monthly.totalUptime += monthlyStats.uptime;
+      summary.monthly.totalDowntime += monthlyStats.downtime;
+      summary.monthly.totalDowntimeDuration += monthlyStats.downtimeDuration;
+    });
+
+    return res.status(200).json({ region, summary });
+
+  } catch (error) {
+    console.error("Error in summary API:", error);
+    return res.status(500).json({ message: "Something went wrong!", error: error.message });
+  }
+});
+
+
+
+
+
+app.get("/api/region/details/:region", (req, res) => {
+  try {
+    const region = req.params.region.toLowerCase();
+    console.log(`Fetching details for region: ${region}`);
+
+    const { day, week, month } = getDateKeys();
+
+    let deviceDetails = [];
+
+    Object.keys(uptimeDowntimeStats).forEach(ip => {
+      const device = allData.cameras.find(d => d.ip_address === ip) ||
+                     allData.archivers.find(d => d.ip_address === ip) ||
+                     allData.controllers.find(d => d.ip_address === ip) ||
+                     allData.servers.find(d => d.ip_address === ip);
+
+      if (device && device.location?.toLowerCase() === region) {
+        const stats = uptimeDowntimeStats[ip];
+
+        deviceDetails.push({
+          ip,
+          name: device.name,
+          status: deviceStatus[ip] || "Unknown",
+          daily: stats.daily[day] || { uptime: 0, downtime: 0, downtimeDuration: 0 },
+          weekly: stats.weekly[week] || { uptime: 0, downtime: 0, downtimeDuration: 0 },
+          monthly: stats.monthly[month] || { uptime: 0, downtime: 0, downtimeDuration: 0 }
+        });
+      }
+    });
+
+    if (deviceDetails.length === 0) {
+      return res.status(404).json({ message: `No devices found for region: ${region}` });
+    }
+
+    return res.status(200).json({ region, devices: deviceDetails });
+
+  } catch (error) {
+    console.error("Error in details API:", error);
+    return res.status(500).json({ message: "Something went wrong!", error: error.message });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 app.get("/api/region/devices/downtime-uptime/:region", (req, res) => {
   try {
     const region = req.params.region.toLowerCase();
