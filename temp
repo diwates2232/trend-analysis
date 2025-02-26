@@ -1,4 +1,187 @@
- // Fetch real-time status from the backend
+const baseUrl = "http://localhost:80/api/region/devices";
+
+// Auto-refresh interval (5 minutes)
+let refreshInterval = 300000; // 5 minutes in milliseconds
+let countdownTime = refreshInterval / 1000; // Convert to seconds
+
+document.addEventListener("DOMContentLoaded", () => {
+    let regionName = "global";
+
+    startAutoRefresh(regionName);
+
+    document.querySelectorAll(".region-button").forEach((button) => {
+        button.addEventListener("click", () => {
+            regionName = button.getAttribute("data-region");
+            document.getElementById("region-title").textContent = `${regionName.toUpperCase()} Summary`;
+            fetchAllData(regionName);
+        });
+    });
+
+    document.getElementById("close-modal").addEventListener("click", () => {
+        document.getElementById("modal").style.display = "none";
+    });
+});
+
+// Fetch all required data (summary, details, trends, and real-time status)
+function fetchAllData(regionName) {
+    Promise.all([
+        fetch(`${baseUrl}/summary/${regionName}`).then((res) => res.json()),
+        fetch(`${baseUrl}/details/${regionName}`).then((res) => res.json()),
+        fetch(`${baseUrl}/downtime-uptime/${regionName}`).then((res) => res.json()),
+        fetch(`${baseUrl}/status`).then((res) => res.json()) // Fetch real-time status
+    ])
+    .then(([summary, details, trends, realTimeStatus]) => {
+        console.log("Summary:", summary);
+        console.log("Details:", details);
+        console.log("Downtime/Uptime Trends:", trends);
+        console.log("Live Status Data:", realTimeStatus);
+
+        updateSummary(summary);
+        updateDetails(details, realTimeStatus);
+        updateDowntimeTrends(trends);
+    })
+    .catch((error) => {
+        console.error("Error fetching data:", error);
+    });
+}
+
+// Auto-refresh with countdown
+function startAutoRefresh(regionName) {
+    fetchAllData(regionName);
+
+    const countdownDisplay = document.getElementById("countdown");
+    function updateCountdown() {
+        countdownDisplay.innerText = `Refreshing in ${countdownTime} seconds`;
+        countdownTime--;
+        if (countdownTime < 0) countdownTime = refreshInterval / 1000;
+    }
+    setInterval(updateCountdown, 1000);
+
+    setInterval(() => {
+        fetchAllData(regionName);
+        countdownTime = refreshInterval / 1000; 
+    }, refreshInterval);
+}
+
+// Update UI with summary data
+function updateSummary(data) {
+    document.getElementById("total-devices").textContent = data.summary?.totalDevices || "N/A";
+    document.getElementById("online-devices").textContent = data.summary?.totalOnlineDevices || "N/A";
+    document.getElementById("offline-devices").textContent = data.summary?.totalOfflineDevices || "N/A";
+}
+
+// Update UI with downtime/uptime trends
+function updateDowntimeTrends(trends) {
+    const container = document.getElementById("details-section");
+    container.innerHTML = `<h2 style="color:red">Downtime/Uptime Trends</h2>`;
+
+    Object.entries(trends.trendData || {}).forEach(([device, stats]) => {
+        container.innerHTML += `
+            <div class="trend-card">
+                <h3>${device}</h3>
+                <p><strong>Daily Downtime:</strong> ${stats.daily || "N/A"} min</p>
+                <p><strong>Weekly Downtime:</strong> ${stats.weekly || "N/A"} min</p>
+                <p><strong>Monthly Downtime:</strong> ${stats.monthly || "N/A"} min</p>
+                <p><strong>Uptime %:</strong> ${stats.uptimePercentage || "N/A"}%</p>
+            </div>
+        `;
+    });
+}
+
+// Update UI with device details, including real-time status
+function updateDetails(data, realTimeStatus) {
+    const detailsContainer = document.getElementById("device-details");
+    detailsContainer.innerHTML = "";
+
+    Object.entries(data.details || {}).forEach(([key, devices]) => {
+        if (!Array.isArray(devices) || devices.length === 0) return;
+
+        const deviceType = key.toLowerCase();
+
+        devices.forEach((device) => {
+            const deviceIP = device.ip_address || "N/A";
+            const currentStatus = realTimeStatus[deviceIP] || device.status;
+
+            const card = document.createElement("div");
+            card.className = "device-card";
+            card.dataset.type = deviceType;
+            card.dataset.status = currentStatus.toLowerCase();
+
+            const statusDot = document.createElement("span");
+            statusDot.className = "status-dot";
+            statusDot.style.backgroundColor = currentStatus === "Online" ? "green" : "red";
+
+            card.innerHTML = `
+                <h3>${device.cameraname || device.controllername || device.archivername || device.servername || "Unknown Device"}</h3>
+                <p>DEVICE TYPE: ${deviceType.toUpperCase()}</p>
+                <p>IP: ${deviceIP}</p>
+                <p>LOCATION: ${device.location || "N/A"}</p>
+                <p>Status: ${currentStatus} ${statusDot.outerHTML}</p>
+                <button class="details-button" onclick="showModal('${device.cameraname || device.controllername || device.archivername || device.servername || "Unknown Device"}', '${deviceIP}', '${device.location || "N/A"}', '${currentStatus}')">Details</button>
+            `;
+
+            detailsContainer.appendChild(card);
+        });
+    });
+
+    // Start real-time pinging every 10 seconds
+    setInterval(() => pingAllDevices(realTimeStatus), 10000);
+}
+
+// Ping devices to check live status
+function pingAllDevices(realTimeStatus) {
+    Object.entries(realTimeStatus || {}).forEach(([ip, status]) => {
+        const card = document.querySelector(`[data-ip="${ip}"]`);
+        if (!card) return;
+
+        fetch(`${baseUrl}/ping/${ip}`)
+            .then(response => response.json())
+            .then(statusData => {
+                const newStatus = statusData.status.toLowerCase();
+                const statusDot = card.querySelector(".status-dot");
+                const statusText = card.querySelector(".device-status");
+
+                if (newStatus === "online") {
+                    statusDot.style.backgroundColor = "green";
+                    statusText.textContent = "Online";
+                    card.dataset.status = "online";
+                } else {
+                    statusDot.style.backgroundColor = "red";
+                    statusText.textContent = "Offline";
+                    card.dataset.status = "offline";
+                }
+            })
+            .catch(error => console.error(`Ping failed for ${ip}:`, error));
+    });
+}
+
+// Show modal with device details
+function showModal(deviceName, ip, location, status) {
+    const modal = document.getElementById("modal");
+    document.getElementById("modal-title").textContent = deviceName;
+    document.getElementById("modal-body").innerHTML = `
+        <p><strong>IP Address:</strong> ${ip}</p>
+        <p><strong>Location:</strong> ${location}</p>
+        <p><strong>Status:</strong> ${status}</p>
+    `;
+    modal.style.display = "block";
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Fetch real-time status from the backend
     fetch("http://localhost:80/api/region/devices/status")
         .then((response) => response.json())
         .then((realTimeStatus) => {
