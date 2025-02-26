@@ -1,3 +1,71 @@
+const baseUrl = "http://localhost:80/api/regions";
+let region = "Global"; // Default region
+
+document.addEventListener("DOMContentLoaded", () => {
+    console.log("Initializing content for:", region);
+    setupEventListeners();
+    startAutoRefresh(region);
+});
+
+function setupEventListeners() {
+    document.querySelectorAll(".region-button").forEach((button) => {
+        button.addEventListener("click", () => {
+            region = button.getAttribute("data-region");
+            document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
+
+            fetchSummary(region);
+            fetchDetails(region);
+            fetchTrendData(region);
+
+            // Restart auto-refresh with the new region
+            resetAutoRefresh(region);
+        });
+    });
+
+    const viewTrendButton = document.getElementById("viewTrendButton");
+    if (viewTrendButton) {
+        viewTrendButton.addEventListener("click", () => {
+            console.log("View Trend Analysis button clicked!");
+            fetchTrendData(region);
+        });
+    } else {
+        console.error("View Trend Analysis button not found in the DOM.");
+    }
+}
+
+let refreshInterval = 300000; // 5 minutes
+let countdownTime = refreshInterval / 1000;
+let refreshTimer; // Store interval ID
+
+function startAutoRefresh(regionName) {
+    fetchData(regionName);
+    updateCountdown();
+
+    refreshTimer = setInterval(() => {
+        fetchData(regionName);
+        countdownTime = refreshInterval / 1000;
+    }, refreshInterval);
+
+    setInterval(updateCountdown, 1000);
+}
+
+function resetAutoRefresh(regionName) {
+    clearInterval(refreshTimer);
+    startAutoRefresh(regionName);
+}
+
+function fetchTrendData(region) {
+    const trendApiUrl = `http://localhost:80/api/region/devices/downtime-uptime/${region}`;
+    fetch(trendApiUrl)
+        .then(response => response.json())
+        .then(trendData => {
+            console.log("Trend Data:", trendData);
+            updateTrendAnalysis(trendData);
+        })
+        .catch(error => console.error("Error fetching trend data:", error));
+}
+
+
 
 
 Script.js 
