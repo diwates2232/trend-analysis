@@ -1,125 +1,4 @@
-<button id="viewTrendButton">View Trend Analysis</button>
-
-document.getElementById("viewTrendButton").disabled = false;
-
-<button id="viewTrendButton" type="button">View Trend Analysis</button>
-
-document.addEventListener("DOMContentLoaded", () => {
-    const viewTrendButton = document.getElementById("viewTrendButton");
-
-    if (viewTrendButton) {
-        viewTrendButton.addEventListener("click", () => {
-            console.log("View Trend Analysis button clicked!");
-            fetchTrendData(region);
-        });
-    } else {
-        console.error("View Trend Analysis button not found in the DOM.");
-    }
-});
-
-
-#viewTrendButton {
-    position: relative;
-    z-index: 1000;
-    opacity: 1;
-    pointer-events: auto;
-}
-
-
-
-
-
-
-let region = "global"; // Declare it globally
-
-document.addEventListener("DOMContentLoaded", () => {
-    // Fetch initial data for default region
-    fetchSummary(region);
-    fetchDetails(region);
-    fetchTrendData(region);
-
-    // Select all region buttons
-    const regionButtons = document.querySelectorAll(".region-button");
-
-    // Attach event listeners correctly
-    regionButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-            region = button.getAttribute("data-region"); // Update global region variable
-            document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
-
-            fetchSummary(region);
-            fetchDetails(region);
-            fetchTrendData(region);
-        });
-    });
-});
-
-
-
-function fetchTrendData(region) {
-    const trendApiUrl = `http://localhost:80/api/region/devices/downtime-uptime/${region}`;
-    fetch(trendApiUrl)
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error("Error fetching downtime-uptime trend data.");
-            }
-            return response.json();
-        })
-        .then((trendData) => {
-            console.log("Trend Data:", trendData);
-        })
-        .catch((error) => {
-            console.error("Error fetching trend data:", error);
-            alert("Failed to load trend data. Please check the console for details.");
-        });
-}
-
-
-
-
-
-
-
-const trendApiUrl = `http://localhost:80/api/region/devices/downtime-uptime/${region}`;
-
-
-document.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll(".region-button").forEach((button) => {
-        button.addEventListener("click", () => {
-            const region = button.getAttribute("data-region");
-            document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
-            fetchSummary(region);
-            fetchDetails(region);
-            fetchTrendData(region); // Fetch trend data when region is changed
-        });
-    });
-});
-
-
-
-
-let countdownInterval;
-function startAutoRefresh(regionName) {
-    fetchData(regionName); // Fetch data initially
-    clearInterval(countdownInterval); // Clear previous interval
-
-    const countdownDisplay = document.getElementById("countdown");
-    let countdownTime = refreshInterval / 1000; // Reset countdown
-
-    countdownInterval = setInterval(() => {
-        countdownDisplay.innerText = `Refreshing in ${countdownTime} seconds`;
-        countdownTime--;
-        if (countdownTime < 0) {
-            countdownTime = refreshInterval / 1000;
-            fetchData(regionName); // Fetch fresh data
-        }
-    }, 1000);
-}
-
-
-
-
-Script.js
+Script.js 
 
 
 const baseUrl = "http://localhost:80/api/regions";
@@ -145,27 +24,41 @@ function initializeContent() {
 const trendApiUrl = `http://localhost:80/api/region/devices/downtime-uptime/${region}`;
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Fetch summary and details for the default region (global)
-    fetchSummary("global");
-    fetchDetails("global");
+    // Fetch initial data for default region
+    fetchSummary(region);
+    fetchDetails(region);
+    fetchTrendData(region);
 
-    // Add event listeners to region buttons
+    // Select all region buttons
     const regionButtons = document.querySelectorAll(".region-button");
+
+    // Attach event listeners correctly
     regionButtons.forEach((button) => {
         button.addEventListener("click", () => {
-            const region = button.getAttribute("data-region");
+            region = button.getAttribute("data-region"); // Update global region variable
             document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
+
             fetchSummary(region);
             fetchDetails(region);
-            fetchTrendData(region); // Fetch trend data when region is changed
+            fetchTrendData(region);
         });
     });
-
-    // Close modal on button click
-    document.getElementById("close-modal").addEventListener("click", () => {
-        document.getElementById("modal").style.display = "none";
-    });
 });
+
+
+document.addEventListener("DOMContentLoaded", () => {
+    const viewTrendButton = document.getElementById("viewTrendButton");
+
+    if (viewTrendButton) {
+        viewTrendButton.addEventListener("click", () => {
+            console.log("View Trend Analysis button clicked!");
+            fetchTrendData(region);
+        });
+    } else {
+        console.error("View Trend Analysis button not found in the DOM.");
+    }
+});
+
 
 let refreshInterval = 300000; // 5 minutes (300,000 ms)
 let countdownTime = refreshInterval / 1000; // Convert to seconds
@@ -263,11 +156,9 @@ function fetchDetails(regionName) {
 
 // Function to fetch trend data
 
-
 function fetchTrendData(region) {
     const trendApiUrl = `http://localhost:80/api/region/devices/downtime-uptime/${region}`;
     fetch(trendApiUrl)
-    
         .then((response) => {
             if (!response.ok) {
                 throw new Error("Error fetching downtime-uptime trend data.");
@@ -276,14 +167,12 @@ function fetchTrendData(region) {
         })
         .then((trendData) => {
             console.log("Trend Data:", trendData);
-        
         })
         .catch((error) => {
             console.error("Error fetching trend data:", error);
             alert("Failed to load trend data. Please check the console for details.");
         });
 }
-
 
 
 
@@ -437,7 +326,7 @@ function updateDetails(data) {
     let allDevices = [];
 
     // Fetch real-time status from the backend
-    fetch("http://localhost:80/api/devices/status")
+    fetch("http://localhost:80/api/region/devices/status")
         .then((response) => response.json())
         .then((realTimeStatus) => {
             console.log("Live Status Data:", realTimeStatus);
@@ -534,14 +423,12 @@ function showModal(name, ip, location, status) {
         `;
         document.getElementById("modal").style.display = "block";
     }
-    
+
 
 
 
 
 index.html
-
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -627,9 +514,12 @@ index.html
                 <option value="servers">Servers</option>
             </select>
             
-            <!-- Link to the trend analysis page -->
-            <button id="trend-analysis-link" style="width: 100%; padding: 15px; margin-top: 20px; border: none; background-color: #007bff; color: white; font-size: 16px; cursor: pointer; text-align: center; border-radius: 5px; transition: background-color 0.3s ease;">View Trend Analysis</button>
+        
+            
+              <button id="viewTrendButton">View Trend Analysis</button>
+
         </div>
+
 
         <div id="content">
             <h1 id="region-title" style="color:rgb(255, 0, 0); font-weight: bold; text-align: start;">Global Summary</h1>
@@ -703,4 +593,5 @@ index.html
 </body>
 </html>
 
-
+    
+    
