@@ -1,3 +1,231 @@
+const baseUrl = "http://localhost:80/api/regions";
+let region = "Global"; // Default region
+let refreshTimer; // Store interval ID
+let countdownTime = 300; // 5 minutes (in seconds)
+
+// Consolidate DOMContentLoaded event listeners
+document.addEventListener("DOMContentLoaded", () => {
+    console.log("Initializing content for:", region);
+    setupEventListeners();
+    startAutoRefresh(region);
+
+    // Initial data fetch for default region
+    fetchSummary(region);
+    fetchDetails(region);
+    fetchTrendData(region);
+});
+
+function setupEventListeners() {
+    // Region button event listeners
+    document.querySelectorAll(".region-button").forEach((button) => {
+        button.addEventListener("click", () => {
+            region = button.getAttribute("data-region");
+            document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
+
+            fetchSummary(region);
+            fetchDetails(region);
+            fetchTrendData(region);
+
+            // Restart auto-refresh with the new region
+            resetAutoRefresh(region);
+        });
+    });
+
+    const viewTrendButton = document.getElementById("viewTrendButton");
+    if (viewTrendButton) {
+        viewTrendButton.addEventListener("click", () => {
+            console.log("View Trend Analysis button clicked!");
+            fetchTrendData(region);
+        });
+    } else {
+        console.error("View Trend Analysis button not found in the DOM.");
+    }
+}
+
+// Function to start auto-refresh with a countdown
+function startAutoRefresh(regionName) {
+    fetchData(regionName);
+    updateCountdown();
+
+    refreshTimer = setInterval(() => {
+        fetchData(regionName);
+        countdownTime = 300; // Reset countdown every 5 minutes
+    }, 300000); // 5 minutes
+
+    setInterval(updateCountdown, 1000);
+}
+
+function resetAutoRefresh(regionName) {
+    clearInterval(refreshTimer);
+    startAutoRefresh(regionName);
+}
+
+function updateCountdown() {
+    const countdownDisplay = document.getElementById("countdown");
+    countdownDisplay.innerText = `Refreshing in ${countdownTime} seconds`;
+    countdownTime--;
+    if (countdownTime < 0) countdownTime = 300; // Reset after countdown ends
+}
+
+// Function to fetch summary and details in parallel
+function fetchData(regionName) {
+    const summaryUrl = `${baseUrl}/summary/${regionName}`;
+    const detailsUrl = `${baseUrl}/details/${regionName}`;
+
+    Promise.all([
+        fetch(summaryUrl).then((res) => res.json()),
+        fetch(detailsUrl).then((res) => res.json())
+    ])
+    .then(([summary, details]) => {
+        console.log("Summary Data:", summary);
+        console.log("Details Data:", details);
+        updateSummary(summary);
+        updateDetails(details);
+    })
+    .catch((error) => {
+        console.error("Error fetching data:", error);
+    });
+}
+
+// Function to fetch summary
+function fetchSummary(regionName) {
+    const summaryUrl = `${baseUrl}/summary/${regionName}`;
+    fetch(summaryUrl)
+        .then(response => response.json())
+        .then(summary => updateSummary(summary))
+        .catch(error => console.error("Error fetching summary:", error));
+}
+
+// Function to fetch details
+function fetchDetails(regionName) {
+    const detailsUrl = `${baseUrl}/details/${regionName}`;
+    fetch(detailsUrl)
+        .then(response => response.json())
+        .then(details => updateDetails(details))
+        .catch(error => {
+            console.error("Error fetching details:", error);
+            document.getElementById("device-details").innerHTML = "<p>Failed to load device details.</p>";
+        });
+}
+
+// Function to fetch trend data
+function fetchTrendData(region) {
+    const trendApiUrl = `http://localhost:80/api/region/devices/downtime-uptime/${region}`;
+    fetch(trendApiUrl)
+        .then(response => response.json())
+        .then(trendData => updateTrendAnalysis(trendData))
+        .catch(error => console.error("Error fetching trend data:", error));
+}
+
+// Function to update summary UI
+function updateSummary(data) {
+    document.getElementById("total-devices").textContent = data.summary?.totalDevices || "N/A";
+    document.getElementById("online-devices").textContent = data.summary?.totalOnlineDevices || "N/A";
+    document.getElementById("offline-devices").textContent = data.summary?.totalOfflineDevices || "N/A";
+
+    // Cameras, Archivers, Controllers, and Servers Summary
+    updateDeviceSummary("camera", data.summary?.cameras);
+    updateDeviceSummary("archiver", data.summary?.archivers);
+    updateDeviceSummary("controller", data.summary?.controllers);
+    updateDeviceSummary("server", data.summary?.servers);
+}
+
+function updateDeviceSummary(type, data) {
+    document.getElementById(`${type}-total`).textContent = data?.total || "N/A";
+    document.getElementById(`${type}-online`).textContent = data?.online || "N/A";
+    document.getElementById(`${type}-offline`).textContent = data?.offline || "N/A";
+}
+
+// Function to update details UI
+function updateDetails(data) {
+    const detailsContainer = document.getElementById("device-details");
+    detailsContainer.innerHTML = ""; // Clear previous data
+    // Render each device's details (you can customize this part based on your structure)
+}
+
+// Function to update trend analysis UI
+function updateTrendAnalysis(trendData) {
+    const trendContainer = document.getElementById("trend-container");
+    trendContainer.innerHTML = ""; // Clear previous trend data
+    const periods = ['daily', 'weekly', 'monthly'];
+
+    periods.forEach((period) => {
+        const periodData = trendData[period];
+        if (periodData && periodData.labels && periodData.uptime && periodData.downtime) {
+            const trendCard = document.createElement("div");
+            trendCard.className = "trend-card";
+            trendCard.innerHTML = `
+                <h4>${period.charAt(0).toUpperCase() + period.slice(1)} Trend</h4>
+                <canvas id="${period}-chart"></canvas>
+            `;
+            trendContainer.appendChild(trendCard);
+
+            renderTrendChart(`${period}-chart`, periodData);
+        }
+    });
+}
+
+// Function to render trend chart using Chart.js
+function renderTrendChart(chartId, periodData) {
+    const ctx = document.getElementById(chartId).getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: periodData.labels,
+            datasets: [
+                {
+                    label: 'Uptime',
+                    data: periodData.uptime,
+                    borderColor: 'green',
+                    fill: false
+                },
+                {
+                    label: 'Downtime',
+                    data: periodData.downtime,
+                    borderColor: 'red',
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (tooltipItem) => `${tooltipItem.dataset.label}: ${tooltipItem.raw} hours`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Device IP'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Duration (hours)'
+                    }
+                }
+            }
+        }
+    });
+}
+
+
+
+
+
+
+
+
+
+
 
 
 
