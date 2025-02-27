@@ -1,4 +1,35 @@
 function fetchTrendAnalysis(regionName) {
+    const trendApiUrl = `http://localhost/api/region/trend/details/${regionName}`; // Corrected URL
+
+    fetch(trendApiUrl)
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json(); // Parse as JSON if the response is valid
+        })
+        .then((data) => {
+            console.log("Trend Analysis Data:", data);
+            updateTrendAnalysis(data);
+        })
+        .catch((error) => {
+            console.error("Error fetching trend analysis data:", error);
+            const trendAnalysisElement = document.getElementById("trend-analysis");
+            if (trendAnalysisElement) {
+                trendAnalysisElement.innerHTML = "<p>Failed to load trend analysis data.</p>";
+            }
+        });
+}
+
+
+
+
+
+
+
+
+
+function fetchTrendAnalysis(regionName) {
     const trendApiUrl = `${trendUrl}/trend/details/${regionName}`;
 
     fetch(trendApiUrl)
