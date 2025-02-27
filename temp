@@ -1,3 +1,61 @@
+function updateTrendAnalysis(data) {
+    const trendAnalysisElement = document.getElementById("trend-analysis");
+
+    if (!trendAnalysisElement) {
+        console.error("Trend analysis element not found.");
+        return;
+    }
+
+    // Clear previous content
+    trendAnalysisElement.innerHTML = "";
+
+    // Example: Display region name
+    const regionTitle = document.createElement("h3");
+    regionTitle.textContent = `Region: ${data.region}`;
+    trendAnalysisElement.appendChild(regionTitle);
+
+    // Loop through devices and display their details
+    data.devices.forEach(device => {
+        const deviceContainer = document.createElement("div");
+        deviceContainer.classList.add("device");
+
+        // Display device IP and status
+        const deviceInfo = document.createElement("p");
+        deviceInfo.textContent = `IP: ${device.ip}, Status: ${device.status}`;
+        deviceContainer.appendChild(deviceInfo);
+
+        // Display daily stats
+        const dailyStats = document.createElement("p");
+        dailyStats.textContent = `Daily - Uptime: ${device.daily.uptime}h, Downtime: ${device.daily.downtime}h, Downtime Duration: ${device.daily.downtimeDuration}h`;
+        deviceContainer.appendChild(dailyStats);
+
+        // Display weekly stats
+        const weeklyStats = document.createElement("p");
+        weeklyStats.textContent = `Weekly - Uptime: ${device.weekly.uptime}h, Downtime: ${device.weekly.downtime}h, Downtime Duration: ${device.weekly.downtimeDuration}h`;
+        deviceContainer.appendChild(weeklyStats);
+
+        // Display monthly stats
+        const monthlyStats = document.createElement("p");
+        monthlyStats.textContent = `Monthly - Uptime: ${device.monthly.uptime}h, Downtime: ${device.monthly.downtime}h, Downtime Duration: ${device.monthly.downtimeDuration}h`;
+        deviceContainer.appendChild(monthlyStats);
+
+        // Append device info to the main element
+        trendAnalysisElement.appendChild(deviceContainer);
+    });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 function fetchTrendAnalysis(regionName) {
     const trendApiUrl = `http://localhost/api/region/trend/details/${regionName}`; // Corrected URL
 
