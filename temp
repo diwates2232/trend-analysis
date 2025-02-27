@@ -1,3 +1,37 @@
+const baseUrl = "http://localhost:80/api/regions";
+const trendUrl = "http://localhost/api/region/trend/details/regions"; // Move this up here
+
+document.addEventListener("DOMContentLoaded", () => {
+    // Fetch summary and details for the default region (global)
+    fetchSummary("global");
+    fetchDetails("global");
+    fetchTrendAnalysis("global"); // Fetch Trend Analysis
+
+    // Add event listeners to region buttons
+    const regionButtons = document.querySelectorAll(".region-button");
+    regionButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+            const region = button.getAttribute("data-region");
+            document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
+            fetchSummary(region);
+            fetchDetails(region);
+            fetchTrendAnalysis(region); // Fetch Trend Analysis for selected region
+        });
+    });
+
+    // Close modal on button click
+    document.getElementById("close-modal").addEventListener("click", () => {
+        document.getElementById("modal").style.display = "none";
+    });
+});
+
+// ... rest of your code
+
+
+
+
+
+
 
 const baseUrl = "http://localhost:80/api/regions";
 
