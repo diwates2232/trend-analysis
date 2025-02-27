@@ -1,3 +1,17 @@
+<div id="trend-analysis"></div>
+
+
+<body>
+    <div id="trend-analysis"></div>
+    <script src="script.js"></script> <!-- Ensure script.js is included at the end -->
+</body>
+
+
+
+
+
+
+
 function updateTrendAnalysis(data) {
     const trendAnalysisElement = document.getElementById("trend-analysis");
 
