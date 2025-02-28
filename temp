@@ -1,3 +1,49 @@
+document.addEventListener("DOMContentLoaded", () => {
+    let regionName = "global"; // Ensure consistency in region naming
+    fetchSummary(regionName);
+    fetchDetails(regionName);
+    fetchTrendAnalysis(regionName);
+    startAutoRefresh(regionName);
+});
+
+
+
+function startAutoRefresh(regionName) {
+    fetchData(regionName); // Fetch initially
+
+    function refresh() {
+        fetchData(regionName);
+        countdownTime = refreshInterval / 1000;
+        setTimeout(refresh, refreshInterval);
+    }
+
+    refresh(); // Start refresh loop
+
+    function updateCountdown() {
+        countdownDisplay.innerText = `Refreshing in ${countdownTime} seconds`;
+        countdownTime--;
+        if (countdownTime < 0) countdownTime = refreshInterval / 1000;
+        setTimeout(updateCountdown, 1000);
+    }
+
+    updateCountdown(); // Start countdown loop
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const baseUrl = "http://localhost:80/api/regions";
 const trendUrl = "http://localhost/api/region/trend/details/regions"; // Move this up here
