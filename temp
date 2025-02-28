@@ -1,3 +1,100 @@
+function updateTrendAnalysis(data) {
+    const trendAnalysisElement = document.getElementById("trend-analysis");
+
+    if (!data.devices || !Array.isArray(data.devices)) {
+        trendAnalysisElement.innerHTML = "<p>No trend data available.</p>";
+        return;
+    }
+
+    // Clear previous content
+    trendAnalysisElement.innerHTML = "";
+
+    // Loop through devices and create a card for each
+    data.devices.forEach(device => {
+        const card = document.createElement("div");
+        card.classList.add("trend-card");
+
+        card.innerHTML = `
+            <h3>Device IP: ${device.ip}</h3>
+            <p><strong>Status:</strong> ${device.status}</p>
+            
+            <div class="trend-metrics">
+                <p><strong>Daily</strong></p>
+                <p>Uptime: ${device.daily.uptime}h</p>
+                <p>Downtime: ${device.daily.downtime}h</p>
+                <p>Downtime Duration: ${device.daily.downtimeDuration}h</p>
+            </div>
+            
+            <div class="trend-metrics">
+                <p><strong>Weekly</strong></p>
+                <p>Uptime: ${device.weekly.uptime}h</p>
+                <p>Downtime: ${device.weekly.downtime}h</p>
+                <p>Downtime Duration: ${device.weekly.downtimeDuration}h</p>
+            </div>
+
+            <div class="trend-metrics">
+                <p><strong>Monthly</strong></p>
+                <p>Uptime: ${device.monthly.uptime}h</p>
+                <p>Downtime: ${device.monthly.downtime}h</p>
+                <p>Downtime Duration: ${device.monthly.downtimeDuration}h</p>
+            </div>
+        `;
+
+        trendAnalysisElement.appendChild(card);
+    });
+}
+
+
+
+.trend-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    padding: 16px;
+    margin: 12px;
+    width: 300px;
+    display: inline-block;
+    vertical-align: top;
+    text-align: center;
+}
+
+.trend-card h3 {
+    color: #333;
+}
+
+.trend-metrics {
+    background: #f4f4f4;
+    padding: 8px;
+    border-radius: 5px;
+    margin-top: 8px;
+}
+
+.trend-metrics p {
+    margin: 4px 0;
+}
+
+
+
+<div id="trend-analysis" class="trend-container"></div>
+
+
+
+.trend-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 const baseUrl = "http://localhost:80/api/regions";
