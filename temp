@@ -1,155 +1,3 @@
-<div id="trend-analysis"></div>
-
-
-<body>
-    <div id="trend-analysis"></div>
-    <script src="script.js"></script> <!-- Ensure script.js is included at the end -->
-</body>
-
-
-
-
-
-
-
-function updateTrendAnalysis(data) {
-    const trendAnalysisElement = document.getElementById("trend-analysis");
-
-    if (!trendAnalysisElement) {
-        console.error("Trend analysis element not found.");
-        return;
-    }
-
-    // Clear previous content
-    trendAnalysisElement.innerHTML = "";
-
-    // Example: Display region name
-    const regionTitle = document.createElement("h3");
-    regionTitle.textContent = `Region: ${data.region}`;
-    trendAnalysisElement.appendChild(regionTitle);
-
-    // Loop through devices and display their details
-    data.devices.forEach(device => {
-        const deviceContainer = document.createElement("div");
-        deviceContainer.classList.add("device");
-
-        // Display device IP and status
-        const deviceInfo = document.createElement("p");
-        deviceInfo.textContent = `IP: ${device.ip}, Status: ${device.status}`;
-        deviceContainer.appendChild(deviceInfo);
-
-        // Display daily stats
-        const dailyStats = document.createElement("p");
-        dailyStats.textContent = `Daily - Uptime: ${device.daily.uptime}h, Downtime: ${device.daily.downtime}h, Downtime Duration: ${device.daily.downtimeDuration}h`;
-        deviceContainer.appendChild(dailyStats);
-
-        // Display weekly stats
-        const weeklyStats = document.createElement("p");
-        weeklyStats.textContent = `Weekly - Uptime: ${device.weekly.uptime}h, Downtime: ${device.weekly.downtime}h, Downtime Duration: ${device.weekly.downtimeDuration}h`;
-        deviceContainer.appendChild(weeklyStats);
-
-        // Display monthly stats
-        const monthlyStats = document.createElement("p");
-        monthlyStats.textContent = `Monthly - Uptime: ${device.monthly.uptime}h, Downtime: ${device.monthly.downtime}h, Downtime Duration: ${device.monthly.downtimeDuration}h`;
-        deviceContainer.appendChild(monthlyStats);
-
-        // Append device info to the main element
-        trendAnalysisElement.appendChild(deviceContainer);
-    });
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-function fetchTrendAnalysis(regionName) {
-    const trendApiUrl = `http://localhost/api/region/trend/details/${regionName}`; // Corrected URL
-
-    fetch(trendApiUrl)
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json(); // Parse as JSON if the response is valid
-        })
-        .then((data) => {
-            console.log("Trend Analysis Data:", data);
-            updateTrendAnalysis(data);
-        })
-        .catch((error) => {
-            console.error("Error fetching trend analysis data:", error);
-            const trendAnalysisElement = document.getElementById("trend-analysis");
-            if (trendAnalysisElement) {
-                trendAnalysisElement.innerHTML = "<p>Failed to load trend analysis data.</p>";
-            }
-        });
-}
-
-
-
-
-
-
-
-
-
-function fetchTrendAnalysis(regionName) {
-    const trendApiUrl = `${trendUrl}/trend/details/${regionName}`;
-
-    fetch(trendApiUrl)
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json(); // Parse as JSON if the response is valid
-        })
-        .then((data) => {
-            console.log("Trend Analysis Data:", data);
-            updateTrendAnalysis(data);
-        })
-        .catch((error) => {
-            console.error("Error fetching trend analysis data:", error);
-            const trendAnalysisElement = document.getElementById("trend-analysis");
-            if (trendAnalysisElement) {
-                trendAnalysisElement.innerHTML = "<p>Failed to load trend analysis data.</p>";
-            }
-        });
-}
-
-
-
-
-
-
-
-
-function fetchTrendAnalysis(regionName) {
-    const trendApiUrl = `${trendUrl}/trend/details/${regionName}`; // Use a different name to avoid conflict
-
-    fetch(trendApiUrl)
-        .then((response) => response.json())
-        .then((data) => {
-            console.log("Trend Analysis Data:", data);
-            updateTrendAnalysis(data);
-        })
-        .catch((error) => {
-            console.error("Error fetching trend analysis data:", error);
-            document.getElementById("trend-analysis").innerHTML = "<p>Failed to load trend analysis data.</p>";
-        });
-}
-
-
-
-
-
 
 const baseUrl = "http://localhost:80/api/regions";
 const trendUrl = "http://localhost/api/region/trend/details/regions"; // Move this up here
@@ -172,49 +20,14 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // Close modal on button click
-    document.getElementById("close-modal").addEventListener("click", () => {
-        document.getElementById("modal").style.display = "none";
-    });
-});
-
-// ... rest of your code
 
 
-
-
-
-
-
-const baseUrl = "http://localhost:80/api/regions";
-
-const trendUrl = "http://localhost/api/region/trend/details/regions";
-
-
-document.addEventListener("DOMContentLoaded", () => {
-    // Fetch summary and details for the default region (global)
-    fetchSummary("global");
-    fetchDetails("global");
-    fetchTrendAnalysis("global"); // Fetch Trend Analysis
-
-    // Add event listeners to region buttons
-    const regionButtons = document.querySelectorAll(".region-button");
-    regionButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-            const region = button.getAttribute("data-region");
-            document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
-            fetchSummary(region);
-            fetchDetails(region);
-            fetchTrendAnalysis(region); // Fetch Trend Analysis for selected region
-        });
-    });
 
     // Close modal on button click
     document.getElementById("close-modal").addEventListener("click", () => {
         document.getElementById("modal").style.display = "none";
     });
 });
-
 let refreshInterval = 300000; // 5 minutes (300,000 ms)
 let countdownTime = refreshInterval / 1000; // Convert to seconds
 
@@ -474,21 +287,80 @@ function updateDetails(data) {
 
 
 
-// Trend Analysis Fetch Function
-function fetchTrendAnalysis(regionName) {
-    const trendUrl = `${trendUrl}/trend/details/${regionName}`;
+    function fetchTrendAnalysis(regionName) {
+        const trendApiUrl = `http://localhost/api/region/trend/details/${regionName}`; // Corrected URL
+    
+        fetch(trendApiUrl)
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json(); // Parse as JSON if the response is valid
+            })
+            .then((data) => {
+                console.log("Trend Analysis Data:", data);
+                updateTrendAnalysis(data);
+            })
+            .catch((error) => {
+                console.error("Error fetching trend analysis data:", error);
+                const trendAnalysisElement = document.getElementById("trend-analysis");
+                if (trendAnalysisElement) {
+                    trendAnalysisElement.innerHTML = "<p>Failed to load trend analysis data.</p>";
+                }
+            });
+    }
+    
 
-    fetch(trendUrl)
-        .then((response) => response.json())
-        .then((data) => {
-            console.log("Trend Analysis Data:", data);
-            updateTrendAnalysis(data);
-        })
-        .catch((error) => {
-            console.error("Error fetching trend analysis data:", error);
-            document.getElementById("trend-analysis").innerHTML = "<p>Failed to load trend analysis data.</p>";
+    function updateTrendAnalysis(data) {
+        const trendAnalysisElement = document.getElementById("trend-analysis");
+    
+        if (!trendAnalysisElement) {
+            console.error("Trend analysis element not found.");
+            return;
+        }
+    
+        // Clear previous content
+        trendAnalysisElement.innerHTML = "";
+    
+        // Example: Display region name
+        const regionTitle = document.createElement("h3");
+        regionTitle.textContent = `Region: ${data.region}`;
+        trendAnalysisElement.appendChild(regionTitle);
+    
+        // Loop through devices and display their details
+        data.devices.forEach(device => {
+            const deviceContainer = document.createElement("div");
+            deviceContainer.classList.add("device");
+    
+            // Display device IP and status
+            const deviceInfo = document.createElement("p");
+            deviceInfo.textContent = `IP: ${device.ip}, Status: ${device.status}`;
+            deviceContainer.appendChild(deviceInfo);
+    
+            // Display daily stats
+            const dailyStats = document.createElement("p");
+            dailyStats.textContent = `Daily - Uptime: ${device.daily.uptime}h, Downtime: ${device.daily.downtime}h, Downtime Duration: ${device.daily.downtimeDuration}h`;
+            deviceContainer.appendChild(dailyStats);
+    
+            // Display weekly stats
+            const weeklyStats = document.createElement("p");
+            weeklyStats.textContent = `Weekly - Uptime: ${device.weekly.uptime}h, Downtime: ${device.weekly.downtime}h, Downtime Duration: ${device.weekly.downtimeDuration}h`;
+            deviceContainer.appendChild(weeklyStats);
+    
+            // Display monthly stats
+            const monthlyStats = document.createElement("p");
+            monthlyStats.textContent = `Monthly - Uptime: ${device.monthly.uptime}h, Downtime: ${device.monthly.downtime}h, Downtime Duration: ${device.monthly.downtimeDuration}h`;
+            deviceContainer.appendChild(monthlyStats);
+    
+            // Append device info to the main element
+            trendAnalysisElement.appendChild(deviceContainer);
         });
-}
+    }
+    
+
+
+
+    
 
 function updateSummary(data) {
     document.getElementById("total-devices").textContent = data.summary?.totalDevices || "N/A";
@@ -526,3 +398,5 @@ function showModal(name, ip, location, status) {
     `;
     document.getElementById("modal").style.display = "block";
 }
+
+
