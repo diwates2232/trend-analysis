@@ -1,3 +1,91 @@
+async function pingDevices() {
+    const { day, week, month } = getDateKeys();
+
+    for (const ip of devices) {
+        try {
+            const result = await ping.promise.probe(ip);
+            const isOnline = result.alive;
+
+            if (!uptimeDowntimeStats[ip]) {
+                uptimeDowntimeStats[ip] = { daily: {}, weekly: {}, monthly: {} };
+            }
+
+            if (!uptimeDowntimeStats[ip].daily[day]) {
+                uptimeDowntimeStats[ip].daily[day] = { uptime: 0, downtime: 0, downtimeDuration: 0 };
+            }
+            if (!uptimeDowntimeStats[ip].weekly[week]) {
+                uptimeDowntimeStats[ip].weekly[week] = { uptime: 0, downtime: 0, downtimeDuration: 0 };
+            }
+            if (!uptimeDowntimeStats[ip].monthly[month]) {
+                uptimeDowntimeStats[ip].monthly[month] = { uptime: 0, downtime: 0, downtimeDuration: 0 };
+            }
+
+            if (isOnline) {
+                if (downtimeTracking[ip]?.lastOffline) {
+                    const lastOfflineTime = downtimeTracking[ip].lastOffline;
+                    const downtimeSeconds = Math.floor((Date.now() - lastOfflineTime) / 1000);
+                    uptimeDowntimeStats[ip].daily[day].downtimeDuration += downtimeSeconds;
+                    uptimeDowntimeStats[ip].weekly[week].downtimeDuration += downtimeSeconds;
+                    uptimeDowntimeStats[ip].monthly[month].downtimeDuration += downtimeSeconds;
+                    delete downtimeTracking[ip];
+                }
+                uptimeDowntimeStats[ip].daily[day].uptime += 60;  // Add 60 seconds every minute
+                uptimeDowntimeStats[ip].weekly[week].uptime += 60;
+                uptimeDowntimeStats[ip].monthly[month].uptime += 60;
+            } else {
+                if (!downtimeTracking[ip]) {
+                    downtimeTracking[ip] = { lastOffline: Date.now(), totalDowntime: 0 };
+                } else {
+                    const lastOfflineTime = downtimeTracking[ip].lastOffline;
+                    const downtimeSeconds = Math.floor((Date.now() - lastOfflineTime) / 1000);
+                    if (downtimeSeconds > 0) {
+                        uptimeDowntimeStats[ip].daily[day].downtimeDuration += downtimeSeconds;
+                        uptimeDowntimeStats[ip].weekly[week].downtimeDuration += downtimeSeconds;
+                        uptimeDowntimeStats[ip].monthly[month].downtimeDuration += downtimeSeconds;
+                        downtimeTracking[ip].totalDowntime += downtimeSeconds;
+                        downtimeTracking[ip].lastOffline = Date.now();
+                    }
+                }
+                uptimeDowntimeStats[ip].daily[day].downtime += 60;
+                uptimeDowntimeStats[ip].weekly[week].downtime += 60;
+                uptimeDowntimeStats[ip].monthly[month].downtime += 60;
+            }
+
+            deviceStatus[ip] = isOnline ? "Online" : "Offline";
+        } catch (error) {
+            console.error(`Error pinging ${ip}:`, error);
+            deviceStatus[ip] = "Offline";
+        }
+    }
+}
+
+
+
+
+const formatDuration = (seconds) => {
+    if (seconds === undefined) return "0d 0h 0m 0s";
+
+    const d = Math.floor(seconds / 86400); // 1 day = 86400 seconds
+    const h = Math.floor((seconds % 86400) / 3600); // 1 hour = 3600 seconds
+    const m = Math.floor((seconds % 3600) / 60); // 1 minute = 60 seconds
+    const s = Math.floor(seconds % 60); 
+
+    return `${d}d ${h}h ${m}m ${s}s`;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
