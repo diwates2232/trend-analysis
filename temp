@@ -1,3 +1,21 @@
+let refreshInterval; // Declare it at the top
+
+function refresh() {
+    console.log(refreshInterval); // Now it's accessible
+}
+
+function startAutoRefresh() {
+    refreshInterval = setInterval(refresh, 5000);
+}
+
+
+
+
+
+
+
+
+
 document.addEventListener("DOMContentLoaded", () => {
     let regionName = "global"; // Ensure consistency in region naming
     fetchSummary(regionName);
