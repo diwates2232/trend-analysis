@@ -1,4 +1,81 @@
+app.get("/api/region/trend/details/:region", (req, res) => {
+  try {
+    const region = req.params.region.toLowerCase();
+    console.log(`Fetching details for region: ${region}`);
 
+    const { day, week, month } = getDateKeys(); // Retrieve keys for day, week, and month
+
+    let deviceDetails = [];
+
+    // Function to convert seconds into day/hour/minute/second format
+    const formatDuration = (seconds) => {
+      const days = Math.floor(seconds / (24 * 3600));
+      const hours = Math.floor((seconds % (24 * 3600)) / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const sec = seconds % 60;
+      return `${days}d ${hours}h ${minutes}m ${sec}s`;
+    };
+
+    // Loop through devices
+    Object.keys(uptimeDowntimeStats).forEach(ip => {
+      const device = allData.cameras.find(d => d.ip_address === ip) ||
+                     allData.archivers.find(d => d.ip_address === ip) ||
+                     allData.controllers.find(d => d.ip_address === ip) ||
+                     allData.servers.find(d => d.ip_address === ip);
+
+      if (device && device.location?.toLowerCase() === region) {
+        const stats = uptimeDowntimeStats[ip];
+
+        // Ensure device name and type are included
+        const deviceName = device.name || "Unknown Device";
+        const deviceType = device.type || "Unknown Type";
+        const deviceLocation = device.location || "Unknown Location";
+
+        // Format uptime and downtime in readable form
+        const dailyUptime = formatDuration(stats.daily[day]?.uptime || 0);
+        const weeklyUptime = formatDuration(stats.weekly[week]?.uptime || 0);
+        const monthlyUptime = formatDuration(stats.monthly[month]?.uptime || 0);
+
+        const dailyDowntime = formatDuration(stats.daily[day]?.downtimeDuration || 0);
+        const weeklyDowntime = formatDuration(stats.weekly[week]?.downtimeDuration || 0);
+        const monthlyDowntime = formatDuration(stats.monthly[month]?.downtimeDuration || 0);
+
+        deviceDetails.push({
+          ip,
+          name: deviceName,
+          type: deviceType,
+          location: deviceLocation,
+          status: deviceStatus[ip] || "Unknown",
+          daily: {
+            date: new Date().toLocaleDateString(), // Current date for daily
+            uptime: dailyUptime,
+            downtime: dailyDowntime
+          },
+          weekly: {
+            week: `Week ${new Date().getWeek()}`, // Week number, format as desired
+            uptime: weeklyUptime,
+            downtime: weeklyDowntime
+          },
+          monthly: {
+            month: new Date().toLocaleString('default', { month: 'long' }), // Full month name
+            uptime: monthlyUptime,
+            downtime: monthlyDowntime
+          }
+        });
+      }
+    });
+
+    if (deviceDetails.length === 0) {
+      return res.status(404).json({ message: `No devices found for region: ${region}` });
+    }
+
+    return res.status(200).json({ region, devices: deviceDetails });
+
+  } catch (error) {
+    console.error("Error in details API:", error);
+    return res.status(500).json({ message: "Something went wrong!", error: error.message });
+  }
+});
 
 
 
