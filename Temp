@@ -1,3 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trend Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Device Trend Analysis</h1>
+
+        <!-- Region Selector -->
+        <div class="region-selector">
+            <button onclick="fetchTrendData('apac')">APAC</button>
+            <button onclick="fetchTrendData('emea')">EMEA</button>
+            <button onclick="fetchTrendData('laca')">LACA</button>
+            <button onclick="fetchTrendData('namer')">NAMER</button>
+        </div>
+
+        <!-- Chart Container -->
+        <div class="chart-container">
+            <canvas id="trendChart"></canvas>
+        </div>
+
+        <button class="back-btn" onclick="window.location.href='index.html'">Back to Dashboard</button>
+    </div>
+
+    <script src="trend.js"></script> <!-- JavaScript to fetch and display trends -->
+</body>
+</html>
+
+
+
+
+
+// Event listener for DOM content loaded
+document.addEventListener("DOMContentLoaded", function () {
+    fetchTrendData('apac'); // Default to APAC region initially
+});
+
+// Fetch data based on the region selected
+function fetchTrendData(region) {
+    fetch(`http://localhost:80/api/region/trend/details/${region}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.devices) {
+                displayTrendChart(data.devices);  // Display chart for selected region
+            } else {
+                console.error("No devices data available.");
+            }
+        })
+        .catch(error => console.error("Error fetching trend data:", error));
+}
+
+// Function to display the chart
+function displayTrendChart(devices) {
+    const labels = devices.map(device => device.ip);
+    const uptimeData = devices.map(device => convertToMinutes(device.daily.uptime));
+    const downtimeData = devices.map(device => convertToMinutes(device.daily.downtimeDuration));
+
+    const ctx = document.getElementById("trendChart").getContext("2d");
+    new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: "Uptime (minutes)",
+                    data: uptimeData,
+                    backgroundColor: "green",
+                },
+                {
+                    label: "Downtime (minutes)",
+                    data: downtimeData,
+                    backgroundColor: "red",
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+// Convert time from string to minutes
+function convertToMinutes(timeString) {
+    const parts = timeString.split(" ");
+    let totalMinutes = 0;
+    parts.forEach(part => {
+        if (part.includes("h")) totalMinutes += parseInt(part) * 60;
+        if (part.includes("m")) totalMinutes += parseInt(part);
+    });
+    return totalMinutes;
+}
+
+
+
+
+
+
+
+
 /* Chart Container */
 .chart-container {
     width: 100%;
