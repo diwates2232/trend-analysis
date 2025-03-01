@@ -1,3 +1,9 @@
+
+
+
+
+
+
 document.addEventListener("DOMContentLoaded", function () {
     // Default to APAC region and Cameras device type
     fetchTrendData('apac', 'cameras');
