@@ -1,3 +1,125 @@
+fetch(`http://localhost:80/api/region/trend/details/${region}`)
+    .then(response => response.json())
+    .then(data => {
+        console.log(data);  // Log the response
+        if (data && data.devices) {
+            const filteredDevices = filterDevicesByType(data.devices, deviceType);
+            displayTrendChart(filteredDevices);  // Display chart for selected region and device type
+        } else {
+            console.error("No devices data available.");
+        }
+    })
+    .catch(error => console.error("Error fetching trend data:", error));
+
+
+
+
+
+// Filter devices based on the selected device type
+function filterDevicesByType(devices, deviceType) {
+    return devices.filter(device => device.type.toLowerCase() === deviceType.toLowerCase());
+}
+
+
+
+
+// Display the trend chart or show an error message if no devices found
+function displayTrendChart(devices) {
+    if (devices.length === 0) {
+        alert("No devices found for the selected region and device type.");
+        return;
+    }
+
+    const labels = devices.map(device => device.ip);
+    const uptimeData = devices.map(device => convertToMinutes(device.daily.uptime));
+    const downtimeData = devices.map(device => convertToMinutes(device.daily.downtimeDuration));
+
+    const ctx = document.getElementById("trendChart").getContext("2d");
+    new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: "Uptime (minutes)",
+                    data: uptimeData,
+                    backgroundColor: "green",
+                },
+                {
+                    label: "Downtime (minutes)",
+                    data: downtimeData,
+                    backgroundColor: "red",
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+
+
+
+document.addEventListener("DOMContentLoaded", function () {
+    // Default to APAC region and Cameras device type
+    fetchTrendData('apac', 'cameras');
+});
+
+
+
+
+
+function updateDeviceType() {
+    const deviceType = document.getElementById('deviceType').value;
+    const regionButtons = document.querySelectorAll('.region-selector button');
+    let selectedRegion = 'apac'; // Default region, update based on active region
+
+    // Get the active region button
+    regionButtons.forEach(button => {
+        if (button.style.backgroundColor === 'rgb(85, 85, 85)') {
+            selectedRegion = button.textContent.toLowerCase();
+        }
+    });
+
+    fetchTrendData(selectedRegion, deviceType); // Fetch data for selected region and device type
+}
+
+
+
+
+
+
+
+
+function fetchTrendData(region, deviceType = 'cameras') {
+    fetch(`http://localhost:80/api/region/trend/details/${region}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.devices) {
+                const filteredDevices = filterDevicesByType(data.devices, deviceType);
+                displayTrendChart(filteredDevices);  // Display chart for selected region and device type
+            } else {
+                console.error("No devices data available.");
+            }
+        })
+        .catch(error => console.error("Error fetching trend data:", error));
+}
+
+
+
+
+
+
+
+
+
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
