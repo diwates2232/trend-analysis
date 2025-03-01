@@ -8,6 +8,246 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h3>Device Trend Analysis</h3>
+
+        <!-- Region Selector -->
+        <div class="region-selector">
+            <button onclick="fetchTrendData('apac')">APAC</button>
+            <button onclick="fetchTrendData('emea')">EMEA</button>
+            <button onclick="fetchTrendData('laca')">LACA</button>
+            <button onclick="fetchTrendData('namer')">NAMER</button>
+        </div>
+
+        <!-- Device Type Dropdown -->
+        <div class="device-type">
+            <label for="deviceType">Select Device Type:</label>
+            <select id="deviceType" onchange="updateDeviceType()">
+                <option value="cameras">Cameras</option>
+                <option value="archivers">Archivers</option>
+                <option value="servers">Servers</option>
+                <option value="controllers">Controllers</option>
+            </select>
+        </div>
+
+        <!-- Back to Dashboard Button -->
+        <button class="back-btn" onclick="window.location.href='index.html'">Back to Dashboard</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <h1>Device Trend Analysis</h1>
+        <div class="chart-container">
+            <canvas id="trendChart"></canvas>
+        </div>
+    </div>
+
+    <script src="trend.js"></script> <!-- JavaScript to fetch and display trends -->
+</body>
+</html>
+
+
+
+
+
+/* General Styling */
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    min-height: 100vh;
+    margin: 0;
+}
+
+/* Sidebar Styling */
+.sidebar {
+    width: 250px;
+    padding: 20px;
+    background-color: #333;
+    color: white;
+    position: fixed;
+    height: 100%;
+    top: 0;
+    left: 0;
+}
+
+.sidebar h3 {
+    color: #fff;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.region-selector button {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    background-color: #444;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.region-selector button:hover {
+    background-color: #555;
+}
+
+.device-type {
+    margin-top: 20px;
+}
+
+.device-type select {
+    width: 100%;
+    padding: 8px;
+    margin-top: 10px;
+    font-size: 16px;
+}
+
+/* Back Button */
+.back-btn {
+    width: 100%;
+    padding: 10px;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    margin-top: 20px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.back-btn:hover {
+    background-color: #d32f2f;
+}
+
+/* Main Content Styling */
+.main-content {
+    margin-left: 260px; /* Sidebar width */
+    padding: 20px;
+    flex-grow: 1;
+}
+
+h1 {
+    font-size: 2em;
+    margin-bottom: 20px;
+}
+
+.chart-container {
+    width: 80%;
+    margin: 0 auto;
+}
+
+
+
+
+
+// Event listener for DOM content loaded
+document.addEventListener("DOMContentLoaded", function () {
+    fetchTrendData('apac', 'cameras'); // Default to APAC region and Cameras device type
+});
+
+// Fetch data based on the region and device type selected
+function fetchTrendData(region, deviceType = 'cameras') {
+    fetch(`http://localhost:80/api/region/trend/details/${region}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.devices) {
+                const filteredDevices = filterDevicesByType(data.devices, deviceType);
+                displayTrendChart(filteredDevices);  // Display chart for selected region and device type
+            } else {
+                console.error("No devices data available.");
+            }
+        })
+        .catch(error => console.error("Error fetching trend data:", error));
+}
+
+// Filter devices based on the selected device type
+function filterDevicesByType(devices, deviceType) {
+    return devices.filter(device => device.type.toLowerCase() === deviceType.toLowerCase());
+}
+
+// Function to display the chart
+function displayTrendChart(devices) {
+    const labels = devices.map(device => device.ip);
+    const uptimeData = devices.map(device => convertToMinutes(device.daily.uptime));
+    const downtimeData = devices.map(device => convertToMinutes(device.daily.downtimeDuration));
+
+    const ctx = document.getElementById("trendChart").getContext("2d");
+    new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: "Uptime (minutes)",
+                    data: uptimeData,
+                    backgroundColor: "green",
+                },
+                {
+                    label: "Downtime (minutes)",
+                    data: downtimeData,
+                    backgroundColor: "red",
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+// Convert time from string to minutes
+function convertToMinutes(timeString) {
+    const parts = timeString.split(" ");
+    let totalMinutes = 0;
+    parts.forEach(part => {
+        if (part.includes("h")) totalMinutes += parseInt(part) * 60;
+        if (part.includes("m")) totalMinutes += parseInt(part);
+    });
+    return totalMinutes;
+}
+
+// Function to update device type and fetch data
+function updateDeviceType() {
+    const deviceType = document.getElementById('deviceType').value;
+    const regionButtons = document.querySelectorAll('.region-selector button');
+    let selectedRegion = 'apac'; // Default region, update based on active region
+
+    // Get the active region button
+    regionButtons.forEach(button => {
+        if (button.style.backgroundColor === 'rgb(85, 85, 85)') {
+            selectedRegion = button.textContent.toLowerCase();
+        }
+    });
+
+    fetchTrendData(selectedRegion, deviceType);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trend Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
     <div class="container">
         <h1>Device Trend Analysis</h1>
 
