@@ -1,3 +1,56 @@
+let chartInstance = null;  // Declare a variable to store the chart instance
+
+function displayTrendChart(devices) {
+    const labels = devices.map(device => device.ip);
+    const uptimeData = devices.map(device => convertToMinutes(device.daily.uptime));
+    const downtimeData = devices.map(device => convertToMinutes(device.daily.downtimeDuration));
+
+    const ctx = document.getElementById("trendChart").getContext("2d");
+
+    // Destroy the previous chart instance if it exists
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
+
+    // Create a new chart instance
+    chartInstance = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: "Uptime (minutes)",
+                    data: uptimeData,
+                    backgroundColor: "green",
+                },
+                {
+                    label: "Downtime (minutes)",
+                    data: downtimeData,
+                    backgroundColor: "red",
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 function filterDevicesByType(devices, deviceType) {
     console.log("Available devices:", devices);  // Log all devices
     const filteredDevices = devices.filter(device => {
