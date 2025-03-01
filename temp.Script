@@ -1,1 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trend Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Device Trend Analysis</h1>
+        <canvas id="trendChart"></canvas>
+        <button onclick="window.location.href='index.html'">Back to Dashboard</button>
+    </div>
+
+    <script src="trend.js"></script> <!-- JavaScript to fetch and display trends -->
+</body>
+</html>
+
+
+
+
+
+document.addEventListener("DOMContentLoaded", function () {
+    fetch("http://localhost:3000/api/region/trend/details/apac") // Change API URL if needed
+        .then(response => response.json())
+        .then(data => {
+            displayTrendChart(data.devices);
+        })
+        .catch(error => console.error("Error fetching trend data:", error));
+});
+
+function displayTrendChart(devices) {
+    const labels = devices.map(device => device.ip);
+    const uptimeData = devices.map(device => convertToMinutes(device.uptime));
+    const downtimeData = devices.map(device => convertToMinutes(device.downtimeDuration));
+
+    const ctx = document.getElementById("trendChart").getContext("2d");
+    new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: "Uptime (minutes)",
+                    data: uptimeData,
+                    backgroundColor: "green",
+                },
+                {
+                    label: "Downtime (minutes)",
+                    data: downtimeData,
+                    backgroundColor: "red",
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+function convertToMinutes(timeString) {
+    const parts = timeString.split(" ");
+    let totalMinutes = 0;
+    parts.forEach(part => {
+        if (part.includes("h")) totalMinutes += parseInt(part) * 60;
+        if (part.includes("m")) totalMinutes += parseInt(part);
+    });
+    return totalMinutes;
+}
+
+
+
+
+
+
+
+<button onclick="window.location.href='trend.html'">View Trend Analysis</button>
 
