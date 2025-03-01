@@ -1,3 +1,21 @@
+function filterDevicesByType(devices, deviceType) {
+    console.log("Available devices:", devices);  // Log all devices
+    const filteredDevices = devices.filter(device => {
+        console.log(`Device type: ${device.type}, Comparing with: ${deviceType}`);  // Log device type and comparison
+        return device.type.toLowerCase() === deviceType.toLowerCase();
+    });
+    console.log(`Filtered devices by type (${deviceType}):`, filteredDevices);  // Log filtered devices
+    return filteredDevices;
+}
+
+
+
+
+
+
+
+
+
 
 
 
