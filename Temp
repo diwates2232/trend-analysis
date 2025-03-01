@@ -1,3 +1,109 @@
+app.js
+
+
+app.get("/api/region/trend/details/:region", (req, res) => {
+  try {
+    const region = req.params.region.toLowerCase();
+    console.log(`Fetching details for region: ${region}`);
+
+    const { day, week, month } = getDateKeys();
+
+    let deviceDetails = [];
+
+    Object.keys(uptimeDowntimeStats).forEach(ip => {
+      const device = allData.cameras.find(d => d.ip_address === ip) ||
+                     allData.archivers.find(d => d.ip_address === ip) ||
+                     allData.controllers.find(d => d.ip_address === ip) ||
+                     allData.servers.find(d => d.ip_address === ip);
+
+      if (device && device.location?.toLowerCase() === region) {
+        const stats = uptimeDowntimeStats[ip];
+
+        deviceDetails.push({
+          ip,
+          name: device.name,
+          type: device.type || "Unknown", // Device type (Camera, Server, etc.)
+          location: device.location || "Unknown", // Device location
+          status: deviceStatus[ip] || "Unknown",
+          daily: {
+            uptime: formatDuration(stats.daily[day]?.uptime),
+            downtime: formatDuration(stats.daily[day]?.downtime),
+            downtimeDuration: formatDuration(stats.daily[day]?.downtimeDuration)
+          },
+          weekly: {
+            uptime: formatDuration(stats.weekly[week]?.uptime),
+            downtime: formatDuration(stats.weekly[week]?.downtime),
+            downtimeDuration: formatDuration(stats.weekly[week]?.downtimeDuration)
+          },
+          monthly: {
+            uptime: formatDuration(stats.monthly[month]?.uptime),
+            downtime: formatDuration(stats.monthly[month]?.downtime),
+            downtimeDuration: formatDuration(stats.monthly[month]?.downtimeDuration)
+          }
+        });
+      }
+    });
+
+    if (deviceDetails.length === 0) {
+      return res.status(404).json({ message: `No devices found for region: ${region}` });
+    }
+
+    return res.status(200).json({ region, devices: deviceDetails });
+
+  } catch (error) {
+    console.error("Error in details API:", error);
+    return res.status(500).json({ message: "Something went wrong!", error: error.message });
+  }
+});
+
+// Helper function to format time duration
+const formatDuration = (seconds) => {
+  if (seconds === undefined) return "0d 0h 0m 0s";
+
+  const d = Math.floor(seconds / 86400); // 1 day = 86400 seconds
+  const h = Math.floor((seconds % 86400) / 3600); // 1 hour = 3600 seconds
+  const m = Math.floor((seconds % 3600) / 60); // 1 minute = 60 seconds
+  const s = Math.floor(seconds % 60); 
+
+  return `${d}d ${h}h ${m}m ${s}s`;
+};
+
+
+
+Api-http://localhost/api/region/trend/details/apac (apac /emea/laca namer/global)
+
+
+api responce- 
+
+{
+  "region": "apac",
+  "devices": [
+    {
+      "ip": "10.199.10.20",
+      "type": "Unknown",
+      "location": "APAC",
+      "status": "Online",
+      "daily": {
+        "uptime": "0d 1h 7m 0s",
+        "downtime": "0d 0h 0m 0s",
+        "downtimeDuration": "0d 0h 0m 0s"
+      },
+      "weekly": {
+        "uptime": "0d 1h 7m 0s",
+        "downtime": "0d 0h 0m 0s",
+        "downtimeDuration": "0d 0h 0m 0s"
+      },
+      "monthly": {
+        "uptime": "0d 1h 7m 0s",
+        "downtime": "0d 0h 0m 0s",
+        "downtimeDuration": "0d 0h 0m 0s"
+      }
+    },
+
+
+
+trend.js
+
 document.addEventListener("DOMContentLoaded", function () {
     fetch("http://localhost:80/api/region/trend/details/regions")
         .then(response => response.json())
@@ -55,208 +161,6 @@ function convertToMinutes(timeString) {
 
 
 
-
-
-
-
-
-
-
-index.html
-
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device Dashboard</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-   
-    <div class="container">
-        <div id="sidebar">
-            <h2 style="color:rgb(223, 205, 38);">Regions</h2>
-            <button class="region-button" data-region="global">Global</button>
-            <button class="region-button" data-region="apac">APAC</button>
-            <button class="region-button" data-region="emea">EMEA</button>
-            <button class="region-button" data-region="laca">LACA</button>
-            <button class="region-button" data-region="namer">NAMER</button>
-
-            <button onclick="window.location.href='trend.html'">View Trend Analysis</button>
-
-
-            <div id="countdown" 
-            style="font-size: 16px; font-weight: bold; color:rgb(223, 205, 38);
-            padding: 10px;
-            display: block;
-
-
-            "></div>
-
-
-            <div class="filter-buttons">
-                <button id="filter-all" class="status-filter active" data-status="all"
-                style="display: block;
-                 width: 100%;
-                 padding: 15px;
-                 margin-bottom: 10px;
-                 border: none;
-                 background-color: #e8f0f1;
-                color: rgb(26, 23, 23);
-                font-size: 16px;
-                cursor: pointer;
-               text-align: center;
-                border-radius: 5px;
-                transition: background-color 0.3s ease; ">All Devices</button>
-
-
-                <button id="filter-online" class="status-filter" data-status="online" 
-                style="
-                display: block;
-                 width: 100%;
-                 padding: 15px;
-                 margin-bottom: 10px;
-                 border: none;
-                 background-color: #1c9c47;
-                color: rgb(26, 23, 23);
-                font-size: 16px;
-                cursor: pointer;
-               text-align: center;
-                border-radius: 5px;
-                transition: background-color 0.3s ease;">Online Devices</button>
-
-                <button id="filter-offline"  class="status-filter" data-status="offline"
-                style="
-                display: block;
-                 width: 100%;
-                 padding: 15px;
-                 margin-bottom: 10px;
-                 border: none;
-                 background-color: #db2410;
-                color: rgb(26, 23, 23);
-                font-size: 16px;
-                cursor: pointer;
-               text-align: center;
-                border-radius: 5px;
-                transition: background-color 0.3s ease;                
-                 ">Offline Devices</button>
-            </div>
-
-            <label for="device-filter" style="color:rgb(223, 205, 38);
-            font-size: 16px;
-            border: none;
-            font-weight: bold;
-            text-align: start;
-            border-radius: 5px;
-            width: 100%;
-             ">Filter by Device Type:</label>
-            <select id="device-filter">
-                <option value="all">All</option>
-                <option value="cameras">Cameras</option>
-                <option value="archivers">Archivers</option>
-                <option value="controllers">Controllers</option>
-                <option value="servers">Servers</option>
-            </select>
-        
-            
-        </div>
-
-        <div id="content">
-            <h1 id="region-title" style="color:rgb(255, 0, 0);
-            font-weight: bold;
-            border: black;
-            border-radius: 5px;
-            text-align: start;
-            
-            ">Global Summary</h1>
-            <div class="summary">
-
-    
-
-
-                <div class="card">
-                    <h3>Total Devices</h3>
-                    <p>Total: <span id="total-devices">Loading...</span></p>
-                    <p>Online: <span id="online-devices">Loading...</span></p>
-                    <p>Offline: <span id="offline-devices">Loading...</span></p>
-                   </div>
-
-             <div class="card">
-                <h3>Cameras</h3>
-                <p>Total: <span id="camera-total">Loading...</span></p>
-                <p>Online: <span id="camera-online">Loading...</span></p>
-                <p>Offline: <span id="camera-offline">Loading...</span></p>
-               </div>
-            
-               <div class="card">
-                <h3>Archivers</h3>
-                <p>Total: <span id="archiver-total">Loading...</span></p>
-                <p>Online: <span id="archiver-online">Loading...</span></p>
-                <p>Offline: <span id="archiver-offline">Loading...</span></p>
-               </div>
-            
-               <div class="card">
-                <h3>Controllers</h3>
-                <p>Total: <span id="controller-total">Loading...</span></p>
-                <p>Online: <span id="controller-online">Loading...</span></p>
-                <p>Offline: <span id="controller-offline">Loading...</span></p>
-               </div>
-
-               <div class="card">
-                <h3>Servers</h3>
-                <p>Total: <span id="server-total">Loading...</span></p>
-                <p>Online: <span id="server-online">Loading...</span></p>
-                <p>Offline: <span id="server-offline">Loading...</span></p>
-               </div>
-            </div>
-
-            
-
-            <div id="details-section">
-                <h2 style="color:rgb(255, 0, 0)">Device Details</h2>
-             <!-- Dropdown for Filtering -->
-    <div id="device-details">Loading...</div>
-                <div id ="details-container"></div>
-    
-            </div>
-        </div>
-    </div>
-    </body>
-
-    
-    <div id="modal">
-        <div class="modal-content">
-            <span id="close-modal">&times;</span>
-            <h3 id="modal-title">Device Details</h3>
-            <ul id="modal-body"></ul>
-           
-<button id="refresh-button">Refresh Data</button>
-<div id="device-details"></div>
-        </div>
-    </div>
-
-
-
-    <script src="script.js"></script> 
-    
-     <!-- Include Footer -->
-              <footer class="footer">
-                <img src="images/FooterLogo.png" alt="Company Logo" class="footer-logo">
-                <p>&copy;2025 VisionWatch | Powered by <strong>Western Union Services India Pvt Ltd.</strong></p>
-                <p>Contact :
-                <a href="mailto:gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com">gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com</a> |
-                <a href="tel:+91 20 67632394">+91 2067632394 </a>
-                </p>
-            </footer>  
-        </body>
-        </html>
-
-
-
-
-
 trend.html
 
 <!DOCTYPE html>
@@ -278,65 +182,6 @@ trend.html
     <script src="trend.js"></script> <!-- JavaScript to fetch and display trends -->
 </body>
 </html>
-
-
-
-
-trend.js
-
-
-
-document.addEventListener("DOMContentLoaded", function () {
-    // fetch("http://localhost:80/api/region/trend/details/:region",) 
-     fetch("http://localhost:80/api/region/trend/details/regions",) // Change API URL if needed
-        .then(response => response.json())
-        .then(data => {
-            displayTrendChart(data.devices);
-        })
-        .catch(error => console.error("Error fetching trend data:", error));
-});
-
-function displayTrendChart(devices) {
-    const labels = devices.map(device => device.ip);
-    const uptimeData = devices.map(device => convertToMinutes(device.uptime));
-    const downtimeData = devices.map(device => convertToMinutes(device.downtimeDuration));
-
-    const ctx = document.getElementById("trendChart").getContext("2d");
-    new Chart(ctx, {
-        type: "bar",
-        data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: "Uptime (minutes)",
-                    data: uptimeData,
-                    backgroundColor: "green",
-                },
-                {
-                    label: "Downtime (minutes)",
-                    data: downtimeData,
-                    backgroundColor: "red",
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: { beginAtZero: true }
-            }
-        }
-    });
-}
-
-function convertToMinutes(timeString) {
-    const parts = timeString.split(" ");
-    let totalMinutes = 0;
-    parts.forEach(part => {
-        if (part.includes("h")) totalMinutes += parseInt(part) * 60;
-        if (part.includes("m")) totalMinutes += parseInt(part);
-    });
-    return totalMinutes;
-}
 
 
 
