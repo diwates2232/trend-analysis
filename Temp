@@ -1,3 +1,86 @@
+document.addEventListener("DOMContentLoaded", function () {
+    // Replace 'apac' with the region you want to fetch data for
+    const region = 'apac'; // You can replace this dynamically based on user input if needed
+    fetch(`http://localhost:80/api/region/trend/details/${region}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.devices) {
+                displayTrendChart(data.devices);
+            } else {
+                console.error("No devices data available.");
+            }
+        })
+        .catch(error => console.error("Error fetching trend data:", error));
+});
+
+function displayTrendChart(devices) {
+    const labels = devices.map(device => device.ip);
+    const uptimeData = devices.map(device => convertToMinutes(device.daily.uptime));
+    const downtimeData = devices.map(device => convertToMinutes(device.daily.downtimeDuration));
+
+    const ctx = document.getElementById("trendChart").getContext("2d");
+    new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: "Uptime (minutes)",
+                    data: uptimeData,
+                    backgroundColor: "green",
+                },
+                {
+                    label: "Downtime (minutes)",
+                    data: downtimeData,
+                    backgroundColor: "red",
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+function convertToMinutes(timeString) {
+    const parts = timeString.split(" ");
+    let totalMinutes = 0;
+    parts.forEach(part => {
+        if (part.includes("d")) totalMinutes += parseInt(part) * 1440; // Convert days to minutes (1 day = 1440 minutes)
+        if (part.includes("h")) totalMinutes += parseInt(part) * 60;  // Convert hours to minutes (1 hour = 60 minutes)
+        if (part.includes("m")) totalMinutes += parseInt(part); // Minutes
+    });
+    return totalMinutes;
+}
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trend Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Device Trend Analysis</h1>
+        <canvas id="trendChart"></canvas>
+        <button onclick="window.location.href='index.html'">Back to Dashboard</button>
+    </div>
+
+    <script src="trend.js"></script> <!-- JavaScript to fetch and display trends -->
+</body>
+</html>
+
+
+
 app.js
 
 
