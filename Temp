@@ -1,3 +1,67 @@
+document.addEventListener("DOMContentLoaded", function () {
+    fetch("http://localhost:80/api/region/trend/details/regions")
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.devices) {
+                displayTrendChart(data.devices);
+            } else {
+                console.error("No devices data available.");
+            }
+        })
+        .catch(error => console.error("Error fetching trend data:", error));
+});
+
+function displayTrendChart(devices) {
+    const labels = devices.map(device => device.ip);
+    const uptimeData = devices.map(device => convertToMinutes(device.uptime));
+    const downtimeData = devices.map(device => convertToMinutes(device.downtimeDuration));
+
+    const ctx = document.getElementById("trendChart").getContext("2d");
+    new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: "Uptime (minutes)",
+                    data: uptimeData,
+                    backgroundColor: "green",
+                },
+                {
+                    label: "Downtime (minutes)",
+                    data: downtimeData,
+                    backgroundColor: "red",
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+function convertToMinutes(timeString) {
+    const parts = timeString.split(" ");
+    let totalMinutes = 0;
+    parts.forEach(part => {
+        if (part.includes("h")) totalMinutes += parseInt(part) * 60;
+        if (part.includes("m")) totalMinutes += parseInt(part);
+    });
+    return totalMinutes;
+}
+
+
+
+
+
+
+
+
+
+
 index.html
 
 
