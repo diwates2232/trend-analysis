@@ -1,4 +1,29 @@
-// Global variables for charts and device details
+<button onclick="openPieChartModal()">Show Pie Chart</button>
+
+
+
+<input type="text" id="searchBox" placeholder="Search Device">
+<select id="deviceDropdown"></select>
+
+
+
+<div id="pieChartModal" style="display:none;">
+    <h2 id="deviceInfo"></h2>
+    <canvas id="pieChartCanvas"></canvas>
+    <p id="deviceAlert"></p>
+    <button onclick="closePieChartModal()">Close</button>
+</div>
+
+
+
+
+
+
+
+
+
+
+/ Global variables for charts and device details
 let chartInstance = null;  // For trend bar chart
 let pieChartInstance = null;  // For pie chart (device details)
 let currentFilteredDevices = []; // Stores filtered devices
