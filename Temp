@@ -1,69 +1,208 @@
-// Convert "Xd Xh Xm Xs" format to minutes
-function convertToMinutes(timeString) {
-    const parts = timeString.split(" ");
-    let totalMinutes = 0;
-    parts.forEach(part => {
-        if (part.includes("d")) totalMinutes += parseInt(part) * 1440;
-        if (part.includes("h")) totalMinutes += parseInt(part) * 60;
-        if (part.includes("m")) totalMinutes += parseInt(part);
-        if (part.includes("s")) totalMinutes += parseInt(part) / 60; // Convert seconds to minutes
-    });
-    return totalMinutes;
-}
+index.html
 
-// Convert minutes back to "Xh Xm Xs" format
-function convertToReadableFormat(minutes) {
-    let hours = Math.floor(minutes / 60);
-    let remainingMinutes = Math.floor(minutes % 60);
-    let seconds = Math.round((minutes % 1) * 60); // Convert fraction of minutes to seconds
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+   
+    <div class="container">
+        <div id="sidebar">
+            <h2 style="color:rgb(223, 205, 38);">Regions</h2>
+            <button class="region-button" data-region="global">Global</button>
+            <button class="region-button" data-region="apac">APAC</button>
+            <button class="region-button" data-region="emea">EMEA</button>
+            <button class="region-button" data-region="laca">LACA</button>
+            <button class="region-button" data-region="namer">NAMER</button>
 
-    let formattedTime = "";
-    if (hours > 0) formattedTime += hours + "h ";
-    if (remainingMinutes > 0) formattedTime += remainingMinutes + "m ";
-    if (seconds > 0) formattedTime += seconds + "s";
-
-    return formattedTime.trim();
-}
+            <button onclick="window.location.href='trend.html'">View Trend Analysis</button>
 
 
+            <div id="countdown" 
+            style="font-size: 16px; font-weight: bold; color:rgb(223, 205, 38);
+            padding: 10px;
+            display: block;
+
+
+            "></div>
+
+
+            <div class="filter-buttons">
+                <button id="filter-all" class="status-filter active" data-status="all"
+                style="display: block;
+                 width: 100%;
+                 padding: 15px;
+                 margin-bottom: 10px;
+                 border: none;
+                 background-color: #e8f0f1;
+                color: rgb(26, 23, 23);
+                font-size: 16px;
+                cursor: pointer;
+               text-align: center;
+                border-radius: 5px;
+                transition: background-color 0.3s ease; ">All Devices</button>
+
+
+                <button id="filter-online" class="status-filter" data-status="online" 
+                style="
+                display: block;
+                 width: 100%;
+                 padding: 15px;
+                 margin-bottom: 10px;
+                 border: none;
+                 background-color: #1c9c47;
+                color: rgb(26, 23, 23);
+                font-size: 16px;
+                cursor: pointer;
+               text-align: center;
+                border-radius: 5px;
+                transition: background-color 0.3s ease;">Online Devices</button>
+
+                <button id="filter-offline"  class="status-filter" data-status="offline"
+                style="
+                display: block;
+                 width: 100%;
+                 padding: 15px;
+                 margin-bottom: 10px;
+                 border: none;
+                 background-color: #db2410;
+                color: rgb(26, 23, 23);
+                font-size: 16px;
+                cursor: pointer;
+               text-align: center;
+                border-radius: 5px;
+                transition: background-color 0.3s ease;                
+                 ">Offline Devices</button>
+            </div>
+
+            <label for="device-filter" style="color:rgb(223, 205, 38);
+            font-size: 16px;
+            border: none;
+            font-weight: bold;
+            text-align: start;
+            border-radius: 5px;
+            width: 100%;
+             ">Filter by Device Type:</label>
+            <select id="device-filter">
+                <option value="all">All</option>
+                <option value="cameras">Cameras</option>
+                <option value="archivers">Archivers</option>
+                <option value="controllers">Controllers</option>
+                <option value="servers">Servers</option>
+            </select>
+        
+            
+        </div>
+
+        <div id="content">
+            <h1 id="region-title" style="color:rgb(255, 0, 0);
+            font-weight: bold;
+            border: black;
+            border-radius: 5px;
+            text-align: start;
+            
+            ">Global Summary</h1>
+            <div class="summary">
+
+    
+
+
+                <div class="card">
+                    <h3>Total Devices</h3>
+                    <p>Total: <span id="total-devices">Loading...</span></p>
+                    <p>Online: <span id="online-devices">Loading...</span></p>
+                    <p>Offline: <span id="offline-devices">Loading...</span></p>
+                   </div>
+
+             <div class="card">
+                <h3>Cameras</h3>
+                <p>Total: <span id="camera-total">Loading...</span></p>
+                <p>Online: <span id="camera-online">Loading...</span></p>
+                <p>Offline: <span id="camera-offline">Loading...</span></p>
+               </div>
+            
+               <div class="card">
+                <h3>Archivers</h3>
+                <p>Total: <span id="archiver-total">Loading...</span></p>
+                <p>Online: <span id="archiver-online">Loading...</span></p>
+                <p>Offline: <span id="archiver-offline">Loading...</span></p>
+               </div>
+            
+               <div class="card">
+                <h3>Controllers</h3>
+                <p>Total: <span id="controller-total">Loading...</span></p>
+                <p>Online: <span id="controller-online">Loading...</span></p>
+                <p>Offline: <span id="controller-offline">Loading...</span></p>
+               </div>
+
+               <div class="card">
+                <h3>Servers</h3>
+                <p>Total: <span id="server-total">Loading...</span></p>
+                <p>Online: <span id="server-online">Loading...</span></p>
+                <p>Offline: <span id="server-offline">Loading...</span></p>
+               </div>
+            </div>
+
+            
+
+            <div id="details-section">
+                <h2 style="color:rgb(255, 0, 0)">Device Details</h2>
+             <!-- Dropdown for Filtering -->
+    <div id="device-details">Loading...</div>
+                <div id ="details-container"></div>
+    
+            </div>
+        </div>
+    </div>
+    </body>
+
+    
+    <div id="modal">
+        <div class="modal-content">
+            <span id="close-modal">&times;</span>
+            <h3 id="modal-title">Device Details</h3>
+            <ul id="modal-body"></ul>
+           
+<button id="refresh-button">Refresh Data</button>
+<div id="device-details"></div>
+        </div>
+    </div>
+
+
+
+    <script src="script.js"></script> 
+    
+     <!-- Include Footer -->
+              <footer class="footer">
+                <img src="images/FooterLogo.png" alt="Company Logo" class="footer-logo">
+                <p>&copy;2025 VisionWatch | Powered by <strong>Western Union Services India Pvt Ltd.</strong></p>
+                <p>Contact :
+                <a href="mailto:gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com">gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com</a> |
+                <a href="tel:+91 20 67632394">+91 2067632394 </a>
+                </p>
+            </footer>  
+        </body>
+        </html>
 
 
 
 
 
-
-<button onclick="openPieChartModal()">Show Pie Chart</button>
-
+trend.js
 
 
-<input type="text" id="searchBox" placeholder="Search Device">
-<select id="deviceDropdown"></select>
+// Global variables for charts and device details
+let chartInstance = null;       // For the trend bar chart
+let pieChartInstance = null;      // For the pie chart (device details)
+let currentFilteredDevices = [];  // Stores filtered devices (from trend data)
+let currentDeviceIndex = 0;    // Index of the device being shown in the pie modal
+let devicesData = []; // Store all devices globally
+let pieChart; // Store the Pie Chart instance
 
-
-
-<div id="pieChartModal" style="display:none;">
-    <h2 id="deviceInfo"></h2>
-    <canvas id="pieChartCanvas"></canvas>
-    <p id="deviceAlert"></p>
-    <button onclick="closePieChartModal()">Close</button>
-</div>
-
-
-
-
-
-
-
-
-
-
-/ Global variables for charts and device details
-let chartInstance = null;  // For trend bar chart
-let pieChartInstance = null;  // For pie chart (device details)
-let currentFilteredDevices = []; // Stores filtered devices
-let currentDeviceIndex = 0; // Index of the device in modal
-let devicesData = []; // Store all devices
-let pieChart; // Pie Chart instance
 
 // ---------------- Trend Bar Chart Functions ----------------
 
@@ -133,8 +272,9 @@ function convertToMinutes(timeString) {
         if (part.includes("h")) totalMinutes += parseInt(part) * 60;
         if (part.includes("m")) totalMinutes += parseInt(part);
     });
-    return totalMinutes;
+    return totalHours,totalMinutes,totalSeconds;
 }
+
 
 // ---------------- Pie Chart Modal Functions ----------------
 
@@ -219,87 +359,6 @@ document.getElementById("piePeriod").addEventListener("change", updatePieChartFo
 document.getElementById("searchBox").addEventListener("input", searchDevice);
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Global variables for charts and device details
-let chartInstance = null;       // For the trend bar chart
-let pieChartInstance = null;      // For the pie chart (device details)
-let currentFilteredDevices = [];  // Stores filtered devices (from trend data)
-let currentDeviceIndex = 0;    // Index of the device being shown in the pie modal
-
-let devicesData = []; // Store all devices globally
-let pieChart; // Store the Pie Chart instance
-
-
-// ---------------- Trend Bar Chart Functions ----------------
-
-// On page load, default to APAC region and "cameras"
-document.addEventListener("DOMContentLoaded", function () {
-    fetchTrendData('apac', 'cameras');
-});
-
-// Fetch and display the trend (bar) chart for the selected region and device type
-function fetchTrendData(region, deviceType = 'cameras') {
-    console.log(`Fetching data for region: ${region}, device type: ${deviceType}`);
-    fetch(`http://localhost:80/api/region/trend/details/${region}`)
-        .then(response => response.json())
-        .then(data => {
-            console.log("API Response:", data);
-            if (data && data.devices && data.devices.length > 0) {
-                const filteredDevices = filterDevicesByType(data.devices, deviceType);
-                console.log("Filtered Devices:", filteredDevices);
-                currentFilteredDevices = filteredDevices; // Save globally for pie chart details
-                displayTrendChart(filteredDevices);
-            } else {
-                console.error("No devices data available.");
-                alert("No devices found for the selected region and device type.");
-            }
-        })
-        .catch(error => {
-            console.error("Error fetching trend data:", error);
-            alert("Error fetching trend data");
-        });
-}
-
-// Filter devices based on the selected device type
-function filterDevicesByType(devices, deviceType) {
-    return devices.filter(device => {
-        const deviceTypeNormalized = device.type ? device.type.toLowerCase().trim() : "";
-        return deviceTypeNormalized === deviceType.toLowerCase();
-    });
-}
 
 // Create or update the trend bar chart using Chart.js
 function displayTrendChart(devices) {
@@ -389,6 +448,7 @@ function displayTrendChart(devices) {
 }
 
 // Utility: Convert a time string in "Xd Xh Xm Xs" format to minutes
+// Convert "Xd Xh Xm Xs" format to minutes
 function convertToMinutes(timeString) {
     const parts = timeString.split(" ");
     let totalMinutes = 0;
@@ -396,8 +456,23 @@ function convertToMinutes(timeString) {
         if (part.includes("d")) totalMinutes += parseInt(part) * 1440;
         if (part.includes("h")) totalMinutes += parseInt(part) * 60;
         if (part.includes("m")) totalMinutes += parseInt(part);
+        if (part.includes("s")) totalMinutes += parseInt(part) / 60; // Convert seconds to minutes
     });
     return totalMinutes;
+}
+
+// Convert minutes back to "Xh Xm Xs" format
+function convertToReadableFormat(minutes) {
+    let hours = Math.floor(minutes / 60);
+    let remainingMinutes = Math.floor(minutes % 60);
+    let seconds = Math.round((minutes % 1) * 60); // Convert fraction of minutes to seconds
+
+    let formattedTime = "";
+    if (hours > 0) formattedTime += hours + "h ";
+    if (remainingMinutes > 0) formattedTime += remainingMinutes + "m ";
+    if (seconds > 0) formattedTime += seconds + "s";
+
+    return formattedTime.trim();
 }
 
 // ---------------- Event Listeners for Region & Device Type ----------------
@@ -525,489 +600,4 @@ function previousDevice() {
 // Event listener for the period dropdown inside the pie modal
 document.getElementById("piePeriod").addEventListener("change", updatePieChartForCurrentDevice);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Global variables for charts and device details
-let chartInstance = null;       // For the trend bar chart
-let pieChartInstance = null;      // For the pie chart (device details)
-let currentFilteredDevices = [];  // Stores filtered devices (from trend data)
-let currentDeviceIndex = 0;       // Index of the device being shown in the pie modal
-
-// ---------------- Trend Bar Chart Functions ----------------
-
-// On page load, default to APAC region and "cameras"
-document.addEventListener("DOMContentLoaded", function () {
-    fetchTrendData('apac', 'cameras');
-});
-
-// Fetch and display the trend (bar) chart for the selected region and device type
-function fetchTrendData(region, deviceType = 'cameras') {
-    console.log(`Fetching data for region: ${region}, device type: ${deviceType}`);
-    fetch(`http://localhost:80/api/region/trend/details/${region}`)
-        .then(response => response.json())
-        .then(data => {
-            console.log("API Response:", data);
-            if (data && data.devices && data.devices.length > 0) {
-                const filteredDevices = filterDevicesByType(data.devices, deviceType);
-                console.log("Filtered Devices:", filteredDevices);
-                currentFilteredDevices = filteredDevices; // Save globally for pie chart details
-                displayTrendChart(filteredDevices);
-            } else {
-                console.error("No devices data available.");
-                alert("No devices found for the selected region and device type.");
-            }
-        })
-        .catch(error => {
-            console.error("Error fetching trend data:", error);
-            alert("Error fetching trend data");
-        });
-}
-
-// Filter devices based on the selected device type
-function filterDevicesByType(devices, deviceType) {
-    return devices.filter(device => {
-        const deviceTypeNormalized = device.type ? device.type.toLowerCase().trim() : "";
-        return deviceTypeNormalized === deviceType.toLowerCase();
-    });
-}
-
-// Create or update the trend bar chart using Chart.js
-function displayTrendChart(devices) {
-    if (chartInstance) {
-        chartInstance.destroy();
-    }
-    const labels = devices.map(device => device.ip);
-    const uptimeData = devices.map(device => convertToMinutes(device.daily.uptime));
-    const downtimeData = devices.map(device => convertToMinutes(device.daily.downtimeDuration));
-    const ctx = document.getElementById("trendChart").getContext("2d");
-    
-    // Create gradients for better visual effect
-    let gradientUptime = ctx.createLinearGradient(0, 0, 0, 400);
-    gradientUptime.addColorStop(0, "rgba(75, 192, 192, 1)");
-    gradientUptime.addColorStop(1, "rgba(75, 192, 192, 0.2)");
-    
-    let gradientDowntime = ctx.createLinearGradient(0, 0, 0, 400);
-    gradientDowntime.addColorStop(0, "rgba(255, 99, 132, 1)");
-    gradientDowntime.addColorStop(1, "rgba(255, 99, 132, 0.2)");
-    
-    chartInstance = new Chart(ctx, {
-        type: "bar",
-        data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: "Uptime (minutes)",
-                    data: uptimeData,
-                    backgroundColor: gradientUptime,
-                    borderColor: "rgba(75, 192, 192, 1)",
-                    borderWidth: 2,
-                    hoverBackgroundColor: "rgba(75, 192, 192, 0.8)"
-                },
-                {
-                    label: "Downtime (minutes)",
-                    data: downtimeData,
-                    backgroundColor: gradientDowntime,
-                    borderColor: "rgba(255, 99, 132, 1)",
-                    borderWidth: 2,
-                    hoverBackgroundColor: "rgba(255, 99, 132, 0.8)"
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: {
-                duration: 1500,
-                easing: "easeInOutQuart"
-            },
-            plugins: {
-                legend: {
-                    position: "top",
-                    labels: {
-                        font: {
-                            size: 14
-                        }
-                    }
-                },
-                tooltip: {
-                    enabled: true,
-                    backgroundColor: "rgba(0, 0, 0, 0.8)",
-                    titleFont: { size: 14 },
-                    bodyFont: { size: 12 },
-                    callbacks: {
-                        label: function(context) {
-                            return context.dataset.label + ": " + context.parsed.y + " mins";
-                        }
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    ticks: { font: { size: 12 } },
-                    grid: { display: false },
-                    barPercentage: 0.6,
-                    categoryPercentage: 0.8
-                },
-                y: {
-                    beginAtZero: true,
-                    ticks: { font: { size: 12 } },
-                    grid: { color: "rgba(200, 200, 200, 0.2)" }
-                }
-            }
-        }
-    });
-}
-
-// Utility: Convert a time string in "Xd Xh Xm Xs" format to minutes
-function convertToMinutes(timeString) {
-    const parts = timeString.split(" ");
-    let totalMinutes = 0;
-    parts.forEach(part => {
-        if (part.includes("d")) totalMinutes += parseInt(part) * 1440;
-        if (part.includes("h")) totalMinutes += parseInt(part) * 60;
-        if (part.includes("m")) totalMinutes += parseInt(part);
-    });
-    return totalMinutes;
-}
-
-// ---------------- Event Listeners for Region & Device Type ----------------
-
-// Region buttons event listener
-document.querySelectorAll('.region-selector button').forEach(button => {
-    button.addEventListener('click', function () {
-        const region = button.textContent.toLowerCase().trim();
-        const deviceType = document.getElementById('deviceType').value;
-        fetchTrendData(region, deviceType);
-        // Highlight active region button
-        document.querySelectorAll('.region-selector button').forEach(btn => btn.style.backgroundColor = 'gray');
-        button.style.backgroundColor = '#555';
-    });
-});
-
-// Device type dropdown change event
-document.getElementById('deviceType').addEventListener('change', function() {
-    const deviceType = this.value;
-    let selectedRegion = 'apac'; // Default region
-    document.querySelectorAll('.region-selector button').forEach(button => {
-        if (button.style.backgroundColor === 'rgb(85, 85, 85)' || button.style.backgroundColor === '#555') {
-            selectedRegion = button.textContent.toLowerCase().trim();
-        }
-    });
-    fetchTrendData(selectedRegion, deviceType);
-});
-
-// ---------------- Pie Chart Modal Functions (Device Details) ----------------
-
-// Call this function when user clicks the "Show Device Details" button
-function openPieChartModal() {
-    if (currentFilteredDevices.length === 0) {
-        alert("No devices available for pie chart details.");
-        return;
-    }
-    currentDeviceIndex = 0; // Start with first device
-    updatePieChartForCurrentDevice();
-    document.getElementById("pieChartModal").style.display = "block";
-}
-
-// Close the pie chart modal
-function closePieChartModal() {
-    document.getElementById("pieChartModal").style.display = "none";
-    if (pieChartInstance) {
-        pieChartInstance.destroy();
-    }
-}
-
-// Update (or create) the pie chart for the current device based on the selected period
-function updatePieChartForCurrentDevice() {
-    // Get selected period from dropdown ("daily", "weekly", "monthly")
-    let period = document.getElementById("piePeriod").value;
-    let device = currentFilteredDevices[currentDeviceIndex];
-    let dataPeriod = device[period];
-    let uptime = convertToMinutes(dataPeriod.uptime);
-    let downtime = convertToMinutes(dataPeriod.downtimeDuration);
-    
-    // For weekly period, check the repair condition (simulate offline count)
-    if (period === "weekly") {
-        // If your API supplies an offline count, use it; otherwise default to 0.
-        let offlineCount = device.weekly.offlineCount || 0;
-        let downtimeMins = convertToMinutes(device.weekly.downtimeDuration);
-        if (offlineCount > 5 && downtimeMins > 60) {
-            document.getElementById("deviceAlert").textContent = "Need to repair";
-        } else {
-            document.getElementById("deviceAlert").textContent = "Device working properly";
-        }
-    } else {
-        document.getElementById("deviceAlert").textContent = "";
-    }
-    
-    // Show device info (for example, its IP)
-    document.getElementById("deviceInfo").textContent = "Device: " + device.ip;
-    
-    // Create/update the pie chart
-    const ctx = document.getElementById("pieChartCanvas").getContext("2d");
-    if (pieChartInstance) {
-        pieChartInstance.destroy();
-    }
-    pieChartInstance = new Chart(ctx, {
-        type: "pie",
-        data: {
-            labels: ["Uptime (mins)", "Downtime (mins)"],
-            datasets: [{
-                data: [uptime, downtime],
-                backgroundColor: ["rgba(75, 192, 192, 0.7)", "rgba(255, 99, 132, 0.7)"],
-                borderColor: ["rgba(75, 192, 192, 1)", "rgba(255, 99, 132, 1)"],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { position: "top" },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.label || "";
-                            let value = context.parsed;
-                            return label + ": " + value + " mins";
-                        }
-                    }
-                }
-            }
-        }
-    });
-}
-
-// Functions to cycle through devices in the pie chart modal
-function nextDevice() {
-    if (currentDeviceIndex < currentFilteredDevices.length - 1) {
-        currentDeviceIndex++;
-        updatePieChartForCurrentDevice();
-    }
-}
-
-function previousDevice() {
-    if (currentDeviceIndex > 0) {
-        currentDeviceIndex--;
-        updatePieChartForCurrentDevice();
-    }
-}
-
-// Event listener for the period dropdown inside the pie modal
-document.getElementById("piePeriod").addEventListener("change", updatePieChartForCurrentDevice);
-
-
-
-
-
-
-
-
-let chartInstance = null; // Store chart instance
-
-function displayTrendChart(devices) {
-    const labels = devices.map(device => device.ip);
-    const uptimeData = devices.map(device => convertToMinutes(device.daily.uptime));
-    const downtimeData = devices.map(device => convertToMinutes(device.daily.downtimeDuration));
-
-    const ctx = document.getElementById("trendChart").getContext("2d");
-
-    // Destroy existing chart if any
-    if (chartInstance) {
-        chartInstance.destroy();
-    }
-
-    // Create gradient colors
-    let gradientUptime = ctx.createLinearGradient(0, 0, 0, 400);
-    gradientUptime.addColorStop(0, "rgba(75, 192, 192, 1)"); // Teal
-    gradientUptime.addColorStop(1, "rgba(75, 192, 192, 0.2)"); // Light teal
-
-    let gradientDowntime = ctx.createLinearGradient(0, 0, 0, 400);
-    gradientDowntime.addColorStop(0, "rgba(255, 99, 132, 1)"); // Red
-    gradientDowntime.addColorStop(1, "rgba(255, 99, 132, 0.2)"); // Light red
-
-    // Create new chart
-    chartInstance = new Chart(ctx, {
-        type: "bar",
-        data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: "Uptime (minutes)",
-                    data: uptimeData,
-                    backgroundColor: gradientUptime,
-                    borderColor: "rgba(75, 192, 192, 1)",
-                    borderWidth: 2,
-                    hoverBackgroundColor: "rgba(75, 192, 192, 0.8)",
-                },
-                {
-                    label: "Downtime (minutes)",
-                    data: downtimeData,
-                    backgroundColor: gradientDowntime,
-                    borderColor: "rgba(255, 99, 132, 1)",
-                    borderWidth: 2,
-                    hoverBackgroundColor: "rgba(255, 99, 132, 0.8)",
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: "top",
-                    labels: {
-                        font: {
-                            size: 14
-                        }
-                    }
-                },
-                tooltip: {
-                    enabled: true,
-                    backgroundColor: "rgba(0, 0, 0, 0.8)",
-                    titleFont: {
-                        size: 14
-                    },
-                    bodyFont: {
-                        size: 12
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    ticks: {
-                        font: {
-                            size: 12
-                        }
-                    },
-                    grid: {
-                        display: false
-                    }
-                },
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        font: {
-                            size: 12
-                        }
-                    },
-                    grid: {
-                        color: "rgba(200, 200, 200, 0.2)"
-                    }
-                }
-            }
-        }
-    });
-}
-
-
-
-
-
-options: {
-    animation: {
-        duration: 1500, // 1.5s animation
-        easing: "easeInOutQuart"
-    },
-}
-
-
-
-tooltip: {
-    callbacks: {
-        label: function(tooltipItem) {
-            return tooltipItem.dataset.label + ": " + tooltipItem.raw + " mins";
-        }
-    }
-}
-
-
-
-
-scales: {
-    x: {
-        barPercentage: 0.6, // Adjust bar width
-        categoryPercentage: 0.8
-    }
-}
-
-
-
-
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
-
-
-
-
-
-
-plugins: [ChartDataLabels],
-options: {
-    plugins: {
-        datalabels: {
-            color: "#000",
-            anchor: "end",
-            align: "top",
-            font: {
-                size: 12
-            }
-        }
-    }
-}
 
