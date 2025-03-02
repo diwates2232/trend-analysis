@@ -1,3 +1,40 @@
+<!-- Button to show Pie Chart details -->
+<button id="showPieDetailsBtn" onclick="openPieChartModal()">Show Device Details</button>
+
+<!-- Pie Chart Modal (hidden by default) -->
+<div id="pieChartModal" style="display: none;">
+  <div class="modal-content">
+    <span class="close-btn" onclick="closePieChartModal()">X</span>
+    <h2>Device Details</h2>
+    <p id="deviceInfo"></p>
+    <p id="deviceAlert"></p>
+    <!-- Dropdown to select period: daily, weekly, monthly -->
+    <label for="piePeriod">Select Period:</label>
+    <select id="piePeriod">
+      <option value="daily">Daily</option>
+      <option value="weekly">Weekly</option>
+      <option value="monthly">Monthly</option>
+    </select>
+    <!-- Canvas for the Pie Chart -->
+    <canvas id="pieChartCanvas"></canvas>
+    <!-- Navigation buttons to cycle through devices -->
+    <button onclick="previousDevice()">Previous Device</button>
+    <button onclick="nextDevice()">Next Device</button>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Global variables for charts and device details
 let chartInstance = null;       // For the trend bar chart
