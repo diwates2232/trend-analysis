@@ -1,3 +1,172 @@
+<!-- Button to Show Pie Chart Modal -->
+<button id="showPieDetailsBtn" onclick="openPieChartModal()">Show Device Details</button>
+
+<!-- Pie Chart Modal (Hidden Initially) -->
+<div id="pieChartModal" style="display: none;">
+  <div class="modal-content">
+    <span class="close-btn" onclick="closePieChartModal()">X</span>
+    <h2>Device Details</h2>
+
+    <!-- Search Bar for Devices -->
+    <input type="text" id="deviceSearch" placeholder="Search device..." onkeyup="filterDevices()">
+
+    <!-- Device Selection Dropdown -->
+    <label for="deviceSelect">Select Device:</label>
+    <select id="deviceSelect" onchange="updatePieChart()">
+      <option value="">-- Select a Device --</option>
+    </select>
+
+    <!-- Dropdown for Time Period -->
+    <label for="piePeriod">Select Period:</label>
+    <select id="piePeriod" onchange="updatePieChart()">
+      <option value="daily">Daily</option>
+      <option value="weekly">Weekly</option>
+      <option value="monthly">Monthly</option>
+    </select>
+
+    <!-- Display Offline Time Details -->
+    <p id="deviceInfo"></p>
+    <p id="deviceAlert"></p>
+
+    <!-- Canvas for Pie Chart -->
+    <canvas id="pieChartCanvas"></canvas>
+
+    <!-- Navigation Buttons -->
+    <button onclick="previousDevice()">Previous Device</button>
+    <button onclick="nextDevice()">Next Device</button>
+  </div>
+</div>
+
+
+
+
+
+let devicesData = []; // Store all devices globally
+let pieChart; // Store the Pie Chart instance
+
+// Fetch data and populate device dropdown
+document.addEventListener("DOMContentLoaded", function () {
+    fetch("http://localhost:80/api/region/trend/details/apac") // Change for dynamic region
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.devices) {
+                devicesData = data.devices;
+                populateDeviceDropdown(devicesData);
+            } else {
+                console.error("No devices found.");
+            }
+        })
+        .catch(error => console.error("Error fetching data:", error));
+});
+
+// Populate Device Dropdown
+function populateDeviceDropdown(devices) {
+    const dropdown = document.getElementById("deviceSelect");
+    dropdown.innerHTML = '<option value="">-- Select a Device --</option>'; // Reset options
+    devices.forEach(device => {
+        let option = document.createElement("option");
+        option.value = device.ip;
+        option.textContent = `${device.name} (${device.ip})`;
+        dropdown.appendChild(option);
+    });
+}
+
+// Search Devices in Dropdown
+function filterDevices() {
+    let input = document.getElementById("deviceSearch").value.toLowerCase();
+    let dropdown = document.getElementById("deviceSelect");
+    for (let i = 0; i < dropdown.options.length; i++) {
+        let text = dropdown.options[i].textContent.toLowerCase();
+        dropdown.options[i].style.display = text.includes(input) ? "" : "none";
+    }
+}
+
+// Open Pie Chart Modal
+function openPieChartModal() {
+    document.getElementById("pieChartModal").style.display = "block";
+}
+
+// Close Pie Chart Modal
+function closePieChartModal() {
+    document.getElementById("pieChartModal").style.display = "none";
+}
+
+// Update Pie Chart
+function updatePieChart() {
+    const selectedDeviceIP = document.getElementById("deviceSelect").value;
+    const period = document.getElementById("piePeriod").value;
+    
+    const device = devicesData.find(d => d.ip === selectedDeviceIP);
+    if (!device) return;
+    
+    const uptime = device[period].uptime;
+    const downtime = device[period].downtime;
+    
+    document.getElementById("deviceInfo").textContent = `Device: ${device.name} (${device.ip})`;
+    
+    let alertMessage = checkOfflineStatus(device);
+    document.getElementById("deviceAlert").textContent = alertMessage;
+
+    renderPieChart(uptime, downtime);
+}
+
+// Render Pie Chart
+function renderPieChart(uptime, downtime) {
+    const ctx = document.getElementById("pieChartCanvas").getContext("2d");
+
+    if (pieChart) pieChart.destroy(); // Destroy previous instance
+
+    pieChart = new Chart(ctx, {
+        type: "pie",
+        data: {
+            labels: ["Uptime", "Downtime"],
+            datasets: [{
+                data: [convertToMinutes(uptime), convertToMinutes(downtime)],
+                backgroundColor: ["green", "red"]
+            }]
+        },
+        options: {
+            responsive: true
+        }
+    });
+}
+
+// Convert Time to Minutes
+function convertToMinutes(timeString) {
+    const parts = timeString.split(" ");
+    let totalMinutes = 0;
+    parts.forEach(part => {
+        if (part.includes("h")) totalMinutes += parseInt(part) * 60;
+        if (part.includes("m")) totalMinutes += parseInt(part);
+    });
+    return totalMinutes;
+}
+
+// Track Offline Time & Provide Alert
+function checkOfflineStatus(device) {
+    const offlineCount = countOfflineOccurrences(device.weekly.downtime);
+    const downtimeDuration = convertToMinutes(device.weekly.downtime);
+
+    if (offlineCount > 5 && downtimeDuration > 60) {
+        return "⚠️ Alert: Device needs repair (Offline >5 times, Downtime >1 hour).";
+    } else {
+        return "✅ Device is working properly.";
+    }
+}
+
+// Count Offline Occurrences
+function countOfflineOccurrences(downtime) {
+    return downtime.split(" ").filter(part => part.includes("h") || part.includes("m")).length;
+}
+
+
+
+
+
+
+
+
+
 <!-- Button to show Pie Chart details -->
 <button id="showPieDetailsBtn" onclick="openPieChartModal()">Show Device Details</button>
 
