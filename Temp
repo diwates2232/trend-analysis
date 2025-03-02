@@ -1,5 +1,163 @@
+// Global variables for charts and device details
+let chartInstance = null;  // For trend bar chart
+let pieChartInstance = null;  // For pie chart (device details)
+let currentFilteredDevices = []; // Stores filtered devices
+let currentDeviceIndex = 0; // Index of the device in modal
+let devicesData = []; // Store all devices
+let pieChart; // Pie Chart instance
 
+// ---------------- Trend Bar Chart Functions ----------------
 
+// On page load, default to APAC region and "cameras"
+document.addEventListener("DOMContentLoaded", function () {
+    fetchTrendData('apac', 'cameras');
+});
+
+// Fetch and display the trend bar chart for the selected region and device type
+function fetchTrendData(region, deviceType = 'cameras') {
+    console.log(`Fetching data for region: ${region}, device type: ${deviceType}`);
+    fetch(`http://localhost:80/api/region/trend/details/${region}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log("API Response:", data);
+            if (data && data.devices && data.devices.length > 0) {
+                const filteredDevices = filterDevicesByType(data.devices, deviceType);
+                console.log("Filtered Devices:", filteredDevices);
+                currentFilteredDevices = filteredDevices; // Save globally for pie chart details
+                displayTrendChart(filteredDevices);
+                updateDeviceDropdown(filteredDevices); // Update the device selection dropdown
+            } else {
+                console.error("No devices data available.");
+                alert("No devices found for the selected region and device type.");
+            }
+        })
+        .catch(error => {
+            console.error("Error fetching trend data:", error);
+            alert("Error fetching trend data");
+        });
+}
+
+// Filter devices based on the selected device type
+function filterDevicesByType(devices, deviceType) {
+    return devices.filter(device => device.type.toLowerCase().trim() === deviceType.toLowerCase());
+}
+
+// Create or update the trend bar chart using Chart.js
+function displayTrendChart(devices) {
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
+    const labels = devices.map(device => device.ip);
+    const uptimeData = devices.map(device => convertToMinutes(device.daily.uptime));
+    const downtimeData = devices.map(device => convertToMinutes(device.daily.downtimeDuration));
+    const ctx = document.getElementById("trendChart").getContext("2d");
+
+    chartInstance = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [
+                { label: "Uptime (minutes)", data: uptimeData, backgroundColor: "green" },
+                { label: "Downtime (minutes)", data: downtimeData, backgroundColor: "red" }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+}
+
+// Utility: Convert "Xd Xh Xm Xs" format to minutes
+function convertToMinutes(timeString) {
+    const parts = timeString.split(" ");
+    let totalMinutes = 0;
+    parts.forEach(part => {
+        if (part.includes("d")) totalMinutes += parseInt(part) * 1440;
+        if (part.includes("h")) totalMinutes += parseInt(part) * 60;
+        if (part.includes("m")) totalMinutes += parseInt(part);
+    });
+    return totalMinutes;
+}
+
+// ---------------- Pie Chart Modal Functions ----------------
+
+// Open Pie Chart Modal
+function openPieChartModal() {
+    if (currentFilteredDevices.length === 0) {
+        alert("No devices available for pie chart details.");
+        return;
+    }
+    currentDeviceIndex = 0; 
+    updatePieChartForCurrentDevice();
+    document.getElementById("pieChartModal").style.display = "block";
+}
+
+// Close Pie Chart Modal
+function closePieChartModal() {
+    document.getElementById("pieChartModal").style.display = "none";
+    if (pieChartInstance) {
+        pieChartInstance.destroy();
+    }
+}
+
+// Update Pie Chart for the Selected Device
+function updatePieChartForCurrentDevice() {
+    let selectedDeviceIP = document.getElementById("deviceDropdown").value;
+    let period = document.getElementById("piePeriod").value;
+    let device = currentFilteredDevices.find(d => d.ip === selectedDeviceIP);
+    
+    if (!device) return;
+    
+    let dataPeriod = device[period];
+    let uptime = convertToMinutes(dataPeriod.uptime);
+    let downtime = convertToMinutes(dataPeriod.downtimeDuration);
+
+    let offlineCount = device.weekly.offlineCount || 0;
+    let downtimeMins = convertToMinutes(device.weekly.downtimeDuration);
+
+    if (period === "weekly" && offlineCount > 5 && downtimeMins > 60) {
+        document.getElementById("deviceAlert").textContent = "Need to repair";
+    } else {
+        document.getElementById("deviceAlert").textContent = "Device working properly";
+    }
+
+    document.getElementById("deviceInfo").textContent = "Device: " + device.ip;
+
+    const ctx = document.getElementById("pieChartCanvas").getContext("2d");
+    if (pieChartInstance) {
+        pieChartInstance.destroy();
+    }
+    pieChartInstance = new Chart(ctx, {
+        type: "pie",
+        data: {
+            labels: ["Uptime (mins)", "Downtime (mins)"],
+            datasets: [{ data: [uptime, downtime], backgroundColor: ["green", "red"] }]
+        }
+    });
+}
+
+// Populate Device Dropdown
+function updateDeviceDropdown(devices) {
+    let dropdown = document.getElementById("deviceDropdown");
+    dropdown.innerHTML = "";
+    devices.forEach(device => {
+        let option = document.createElement("option");
+        option.value = device.ip;
+        option.textContent = device.ip;
+        dropdown.appendChild(option);
+    });
+}
+
+// Search Device
+function searchDevice() {
+    let searchQuery = document.getElementById("searchBox").value.toLowerCase();
+    let dropdown = document.getElementById("deviceDropdown");
+    for (let option of dropdown.options) {
+        option.style.display = option.value.includes(searchQuery) ? "block" : "none";
+    }
+}
+
+// Event Listeners
+document.getElementById("piePeriod").addEventListener("change", updatePieChartForCurrentDevice);
+document.getElementById("searchBox").addEventListener("input", searchDevice);
 
 
 
