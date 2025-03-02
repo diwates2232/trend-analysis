@@ -1,3 +1,37 @@
+// Convert "Xd Xh Xm Xs" format to minutes
+function convertToMinutes(timeString) {
+    const parts = timeString.split(" ");
+    let totalMinutes = 0;
+    parts.forEach(part => {
+        if (part.includes("d")) totalMinutes += parseInt(part) * 1440;
+        if (part.includes("h")) totalMinutes += parseInt(part) * 60;
+        if (part.includes("m")) totalMinutes += parseInt(part);
+        if (part.includes("s")) totalMinutes += parseInt(part) / 60; // Convert seconds to minutes
+    });
+    return totalMinutes;
+}
+
+// Convert minutes back to "Xh Xm Xs" format
+function convertToReadableFormat(minutes) {
+    let hours = Math.floor(minutes / 60);
+    let remainingMinutes = Math.floor(minutes % 60);
+    let seconds = Math.round((minutes % 1) * 60); // Convert fraction of minutes to seconds
+
+    let formattedTime = "";
+    if (hours > 0) formattedTime += hours + "h ";
+    if (remainingMinutes > 0) formattedTime += remainingMinutes + "m ";
+    if (seconds > 0) formattedTime += seconds + "s";
+
+    return formattedTime.trim();
+}
+
+
+
+
+
+
+
+
 <button onclick="openPieChartModal()">Show Pie Chart</button>
 
 
