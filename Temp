@@ -1,3 +1,23 @@
+// Function to open the Pie Chart Modal
+function openPieChartModal() {
+    if (currentFilteredDevices.length === 0) {
+        alert("No devices available for pie chart details.");
+        return;
+    }
+    currentDeviceIndex = 0; // Start with the first device
+    updatePieChartForCurrentDevice();
+    document.getElementById("pieChartModal").style.display = "block";
+}
+
+
+
+
+
+
+
+
+
+
 // Global variables for charts and device details
 let chartInstance = null;       // For the trend bar chart
 let pieChartInstance = null;    // For the pie chart (device details)
