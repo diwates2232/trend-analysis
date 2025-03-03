@@ -1,202 +1,284 @@
-const { fetchGlobalData, fetchRegionData, fetchDeviceUptimeData } = require("../services/excelService");
+app.js
 
-// Global Summary Controller
-const getGlobalSummary = async (req, res) => {
+File -1 
+
+
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const regionRoutes = require("./routes/regionRoutes");
+const ping = require("ping"); // Import the ping module
+
+const app = express();
+const PORT = process.env.PORT || 80;
+
+const { fetchAllIpAddress } = require("./services/excelService");
+
+// Middleware
+app.use(
+  cors({
+    origin: "http://127.0.0.1:5500", // Match your frontend's origin
+    methods: "GET,POST,PUT,DELETE",
+    allowedHeaders: "Content-Type,Authorization",
+  })
+);
+app.use(bodyParser.json());
+
+// Routes
+app.use("/api/regions", regionRoutes);
+
+// Ping a specific device dynamically
+app.get("/api/ping/:ip", async (req, res) => {
+  const ip = req.params.ip;
+  
+  try {
+    const result = await ping.promise.probe(ip);
+    res.json({ ip, status: result.alive ? "Online" : "Offline" });
+  } catch (error) {
+    console.error(`Ping error for ${ip}:`, error);
+    res.json({ ip, status: "Offline" });
+  }
+});
+
+// Function to continuously ping all devices
+const devices = fetchAllIpAddress();
+let deviceStatus = {};
+
+async function pingDevices() {
+  for (const ip of devices) {
     try {
-        const globalData = await fetchGlobalData();
-        res.status(200).json({ summary: globalData.summary });
+      const result = await ping.promise.probe(ip);
+      deviceStatus[ip] = result.alive ? "Online" : "Offline";
     } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
+      console.error(`Error pinging ${ip}:`, error);
+      deviceStatus[ip] = "Offline";
     }
+  }
+  console.log("Updated device status:", deviceStatus);
+}
+
+// Ping devices every 30 seconds
+setInterval(pingDevices, 30000);
+
+// Get real-time status of all devices
+app.get("/api/devices/status", (req, res) => {
+  res.json(deviceStatus);
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send("Something went wrong!");
+});
+
+// Start Server
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+  pingDevices(); // Start pinging devices immediately
+});
+
+
+
+
+
+File -2
+
+
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const ping = require("ping");
+const { getWeek } = require('date-fns'); // Importing getWeek from date-fns
+const regionRoutes = require("./routes/regionRoutes");
+const { fetchAllIpAddress, allData } = require("./services/excelService");
+
+const app = express();
+const PORT = process.env.PORT || 80;
+
+// Middleware
+app.use(cors({
+  origin: "http://127.0.0.1:5500", // Match your frontend's origin
+  methods: "GET,POST,PUT,DELETE",
+  allowedHeaders: "Content-Type,Authorization",
+}));
+app.use(bodyParser.json());
+
+// Routes
+app.use("/api/regions", regionRoutes);
+
+// Store device statuses and downtime tracking
+const devices = fetchAllIpAddress();
+let deviceStatus = {};
+let downtimeTracking = {};
+let uptimeDowntimeStats = {};
+
+// Logging allData at startup
+console.log("All Device Data Loaded from Excel:");
+console.log(JSON.stringify(allData, null, 2));
+
+// Function to get date keys with correct week calculation
+const getDateKeys = () => {
+  const now = new Date();
+  const day = now.toISOString().split("T")[0]; // YYYY-MM-DD
+
+  // Using date-fns to get the correct week number
+  const week = getWeek(now); // getWeek is now working properly
+
+  const month = now.getMonth() + 1; // Month number
+  return { day, week, month };
 };
 
-// Global Details Controller
-const getGlobalDetails = async (req, res) => {
-    try {
-        const globalData = await fetchGlobalData();
-        res.status(200).json({ details: globalData.details });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
+// Function to ping devices and update status
+async function pingDevices() {
+  const { day, week, month } = getDateKeys();
+
+  for (const ip of devices) {
+      try {
+          const result = await ping.promise.probe(ip);
+          const isOnline = result.alive;
+
+          if (!uptimeDowntimeStats[ip]) {
+              uptimeDowntimeStats[ip] = { daily: {}, weekly: {}, monthly: {} };
+          }
+
+          if (!uptimeDowntimeStats[ip].daily[day]) {
+              uptimeDowntimeStats[ip].daily[day] = { uptime: 0, downtime: 0, downtimeDuration: 0 };
+          }
+          if (!uptimeDowntimeStats[ip].weekly[week]) {
+              uptimeDowntimeStats[ip].weekly[week] = { uptime: 0, downtime: 0, downtimeDuration: 0 };
+          }
+          if (!uptimeDowntimeStats[ip].monthly[month]) {
+              uptimeDowntimeStats[ip].monthly[month] = { uptime: 0, downtime: 0, downtimeDuration: 0 };
+          }
+
+          if (isOnline) {
+              if (downtimeTracking[ip]?.lastOffline) {
+                  const lastOfflineTime = downtimeTracking[ip].lastOffline;
+                  const downtimeSeconds = Math.floor((Date.now() - lastOfflineTime) / 1000);
+                  uptimeDowntimeStats[ip].daily[day].downtimeDuration += downtimeSeconds;
+                  uptimeDowntimeStats[ip].weekly[week].downtimeDuration += downtimeSeconds;
+                  uptimeDowntimeStats[ip].monthly[month].downtimeDuration += downtimeSeconds;
+                  delete downtimeTracking[ip];
+              }
+              uptimeDowntimeStats[ip].daily[day].uptime += 60;  // Add 60 seconds every minute
+              uptimeDowntimeStats[ip].weekly[week].uptime += 60;
+              uptimeDowntimeStats[ip].monthly[month].uptime += 60;
+          } else {
+              if (!downtimeTracking[ip]) {
+                  downtimeTracking[ip] = { lastOffline: Date.now(), totalDowntime: 0 };
+              } else {
+                  const lastOfflineTime = downtimeTracking[ip].lastOffline;
+                  const downtimeSeconds = Math.floor((Date.now() - lastOfflineTime) / 1000);
+                  if (downtimeSeconds > 0) {
+                      uptimeDowntimeStats[ip].daily[day].downtimeDuration += downtimeSeconds;
+                      uptimeDowntimeStats[ip].weekly[week].downtimeDuration += downtimeSeconds;
+                      uptimeDowntimeStats[ip].monthly[month].downtimeDuration += downtimeSeconds;
+                      downtimeTracking[ip].totalDowntime += downtimeSeconds;
+                      downtimeTracking[ip].lastOffline = Date.now();
+                  }
+              }
+              uptimeDowntimeStats[ip].daily[day].downtime += 60;
+              uptimeDowntimeStats[ip].weekly[week].downtime += 60;
+              uptimeDowntimeStats[ip].monthly[month].downtime += 60;
+          }
+
+          deviceStatus[ip] = isOnline ? "Online" : "Offline";
+      } catch (error) {
+          console.error(`Error pinging ${ip}:`, error);
+          deviceStatus[ip] = "Offline";
+      }
+  }
+}
+
+// Start pinging devices every 30 seconds
+setInterval(pingDevices,120000);
+
+// Get device status
+app.get("/api/region/devices/status", (req, res) => {
+  res.json(deviceStatus);
+});
+
+
+
+app.get("/api/region/trend/details/:region", (req, res) => {
+  try {
+    const region = req.params.region.toLowerCase();
+    console.log(`Fetching details for region: ${region}`);
+
+    const { day, week, month } = getDateKeys();
+
+    let deviceDetails = [];
+
+    Object.keys(uptimeDowntimeStats).forEach(ip => {
+      const device = allData.cameras.find(d => d.ip_address === ip) ||
+                     allData.archivers.find(d => d.ip_address === ip) ||
+                     allData.controllers.find(d => d.ip_address === ip) ||
+                     allData.servers.find(d => d.ip_address === ip);
+
+      if (device && device.location?.toLowerCase() === region) {
+        const stats = uptimeDowntimeStats[ip];
+      
+        
+
+        deviceDetails.push({
+          ip,
+          name: device.name || "Name Not Found",
+          type: device.type || "Unknown", // Device type (Camera, Server, etc.)
+          location: device.location || "Unknown", // Device location
+          status: deviceStatus[ip] || "Unknown",
+          daily: {
+            uptime: formatDuration(stats.daily[day]?.uptime),
+            downtime: formatDuration(stats.daily[day]?.downtime),
+            downtimeDuration: formatDuration(stats.daily[day]?.downtimeDuration)
+          },
+          weekly: {
+            uptime: formatDuration(stats.weekly[week]?.uptime),
+            downtime: formatDuration(stats.weekly[week]?.downtime),
+            downtimeDuration: formatDuration(stats.weekly[week]?.downtimeDuration)
+          },
+          monthly: {
+            uptime: formatDuration(stats.monthly[month]?.uptime),
+            downtime: formatDuration(stats.monthly[month]?.downtime),
+            downtimeDuration: formatDuration(stats.monthly[month]?.downtimeDuration)
+          }
+        });
+      }
+    });
+
+    if (deviceDetails.length === 0) {
+      return res.status(404).json({ message: `No devices found for region: ${region}` });
     }
-};
 
-// Region Summary Controller
-const getRegionSummary = async (req, res) => {
-    const { regionName } = req.params;
-    try {
-        const regionData = await fetchRegionData(regionName);
-        res.status(200).json({ summary: regionData.summary });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
+    return res.status(200).json({ region, devices: deviceDetails });
 
-// Region Details Controller
-const getRegionDetails = async (req, res) => {
-    const { regionName } = req.params;
-    try {
-        const regionData = await fetchRegionData(regionName);
-        res.status(200).json({ details: regionData.details });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
+  } catch (error) {
+    console.error("Error in details API:", error);
+    return res.status(500).json({ message: "Something went wrong!", error: error.message });
+  }
+});
 
-// Fetch Device Uptime/Downtime Summary
-const getDeviceUptimeSummary = async (req, res) => {
-    try {
-        const uptimeData = fetchDeviceUptimeData();
-        res.status(200).json({ uptimeData });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
+// Helper function to format time duration
+const formatDuration = (seconds) => {
+  if (seconds === undefined) return "0d 0h 0m 0s";
 
-module.exports = {
-    getGlobalSummary,
-    getGlobalDetails,
-    getRegionSummary,
-    getRegionDetails,
-    getDeviceUptimeSummary
+  const d = Math.floor(seconds / 86400); // 1 day = 86400 seconds
+  const h = Math.floor((seconds % 86400) / 3600); // 1 hour = 3600 seconds
+  const m = Math.floor((seconds % 3600) / 60); // 1 minute = 60 seconds
+  const s = Math.floor(seconds % 60); 
+
+  return `${d}d ${h}h ${m}m ${s}s`;
+
+  
 };
 
 
+// Start Server
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+  pingDevices();
+  //setInterval(pingDevices,300000);
+});
 
-
-
-
-
-
-
-
-
-
-
-RegionController.js
-
-File -1
-
-
-const { fetchGlobalData, fetchRegionData } = require("../services/excelService");
-
-// Global Summary Controller
-const getGlobalSummary = async (req, res) => {
-    try {
-        const globalData = await fetchGlobalData();
-        res.status(200).json({ summary: globalData.summary });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
-
-// Global Details Controller
-const getGlobalDetails = async (req, res) => {
-    try {
-        const globalData = await fetchGlobalData();
-        res.status(200).json({ details: globalData.details });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
-
-// Region Summary Controller
-const getRegionSummary = async (req, res) => {
-    const { regionName } = req.params;
-    try {
-        const regionData = await fetchRegionData(regionName);
-        res.status(200).json({ summary: regionData.summary });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
-
-// Region Details Controller
-const getRegionDetails = async (req, res) => {
-    const { regionName } = req.params;
-    try {
-        const regionData = await fetchRegionData(regionName);
-        res.status(200).json({ details: regionData.details });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
-
-module.exports = {
-    getGlobalSummary,
-    getGlobalDetails,
-    getRegionSummary,
-    getRegionDetails,
-};
-
-
-
-
-File - 2
-
-
-
-
-const { fetchGlobalData, fetchRegionData, fetchDeviceUptimeData} = require("../services/excelService");
-
-
-
-// Global Summary Controller
-const getGlobalSummary = async (req, res) => {
-    try {
-        const globalData = await fetchGlobalData();
-        res.status(200).json({ summary: globalData.summary });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
-
-// Global Details Controller
-const getGlobalDetails = async (req, res) => {
-    try {
-        const globalData = await fetchGlobalData();
-        res.status(200).json({ details: globalData.details });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
-
-// Region Summary Controller
-const getRegionSummary = async (req, res) => {
-    const { regionName } = req.params;
-    try {
-        const regionData = await fetchRegionData(regionName);
-        res.status(200).json({ summary: regionData.summary });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
-
-// Region Details Controller
-const getRegionDetails = async (req, res) => {
-    const { regionName } = req.params;
-    try {
-        const regionData = await fetchRegionData(regionName);
-        res.status(200).json({ details: regionData.details });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
-
-// Fetch Device Uptime/Downtime Summary
-const getDeviceUptimeSummary = async (req, res) => {
-    try {
-        const uptimeData = fetchDeviceUptimeData();
-        res.status(200).json({ uptimeData });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
-
-module.exports = {
-    getGlobalSummary,
-    getGlobalDetails,
-    getRegionSummary,
-    getRegionDetails,
-    getDeviceUptimeSummary
-};
 
