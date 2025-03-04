@@ -1,4 +1,3 @@
-
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -253,43 +252,6 @@ const formatDuration = (seconds) => {
   const s = Math.floor(seconds % 60);
   return `${d}d ${h}h ${m}m ${s}s`;
 };
-
-
-
-
-
-// // // Function to continuously ping all devices
-// // const devices = fetchAllIpAddress();
-// // let deviceStatus = {};
-
-// async function pingDevices() {
-//   for (const ip of devices) {
-//     try {
-//       const result = await ping.promise.probe(ip);
-//       deviceStatus[ip] = result.alive ? "Online" : "Offline";
-//     } catch (error) {
-//       console.error(`Error pinging ${ip}:`, error);
-//       deviceStatus[ip] = "Offline";
-//     }
-//   }
-//   console.log("Updated device status:", deviceStatus);
-// }
-
-// // Ping devices every 30 seconds
-// setInterval(pingDevices, 30000);
-
-// // Get real-time status of all devices
-// app.get("/api/devices/status", (req, res) => {
-//   res.json(deviceStatus);
-// });
-
-// // Error handling middleware
-// app.use((err, req, res, next) => {
-//   console.error(err.stack);
-//   res.status(500).send("Something went wrong!");
-// });
-
-
 
 
 
