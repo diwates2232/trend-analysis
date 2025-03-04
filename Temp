@@ -11,6 +11,191 @@ const app = express();
 const PORT = process.env.PORT || 80;
 
 // Middleware
+app.use(cors({ origin: "http://127.0.0.1:5500" }));
+app.use(bodyParser.json());
+
+// Routes
+app.use("/api/regions", regionRoutes);
+
+// Store device statuses
+const devices = fetchAllIpAddress();
+const deviceStatus = new Map();
+const uptimeDowntimeStats = new Map();
+const downtimeTracking = new Map();
+
+const CACHE_EXPIRY_TIME = 300000; // 5 minutes cache duration
+const PING_INTERVAL = 30000; // 30 seconds
+
+// Function to get date keys
+const getDateKeys = () => {
+  const now = new Date();
+  return { day: now.toISOString().split("T")[0], week: getWeek(now), month: now.getMonth() + 1 };
+};
+
+// Function to get cached status
+const getCachedStatus = (ip) => {
+  const cached = deviceStatus.get(ip);
+  return cached && Date.now() - cached.timestamp < CACHE_EXPIRY_TIME ? cached.status : null;
+};
+
+// Function to update the cache
+const updateStatusCache = (ip, status) => {
+  deviceStatus.set(ip, { status, timestamp: Date.now() });
+};
+
+// Function to ping devices in parallel using Promise.all()
+async function pingDevices() {
+  console.log("Pinging devices...");
+  const { day, week, month } = getDateKeys();
+
+  const pingPromises = devices.map(async (ip) => {
+    const cachedStatus = getCachedStatus(ip);
+    if (cachedStatus) return; // Use cache if available
+
+    try {
+      const result = await ping.promise.probe(ip);
+      const isOnline = result.alive;
+      updateStatusCache(ip, isOnline ? "Online" : "Offline");
+
+      if (!uptimeDowntimeStats.has(ip)) {
+        uptimeDowntimeStats.set(ip, { daily: {}, weekly: {}, monthly: {} });
+      }
+      const stats = uptimeDowntimeStats.get(ip);
+      stats.daily[day] = stats.daily[day] || { uptime: 0, downtime: 0, downtimeDuration: 0 };
+      stats.weekly[week] = stats.weekly[week] || { uptime: 0, downtime: 0, downtimeDuration: 0 };
+      stats.monthly[month] = stats.monthly[month] || { uptime: 0, downtime: 0, downtimeDuration: 0 };
+
+      if (isOnline) {
+        if (downtimeTracking.has(ip)) {
+          const lastOfflineTime = downtimeTracking.get(ip).lastOffline;
+          const downtimeSeconds = Math.floor((Date.now() - lastOfflineTime) / 1000);
+          stats.daily[day].downtimeDuration += downtimeSeconds;
+          stats.weekly[week].downtimeDuration += downtimeSeconds;
+          stats.monthly[month].downtimeDuration += downtimeSeconds;
+          downtimeTracking.delete(ip);
+        }
+        stats.daily[day].uptime += 60;
+        stats.weekly[week].uptime += 60;
+        stats.monthly[month].uptime += 60;
+      } else {
+        if (!downtimeTracking.has(ip)) {
+          downtimeTracking.set(ip, { lastOffline: Date.now(), totalDowntime: 0 });
+        } else {
+          const lastOfflineTime = downtimeTracking.get(ip).lastOffline;
+          const downtimeSeconds = Math.floor((Date.now() - lastOfflineTime) / 1000);
+          stats.daily[day].downtimeDuration += downtimeSeconds;
+          stats.weekly[week].downtimeDuration += downtimeSeconds;
+          stats.monthly[month].downtimeDuration += downtimeSeconds;
+          downtimeTracking.get(ip).totalDowntime += downtimeSeconds;
+          downtimeTracking.get(ip).lastOffline = Date.now();
+        }
+        stats.daily[day].downtime += 60;
+        stats.weekly[week].downtime += 60;
+        stats.monthly[month].downtime += 60;
+      }
+    } catch (error) {
+      console.error(`Error pinging ${ip}:`, error);
+      updateStatusCache(ip, "Offline");
+    }
+  });
+
+  await Promise.all(pingPromises);
+  console.log("Device status updated.");
+}
+
+// Set interval for pinging devices
+setInterval(pingDevices, PING_INTERVAL);
+
+// API to get real-time status of all devices
+app.get("/api/devices/status", (req, res) => {
+  const statuses = Object.fromEntries(deviceStatus);
+  res.json(statuses);
+});
+
+// API to ping a specific device
+app.get("/api/ping/:ip", async (req, res) => {
+  const ip = req.params.ip;
+  try {
+    const cachedStatus = getCachedStatus(ip);
+    if (cachedStatus) return res.json({ ip, status: cachedStatus });
+
+    const result = await ping.promise.probe(ip);
+    const status = result.alive ? "Online" : "Offline";
+    updateStatusCache(ip, status);
+    res.json({ ip, status });
+  } catch (error) {
+    console.error(`Ping error for ${ip}:`, error);
+    res.json({ ip, status: "Offline" });
+  }
+});
+
+// API to fetch trend details for a region
+app.get("/api/region/trend/details/:region", (req, res) => {
+  try {
+    const region = req.params.region.toLowerCase();
+    const { day, week, month } = getDateKeys();
+    let deviceDetails = [];
+
+    deviceStatus.forEach((_, ip) => {
+      const device =
+        allData.cameras.find((d) => d.ip_address === ip) ||
+        allData.archivers.find((d) => d.ip_address === ip) ||
+        allData.controllers.find((d) => d.ip_address === ip) ||
+        allData.servers.find((d) => d.ip_address === ip);
+
+      if (device && device.location?.toLowerCase() === region) {
+        const stats = uptimeDowntimeStats.get(ip) || { daily: {}, weekly: {}, monthly: {} };
+        deviceDetails.push({
+          ip,
+          name: device.name || "Name Not Found",
+          type: device.type || "Unknown",
+          location: device.location || "Unknown",
+          status: deviceStatus.get(ip)?.status || "Unknown",
+          daily: stats.daily[day] || { uptime: 0, downtime: 0, downtimeDuration: 0 },
+          weekly: stats.weekly[week] || { uptime: 0, downtime: 0, downtimeDuration: 0 },
+          monthly: stats.monthly[month] || { uptime: 0, downtime: 0, downtimeDuration: 0 },
+        });
+      }
+    });
+
+    if (deviceDetails.length === 0) {
+      return res.status(404).json({ message: `No devices found for region: ${region}` });
+    }
+    return res.status(200).json({ region, devices: deviceDetails });
+  } catch (error) {
+    console.error("Error in trend details API:", error);
+    return res.status(500).json({ message: "Something went wrong!", error: error.message });
+  }
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+  pingDevices(); // Initial ping on startup
+});
+
+
+
+
+
+
+
+
+
+
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const ping = require("ping");
+const { getWeek } = require("date-fns");
+const regionRoutes = require("./routes/regionRoutes");
+const { fetchAllIpAddress, allData } = require("./services/excelService");
+
+const app = express();
+const PORT = process.env.PORT || 80;
+
+// Middleware
 app.use(
   cors({
     origin: "http://127.0.0.1:5500", // Match your frontend's origin
