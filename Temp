@@ -1,19 +1,15 @@
+
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const ping = require("ping");
 const { getWeek } = require("date-fns");
-const redis = require("redis"); // Using Redis for cache
 const regionRoutes = require("./routes/regionRoutes");
 const { fetchAllIpAddress, allData } = require("./services/excelService");
 
 const app = express();
 const PORT = process.env.PORT || 80;
-
-// Initialize Redis client
-const redisClient = redis.createClient({ host: "localhost", port: 6379 }); // Configure Redis server
-redisClient.on("error", (err) => console.log("Redis Error: ", err));
 
 // Middleware
 app.use(
@@ -34,208 +30,61 @@ let deviceStatus = {};
 let downtimeTracking = {};
 let uptimeDowntimeStats = {};
 
-// Logging allData at startup
-console.log("All Device Data Loaded from Excel:");
-console.log(JSON.stringify(allData, null, 2));
 
-// Function to get date keys with correct week calculation
-const getDateKeys = () => {
-  const now = new Date();
-  const day = now.toISOString().split("T")[0]; // YYYY-MM-DD
-  const week = getWeek(now); // Get correct week number
-  const month = now.getMonth() + 1; // Get month number
-  return { day, week, month };
-};
 
-// Function to update Redis with device statuses
-const updateDeviceStatusInRedis = async () => {
-  await redisClient.set("deviceStatus", JSON.stringify(deviceStatus));
-};
 
-// Function to ping all devices concurrently and track uptime/downtime
+// Ping devices every 5 minutes (120000ms)
+//setInterval(pingDevices, 120000);
+
+
+
+// Ping a specific device dynamically
+app.get("/api/ping/:ip", async (req, res) => {
+  const ip = req.params.ip;
+  
+  try {
+    const result = await ping.promise.probe(ip);
+    res.json({ ip, status: result.alive ? "Online" : "Offline" });
+  } catch (error) {
+    console.error(`Ping error for ${ip}:`, error);
+    res.json({ ip, status: "Offline" });
+  }
+});
+
 async function pingDevices() {
-  const { day, week, month } = getDateKeys();
-
-  // Using Promise.all to ping all devices concurrently
-  await Promise.all(devices.map(async (ip) => {
+  for (const ip of devices) {
     try {
       const result = await ping.promise.probe(ip);
-      const isOnline = result.alive;
-
-      // Initialize stats if not available
-      if (!uptimeDowntimeStats[ip]) {
-        uptimeDowntimeStats[ip] = { daily: {}, weekly: {}, monthly: {} };
-      }
-      if (!uptimeDowntimeStats[ip].daily[day]) {
-        uptimeDowntimeStats[ip].daily[day] = { uptime: 0, downtime: 0, downtimeDuration: 0 };
-      }
-      if (!uptimeDowntimeStats[ip].weekly[week]) {
-        uptimeDowntimeStats[ip].weekly[week] = { uptime: 0, downtime: 0, downtimeDuration: 0 };
-      }
-      if (!uptimeDowntimeStats[ip].monthly[month]) {
-        uptimeDowntimeStats[ip].monthly[month] = { uptime: 0, downtime: 0, downtimeDuration: 0 };
-      }
-
-      if (isOnline) {
-        // Handle downtime tracking if device was previously offline
-        if (downtimeTracking[ip]?.lastOffline) {
-          const lastOfflineTime = downtimeTracking[ip].lastOffline;
-          const downtimeSeconds = Math.floor((Date.now() - lastOfflineTime) / 1000);
-
-          uptimeDowntimeStats[ip].daily[day].downtimeDuration += downtimeSeconds;
-          uptimeDowntimeStats[ip].weekly[week].downtimeDuration += downtimeSeconds;
-          uptimeDowntimeStats[ip].monthly[month].downtimeDuration += downtimeSeconds;
-
-          delete downtimeTracking[ip];
-        }
-
-        // Update uptime counters
-        uptimeDowntimeStats[ip].daily[day].uptime += 60;
-        uptimeDowntimeStats[ip].weekly[week].uptime += 60;
-        uptimeDowntimeStats[ip].monthly[month].uptime += 60;
-      } else {
-        // Track downtime duration
-        if (!downtimeTracking[ip]) {
-          downtimeTracking[ip] = { lastOffline: Date.now(), totalDowntime: 0 };
-        } else {
-          const lastOfflineTime = downtimeTracking[ip].lastOffline;
-          const downtimeSeconds = Math.floor((Date.now() - lastOfflineTime) / 1000);
-
-          if (downtimeSeconds > 0) {
-            uptimeDowntimeStats[ip].daily[day].downtimeDuration += downtimeSeconds;
-            uptimeDowntimeStats[ip].weekly[week].downtimeDuration += downtimeSeconds;
-            uptimeDowntimeStats[ip].monthly[month].downtimeDuration += downtimeSeconds;
-
-            downtimeTracking[ip].totalDowntime += downtimeSeconds;
-            downtimeTracking[ip].lastOffline = Date.now();
-          }
-        }
-
-        // Update downtime counters
-        uptimeDowntimeStats[ip].daily[day].downtime += 60;
-        uptimeDowntimeStats[ip].weekly[week].downtime += 60;
-        uptimeDowntimeStats[ip].monthly[month].downtime += 60;
-      }
-
-      // Update device status
-      deviceStatus[ip] = isOnline ? "Online" : "Offline";
+      deviceStatus[ip] = result.alive ? "Online" : "Offline";
     } catch (error) {
       console.error(`Error pinging ${ip}:`, error);
       deviceStatus[ip] = "Offline";
     }
-  }));
-
-  // Update Redis with the latest device status after the pinging process
-  await updateDeviceStatusInRedis();
+  }
+  console.log("Updated device status:", deviceStatus);
 }
 
-// Ping devices every 2 minutes (120000ms)
-setInterval(pingDevices, 120000);
+// Ping devices every 30 seconds
+setInterval(pingDevices, 30000);
 
 // Get real-time status of all devices
-app.get("/api/region/devices/status", async (req, res) => {
-  try {
-    // Fetch device status from Redis instead of recalculating it
-    const cachedStatus = await redisClient.get("deviceStatus");
-    if (cachedStatus) {
-      return res.json(JSON.parse(cachedStatus));
-    } else {
-      return res.status(500).json({ message: "Device status not found in cache" });
-    }
-  } catch (err) {
-    console.error("Error fetching device status from Redis:", err);
-    res.status(500).json({ message: "Error fetching device status" });
-  }
+app.get("/api/devices/status", (req, res) => {
+  res.json(deviceStatus);
 });
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  pingDevices(); // Initial ping
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send("Something went wrong!");
 });
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-File-3
-
-regionRoutes.js
-
-
- const express = require("express");
-const {
-    getGlobalSummary,
-    getGlobalDetails,
-    getRegionSummary,
-    getRegionDetails,
-    getDeviceUptimeSummary
-
-} = require("../controllers/regionControllers");
-
-const router = express.Router();
-
-// Global Routes
-router.get("/summary/global", getGlobalSummary);
-router.get("/details/global", getGlobalDetails);
-
-// Region Routes
-router.get("/summary/:regionName", getRegionSummary);
-router.get("/details/:regionName", getRegionDetails);
-
-// Device Uptime/Downtime Summary
-router.get("/uptime-summary", getDeviceUptimeSummary);
-module.exports = router;
-
-
-File-4 
-
-app.js
-
-
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-const ping = require("ping");
-const { getWeek } = require("date-fns");
-const regionRoutes = require("./routes/regionRoutes");
-const { fetchAllIpAddress, allData } = require("./services/excelService");
-
-const app = express();
-const PORT = process.env.PORT || 80;
-
-// Middleware
-app.use(
-  cors({
-    origin: "http://127.0.0.1:5500", // Match your frontend's origin
-    methods: "GET,POST,PUT,DELETE",
-    allowedHeaders: "Content-Type,Authorization",
-  })
-);
-app.use(bodyParser.json());
-
-// Routes
-app.use("/api/regions", regionRoutes);
-
-// Store device statuses and downtime tracking
-const devices = fetchAllIpAddress();
-let deviceStatus = {};
-let downtimeTracking = {};
-let uptimeDowntimeStats = {};
 
 // Logging allData at startup
 console.log("All Device Data Loaded from Excel:");
 console.log(JSON.stringify(allData, null, 2));
+
 
 // Function to get date keys with correct week calculation
 const getDateKeys = () => {
@@ -246,8 +95,10 @@ const getDateKeys = () => {
   return { day, week, month };
 };
 
+
 // Function to continuously ping all devices and track uptime/downtime
 async function pingDevices() {
+  setInterval(pingDevices, 30000);
   const { day, week, month } = getDateKeys();
 
   for (const ip of devices) {
@@ -319,8 +170,6 @@ async function pingDevices() {
   }
 }
 
-// Ping devices every 2 minutes (120000ms)
-setInterval(pingDevices, 120000);
 
 // Get real-time status of all devices
 app.get("/api/region/devices/status", (req, res) => {
@@ -405,11 +254,52 @@ const formatDuration = (seconds) => {
   return `${d}d ${h}h ${m}m ${s}s`;
 };
 
+
+
+
+
+// // // Function to continuously ping all devices
+// // const devices = fetchAllIpAddress();
+// // let deviceStatus = {};
+
+// async function pingDevices() {
+//   for (const ip of devices) {
+//     try {
+//       const result = await ping.promise.probe(ip);
+//       deviceStatus[ip] = result.alive ? "Online" : "Offline";
+//     } catch (error) {
+//       console.error(`Error pinging ${ip}:`, error);
+//       deviceStatus[ip] = "Offline";
+//     }
+//   }
+//   console.log("Updated device status:", deviceStatus);
+// }
+
+// // Ping devices every 30 seconds
+// setInterval(pingDevices, 30000);
+
+// // Get real-time status of all devices
+// app.get("/api/devices/status", (req, res) => {
+//   res.json(deviceStatus);
+// });
+
+// // Error handling middleware
+// app.use((err, req, res, next) => {
+//   console.error(err.stack);
+//   res.status(500).send("Something went wrong!");
+// });
+
+
+
+
+
+
 // Start Server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   pingDevices();
 });
+
 
 
 
