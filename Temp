@@ -1,20 +1,19 @@
-const fetchRegionTrendData = async (region) => {
-    // Filter devices by region
-    const devices = {
-        cameras: allData.cameras.filter(device => device.location && region && device.location.toLowerCase() === region.toLowerCase()),
-        archivers: allData.archivers.filter(device => device.location && region && device.location.toLowerCase() === region.toLowerCase()),
-        controllers: allData.controllers.filter(device => device.location && region && device.location.toLowerCase() === region.toLowerCase()),
-        servers: allData.servers.filter(device => device.location && region && device.location.toLowerCase() === region.toLowerCase()),
-    };
-
-    // Sample logic to compute trends
-    const trends = {
-        daily: calculateTrend(devices, "daily"),
-        weekly: calculateTrend(devices, "weekly"),
-        monthly: calculateTrend(devices, "monthly"),
-    };
-
-    return trends;
+{
+  "daily": {
+    "uptime": 32,
+    "downtime": 18,
+    "downtimeDuration": 9
+  },
+  "weekly": {
+    "uptime": 84,
+    "downtime": 46,
+    "downtimeDuration": 3
+  },
+  "monthly": {
+    "uptime": 42,
+    "downtime": 20,
+    "downtimeDuration": 2
+  }
 };
 
 
