@@ -1,3 +1,5 @@
+http://localhost/api/regions/trend/details/apac
+
 {
   "daily": {
     "uptime": 32,
