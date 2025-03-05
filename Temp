@@ -1,3 +1,96 @@
+const fetchRegionTrendData = async (region) => {
+    const devices = {
+        cameras: trackUptimeDowntime(allData.cameras, region),
+        archivers: trackUptimeDowntime(allData.archivers, region),
+        controllers: trackUptimeDowntime(allData.controllers, region),
+        servers: trackUptimeDowntime(allData.servers, region),
+    };
+
+    return {
+        region,
+        trends: {
+            daily: calculateTrend(devices, "daily"),
+            weekly: calculateTrend(devices, "weekly"),
+            monthly: calculateTrend(devices, "monthly"),
+        }
+    };
+};
+
+// Function to track uptime/downtime
+const trackUptimeDowntime = (devices, region) => {
+    return devices
+        .filter(device => device.location?.toLowerCase() === region.toLowerCase())
+        .map(device => {
+            const { uptime, downtime, downtimeDuration } = computeDeviceStats(device.history);
+            return {
+                deviceName: device.device_name || "Unknown",
+                ipAddress: device.ip_address,
+                uptime,
+                downtime,
+                downtimeDuration
+            };
+        });
+};
+
+// Compute device uptime and downtime
+const computeDeviceStats = (history) => {
+    let uptime = 0, downtime = 0, lastOnlineTime = null, downtimeDuration = 0;
+
+    history.forEach((log, index) => {
+        if (log.status === "online") {
+            if (lastOnlineTime) {
+                uptime += (new Date(log.timestamp) - new Date(lastOnlineTime)) / 60000; // Convert ms to minutes
+            }
+            lastOnlineTime = log.timestamp;
+        } else if (log.status === "offline") {
+            if (lastOnlineTime) {
+                downtime += (new Date(log.timestamp) - new Date(lastOnlineTime)) / 60000;
+                downtimeDuration++;
+            }
+            lastOnlineTime = null;
+        }
+    });
+
+    return { uptime, downtime, downtimeDuration };
+};
+
+// Calculate trend based on period (daily, weekly, monthly)
+const calculateTrend = (devices, period) => {
+    return {
+        cameras: devices.cameras.map(device => ({
+            ...device,
+            uptime: period === "daily" ? device.uptime : device.uptime * 7,
+            downtime: period === "daily" ? device.downtime : device.downtime * 7,
+        })),
+        archivers: devices.archivers.map(device => ({
+            ...device,
+            uptime: period === "daily" ? device.uptime : device.uptime * 7,
+            downtime: period === "daily" ? device.downtime : device.downtime * 7,
+        })),
+        controllers: devices.controllers.map(device => ({
+            ...device,
+            uptime: period === "daily" ? device.uptime : device.uptime * 7,
+            downtime: period === "daily" ? device.downtime : device.downtime * 7,
+        })),
+        servers: devices.servers.map(device => ({
+            ...device,
+            uptime: period === "daily" ? device.uptime : device.uptime * 7,
+            downtime: period === "daily" ? device.downtime : device.downtime * 7,
+        })),
+    };
+};
+
+
+
+
+
+
+
+
+
+
+
+
 {
   "region": "apac",
   "trends": {
