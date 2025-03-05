@@ -1,195 +1,32 @@
-const computeDeviceStats = (history) => {
-    if (!Array.isArray(history) || history.length === 0) {
-        return { uptime: 0, downtime: 0, downtimeDuration: 0 };
-    }
-
-    let uptime = 0, downtime = 0, downtimeDuration = 0;
-    let lastStatus = null;
-    let lastTimestamp = null;
-
-    history.forEach((log, index) => {
-        let currentTime = new Date(log.timestamp).getTime();
-
-        if (index > 0 && lastTimestamp) {
-            let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert ms to minutes
-
-            if (lastStatus === "online") {
-                uptime += timeDiff; // Add uptime duration
-            } else if (lastStatus === "offline") {
-                downtime += timeDiff; // Add downtime duration
-                downtimeDuration++;
-            }
-        }
-
-        lastStatus = log.status;
-        lastTimestamp = currentTime;
-    });
-
-    return { uptime: Math.round(uptime), downtime: Math.round(downtime), downtimeDuration };
-};
-
-
-
-
-
-
-
-const computeDeviceStats = (history) => {
-    if (!Array.isArray(history)) {
-        return { uptime: 0, downtime: 0, downtimeDuration: 0 };  // Default values
-    }
-
-    let uptime = 0, downtime = 0, lastOnlineTime = null, downtimeDuration = 0;
-
-    history.forEach((log, index) => {
-        if (log.status === "online") {
-            if (lastOnlineTime) {
-                uptime += (new Date(log.timestamp) - new Date(lastOnlineTime)) / 60000; // Convert ms to minutes
-            }
-            lastOnlineTime = log.timestamp;
-        } else if (log.status === "offline") {
-            if (lastOnlineTime) {
-                downtime += (new Date(log.timestamp) - new Date(lastOnlineTime)) / 60000;
-                downtimeDuration++;
-            }
-            lastOnlineTime = null;
-        }
-    });
-
-    return { uptime, downtime, downtimeDuration };
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-const fetchRegionTrendData = async (region) => {
-    const devices = {
-        cameras: trackUptimeDowntime(allData.cameras, region),
-        archivers: trackUptimeDowntime(allData.archivers, region),
-        controllers: trackUptimeDowntime(allData.controllers, region),
-        servers: trackUptimeDowntime(allData.servers, region),
-    };
-
-    return {
-        region,
-        trends: {
-            daily: calculateTrend(devices, "daily"),
-            weekly: calculateTrend(devices, "weekly"),
-            monthly: calculateTrend(devices, "monthly"),
-        }
-    };
-};
-
-// Function to track uptime/downtime
-const trackUptimeDowntime = (devices, region) => {
-    return devices
-        .filter(device => device.location?.toLowerCase() === region.toLowerCase())
-        .map(device => {
-            const { uptime, downtime, downtimeDuration } = computeDeviceStats(device.history);
-            return {
-                deviceName: device.device_name || "Unknown",
-                ipAddress: device.ip_address,
-                uptime,
-                downtime,
-                downtimeDuration
-            };
-        });
-};
-
-// Compute device uptime and downtime
-const computeDeviceStats = (history) => {
-    let uptime = 0, downtime = 0, lastOnlineTime = null, downtimeDuration = 0;
-
-    history.forEach((log, index) => {
-        if (log.status === "online") {
-            if (lastOnlineTime) {
-                uptime += (new Date(log.timestamp) - new Date(lastOnlineTime)) / 60000; // Convert ms to minutes
-            }
-            lastOnlineTime = log.timestamp;
-        } else if (log.status === "offline") {
-            if (lastOnlineTime) {
-                downtime += (new Date(log.timestamp) - new Date(lastOnlineTime)) / 60000;
-                downtimeDuration++;
-            }
-            lastOnlineTime = null;
-        }
-    });
-
-    return { uptime, downtime, downtimeDuration };
-};
-
-// Calculate trend based on period (daily, weekly, monthly)
-const calculateTrend = (devices, period) => {
-    return {
-        cameras: devices.cameras.map(device => ({
-            ...device,
-            uptime: period === "daily" ? device.uptime : device.uptime * 7,
-            downtime: period === "daily" ? device.downtime : device.downtime * 7,
-        })),
-        archivers: devices.archivers.map(device => ({
-            ...device,
-            uptime: period === "daily" ? device.uptime : device.uptime * 7,
-            downtime: period === "daily" ? device.downtime : device.downtime * 7,
-        })),
-        controllers: devices.controllers.map(device => ({
-            ...device,
-            uptime: period === "daily" ? device.uptime : device.uptime * 7,
-            downtime: period === "daily" ? device.downtime : device.downtime * 7,
-        })),
-        servers: devices.servers.map(device => ({
-            ...device,
-            uptime: period === "daily" ? device.uptime : device.uptime * 7,
-            downtime: period === "daily" ? device.downtime : device.downtime * 7,
-        })),
-    };
-};
-
-
-
-
-
-
-
-
-
-
-
-
 {
   "region": "apac",
   "trends": {
-    "daily": {
-      "cameras": [
-        {
-          "deviceName": "Unknown",
-          "ipAddress": "10.199.10.20",
-          "uptime": 18,
-          "downtime": 48,
-          "downtimeDuration": 5
-        },
-        {
-          "deviceName": "Unknown",
-          "ipAddress": "10.199.10.139",
-          "uptime": 35,
-          "downtime": 19,
-          "downtimeDuration": 1
-        },
-        {
-          "deviceName": "Unknown",
-          "ipAddress": "10.199.10.142",
-          "uptime": 60,
-          "downtime": 9,
-          "downtimeDuration": 5
-        },
+    "region": "apac",
+    "trends": {
+      "daily": {
+        "cameras": [
+          {
+            "deviceName": "Unknown",
+            "ipAddress": "10.199.10.20",
+            "uptime": 0,
+            "downtime": 0,
+            "downtimeDuration": 0
+          },
+          {
+            "deviceName": "Unknown",
+            "ipAddress": "10.199.10.139",
+            "uptime": 0,
+            "downtime": 0,
+            "downtimeDuration": 0
+          },
+          {
+            "deviceName": "Unknown",
+            "ipAddress": "10.199.10.142",
+            "uptime": 0,
+            "downtime": 0,
+            "downtimeDuration": 0
+          },
+
 
 
 
