@@ -1,3 +1,43 @@
+const computeDeviceStats = (history) => {
+    if (!Array.isArray(history) || history.length === 0) {
+        console.log("Device history is empty.");
+        return { uptime: 0, downtime: 0, downtimeDuration: 0 };
+    }
+
+    let uptime = 0, downtime = 0, downtimeDuration = 0;
+    let lastStatus = history[0].status;  // Initial status
+    let lastTimestamp = new Date(history[0].timestamp).getTime();
+
+    history.forEach((log, index) => {
+        let currentTime = new Date(log.timestamp).getTime();
+        let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert ms to minutes
+
+        if (log.status === "online") {
+            uptime += timeDiff; // Add uptime duration
+        } else if (log.status === "offline") {
+            downtime += timeDiff; // Add downtime duration
+            downtimeDuration++;
+        }
+
+        lastStatus = log.status;
+        lastTimestamp = currentTime;
+    });
+
+    console.log("Final Stats:", { uptime, downtime, downtimeDuration });
+
+    return { 
+        uptime: Math.round(uptime), 
+        downtime: Math.round(downtime), 
+        downtimeDuration 
+    };
+};
+
+
+
+
+
+
+
 {
   "region": "apac",
   "trends": {
