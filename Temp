@@ -1,4 +1,55 @@
 const fetchRegionTrendData = async (regionName) => {
+    // Log regionName to check the input
+    console.log("Region being filtered: ", regionName);
+
+    // Filter devices by region
+    const devices = {
+        cameras: allData.cameras.filter(device => {
+            const location = device.location ? device.location.toLowerCase() : "";
+            console.log("Camera device location: ", location); // Log each camera location
+            return location && regionName && location === regionName.toLowerCase();
+        }),
+        archivers: allData.archivers.filter(device => {
+            const location = device.location ? device.location.toLowerCase() : "";
+            console.log("Archiver device location: ", location); // Log each archiver location
+            return location && regionName && location === regionName.toLowerCase();
+        }),
+        controllers: allData.controllers.filter(device => {
+            const location = device.location ? device.location.toLowerCase() : "";
+            console.log("Controller device location: ", location); // Log each controller location
+            return location && regionName && location === regionName.toLowerCase();
+        }),
+        servers: allData.servers.filter(device => {
+            const location = device.location ? device.location.toLowerCase() : "";
+            console.log("Server device location: ", location); // Log each server location
+            return location && regionName && location === regionName.toLowerCase();
+        }),
+    };
+
+    console.log("Filtered devices: ", devices);
+
+    // Create an object to store trend data for each device
+    const deviceTrends = {};
+
+    // Iterate over each device list and calculate trends
+    for (const deviceType in devices) {
+        devices[deviceType].forEach(device => {
+            deviceTrends[device.ip_address] = {
+                daily: calculateTrendForDevice(device, "daily"),
+                weekly: calculateTrendForDevice(device, "weekly"),
+                monthly: calculateTrendForDevice(device, "monthly")
+            };
+        });
+    }
+
+    return { devices: deviceTrends };
+};
+
+
+
+
+
+const fetchRegionTrendData = async (regionName) => {
     // Filter devices by region
     const devices = {
         cameras: allData.cameras.filter(device => device.location && regionName && device.location.toLowerCase() === regionName.toLowerCase()),
