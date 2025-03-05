@@ -1,3 +1,6 @@
+{"error":"Internal server error","details":"Cannot read properties of undefined (reading 'toLowerCase')"}
+
+
 const { fetchRegionTrendData } = require("../services/excelService");
 
 const getRegionTrendDetails = async (req, res) => {
