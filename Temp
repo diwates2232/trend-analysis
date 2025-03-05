@@ -1,3 +1,61 @@
+const { fetchRegionTrendData } = require("../services/excelService");
+
+const getRegionTrendDetails = async (req, res) => {
+    const { region } = req.params;
+    try {
+        const trendData = await fetchRegionTrendData(region);
+        res.status(200).json(trendData);
+    } catch (error) {
+        res.status(500).json({ error: "Internal server error", details: error.message });
+    }
+};
+
+module.exports = {
+    getGlobalSummary,
+    getGlobalDetails,
+    getRegionSummary,
+    getRegionDetails,
+    getRegionTrendDetails  // <-- Add this line
+};
+
+
+
+const fetchRegionTrendData = async (region) => {
+    // Filter devices by region
+    const devices = {
+        cameras: allData.cameras.filter(device => device.location?.toLowerCase() === region.toLowerCase()),
+        archivers: allData.archivers.filter(device => device.location?.toLowerCase() === region.toLowerCase()),
+        controllers: allData.controllers.filter(device => device.location?.toLowerCase() === region.toLowerCase()),
+        servers: allData.servers.filter(device => device.location?.toLowerCase() === region.toLowerCase()),
+    };
+
+    // Sample logic to compute trends
+    const trends = {
+        daily: calculateTrend(devices, "daily"),
+        weekly: calculateTrend(devices, "weekly"),
+        monthly: calculateTrend(devices, "monthly"),
+    };
+
+    return trends;
+};
+
+// Dummy function to process trend data
+const calculateTrend = (devices, period) => {
+    return {
+        uptime: Math.floor(Math.random() * 100),  // Example: Replace with actual calculation
+        downtime: Math.floor(Math.random() * 50),
+        downtimeDuration: Math.floor(Math.random() * 10),
+    };
+};
+
+module.exports = { fetchRegionTrendData };
+
+
+
+
+
+
+
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
