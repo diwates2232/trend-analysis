@@ -1,3 +1,90 @@
+const fetchRegionTrendData = async (regionName) => {
+    // Filter devices by region
+    const devices = {
+        cameras: allData.cameras.filter(device => device.location && device.location.toLowerCase() === regionName.toLowerCase()),
+        archivers: allData.archivers.filter(device => device.location && device.location.toLowerCase() === regionName.toLowerCase()),
+        controllers: allData.controllers.filter(device => device.location && device.location.toLowerCase() === regionName.toLowerCase()),
+        servers: allData.servers.filter(device => device.location && device.location.toLowerCase() === regionName.toLowerCase()),
+    };
+
+    // Create an object to store trend data for each device
+    const deviceTrends = {};
+
+    // Iterate over each device list and calculate trends
+    for (const deviceType in devices) {
+        devices[deviceType].forEach(device => {
+            deviceTrends[device.ip_address] = {
+                daily: calculateTrendForDevice(device, "daily"),
+                weekly: calculateTrendForDevice(device, "weekly"),
+                monthly: calculateTrendForDevice(device, "monthly")
+            };
+        });
+    }
+
+    return { devices: deviceTrends };
+};
+
+
+
+const calculateTrendForDevice = (device, period) => {
+    // Simulate trend data (replace this with actual calculations)
+    const trend = {
+        uptime: Math.floor(Math.random() * 100),
+        downtime: Math.floor(Math.random() * 50),
+        downtimeDuration: Math.floor(Math.random() * 10),
+    };
+
+    console.log(`Trend for device ${device.ip_address}:`, trend);
+    return trend;
+};
+
+
+const fetchRegionTrendData = async () => {
+    const regionName = 'apac'; // Hardcode region name for testing
+
+    // Filter devices by region
+    const devices = {
+        cameras: allData.cameras.filter(device => device.location && device.location.toLowerCase() === regionName.toLowerCase()),
+        archivers: allData.archivers.filter(device => device.location && device.location.toLowerCase() === regionName.toLowerCase()),
+        controllers: allData.controllers.filter(device => device.location && device.location.toLowerCase() === regionName.toLowerCase()),
+        servers: allData.servers.filter(device => device.location && device.location.toLowerCase() === regionName.toLowerCase()),
+    };
+
+    // Create an object to store trend data for each device
+    const deviceTrends = {};
+
+    // Iterate over each device list and calculate trends
+    for (const deviceType in devices) {
+        devices[deviceType].forEach(device => {
+            deviceTrends[device.ip_address] = {
+                daily: calculateTrendForDevice(device, "daily"),
+                weekly: calculateTrendForDevice(device, "weekly"),
+                monthly: calculateTrendForDevice(device, "monthly")
+            };
+        });
+    }
+
+    return { devices: deviceTrends };
+};
+
+
+app.get("/api/regions/trend/details/:region", async (req, res) => {
+    const region = req.params.region;
+    const trendData = await fetchRegionTrendData(region);
+    res.json(trendData);
+});
+
+
+
+
+
+
+
+
+
+
+
+
 const xlsx = require("xlsx");
 const path = require("path");
 const ping = require("ping");
