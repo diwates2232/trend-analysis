@@ -1,4 +1,53 @@
 
+const fetchRegionTrendData = async (region) => {
+    // Filter devices by region
+    const devices = {
+        cameras: allData.cameras.filter(device => device.location && region && device.location.toLowerCase() === region.toLowerCase()),
+        archivers: allData.archivers.filter(device => device.location && region && device.location.toLowerCase() === region.toLowerCase()),
+        controllers: allData.controllers.filter(device => device.location && region && device.location.toLowerCase() === region.toLowerCase()),
+        servers: allData.servers.filter(device => device.location && region && device.location.toLowerCase() === region.toLowerCase()),
+    };
+
+
+    // Create an object to store trend data for each device
+    const deviceTrends = {};
+
+    // Iterate over each device list and calculate trends
+    for (const deviceType in devices) {
+        devices[deviceType].forEach(device => {
+            deviceTrends[device.ip_address] = {
+                daily: calculateTrendForDevice(device, "daily"),
+                weekly: calculateTrendForDevice(device, "weekly"),
+                monthly: calculateTrendForDevice(device, "monthly")
+            };
+        });
+    }
+
+    return { devices: deviceTrends };
+};
+
+
+// Function to calculate trend for a specific device
+const calculateTrendForDevice = (device, period) => {
+    // Replace this with the actual logic for calculating uptime, downtime, and downtimeDuration
+    return {
+        uptime: Math.floor(Math.random() * 100),  // Example: Replace with actual calculation
+        downtime: Math.floor(Math.random() * 50),
+        downtimeDuration: Math.floor(Math.random() * 10),
+    };
+};
+
+
+
+
+http://localhost/api/regions/trend/details/apac
+
+{
+  "devices": {
+
+  }
+}
+
 
 
 
