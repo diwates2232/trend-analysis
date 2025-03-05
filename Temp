@@ -1,72 +1,29 @@
-const fetchRegionTrendData = async (region) => {
-    // Filter devices by region
-    const devices = {
-        cameras: allData.cameras.filter(device => device.location?.toLowerCase() === region.toLowerCase()),
-        archivers: allData.archivers.filter(device => device.location?.toLowerCase() === region.toLowerCase()),
-        controllers: allData.controllers.filter(device => device.location?.toLowerCase() === region.toLowerCase()),
-        servers: allData.servers.filter(device => device.location?.toLowerCase() === region.toLowerCase()),
-    };
-
-    // Compute trends **per device**
-    const trends = {
-        daily: calculateDeviceWiseTrend(devices, "daily"),
-        weekly: calculateDeviceWiseTrend(devices, "weekly"),
-        monthly: calculateDeviceWiseTrend(devices, "monthly"),
-    };
-
-    return trends;
-};
-
-// 🔹 Function to calculate **device-wise** uptime and downtime trends
-const calculateDeviceWiseTrend = (devices, period) => {
-    let trendData = {};
-
-    for (const [category, deviceList] of Object.entries(devices)) {
-        trendData[category] = deviceList.map(device => {
-            return {
-                deviceName: device.device_name || "Unknown",  // Ensure device name exists
-                ipAddress: device.ip_address || "N/A",
-                uptime: Math.floor(Math.random() * 100),  // Example: Replace with actual uptime data
-                downtime: Math.floor(Math.random() * 50),
-                downtimeDuration: Math.floor(Math.random() * 10),
-            };
-        });
-    }
-
-    return trendData;
-};
-
-module.exports = { fetchRegionTrendData };
-
-
-
-
-
-
-
-const { fetchRegionTrendData } = require("../services/excelService");
-
-const getRegionTrendDetails = async (req, res) => {
-    const { regionName } = req.params; // Get regionName from URL
-
-    if (!regionName) {
-        return res.status(400).json({ error: "Region parameter is missing" });
-    }
-
-    try {
-        const trendData = await fetchRegionTrendData(regionName);
-        res.status(200).json({ region: regionName, trends: trendData });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
-
-module.exports = { getRegionTrendDetails };
-
-
-
-
-
+{
+  "region": "apac",
+  "trends": {
+    "daily": {
+      "cameras": [
+        {
+          "deviceName": "Unknown",
+          "ipAddress": "10.199.10.20",
+          "uptime": 18,
+          "downtime": 48,
+          "downtimeDuration": 5
+        },
+        {
+          "deviceName": "Unknown",
+          "ipAddress": "10.199.10.139",
+          "uptime": 35,
+          "downtime": 19,
+          "downtimeDuration": 1
+        },
+        {
+          "deviceName": "Unknown",
+          "ipAddress": "10.199.10.142",
+          "uptime": 60,
+          "downtime": 9,
+          "downtimeDuration": 5
+        },
 
 
 
