@@ -1,3 +1,40 @@
+const computeDeviceStats = (history) => {
+    if (!Array.isArray(history)) {
+        return { uptime: 0, downtime: 0, downtimeDuration: 0 };  // Default values
+    }
+
+    let uptime = 0, downtime = 0, lastOnlineTime = null, downtimeDuration = 0;
+
+    history.forEach((log, index) => {
+        if (log.status === "online") {
+            if (lastOnlineTime) {
+                uptime += (new Date(log.timestamp) - new Date(lastOnlineTime)) / 60000; // Convert ms to minutes
+            }
+            lastOnlineTime = log.timestamp;
+        } else if (log.status === "offline") {
+            if (lastOnlineTime) {
+                downtime += (new Date(log.timestamp) - new Date(lastOnlineTime)) / 60000;
+                downtimeDuration++;
+            }
+            lastOnlineTime = null;
+        }
+    });
+
+    return { uptime, downtime, downtimeDuration };
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
 const fetchRegionTrendData = async (region) => {
     const devices = {
         cameras: trackUptimeDowntime(allData.cameras, region),
