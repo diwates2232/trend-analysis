@@ -1,3 +1,106 @@
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const fs = require("fs");
+const ping = require("ping");
+const regionRoutes = require("./routes/regionRoutes");
+const { fetchAllIpAddress } = require("./services/excelService");
+
+const app = express();
+const PORT = process.env.PORT || 80;
+
+// Middleware
+app.use(
+  cors({
+    origin: "http://127.0.0.1:5500", 
+    methods: "GET,POST,PUT,DELETE",
+    allowedHeaders: "Content-Type,Authorization",
+  })
+);
+app.use(bodyParser.json());
+
+// Routes
+app.use("/api/regions", regionRoutes);
+
+// Device Status Tracking
+const devices = fetchAllIpAddress();
+let deviceStatus = {};
+const logFile = "./deviceLogs.json";
+
+// Load previous logs if exists
+let deviceLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile)) : {};
+
+// Function to log device status changes
+function logDeviceChange(ip, status) {
+  const timestamp = new Date().toISOString();
+  
+  if (!deviceLogs[ip]) {
+    deviceLogs[ip] = [];
+  }
+
+  const lastLog = deviceLogs[ip].length ? deviceLogs[ip][deviceLogs[ip].length - 1] : null;
+  
+  if (!lastLog || lastLog.status !== status) {
+    deviceLogs[ip].push({ status, timestamp });
+    fs.writeFileSync(logFile, JSON.stringify(deviceLogs, null, 2)); 
+  }
+}
+
+// Ping all devices and log changes
+async function pingDevices() {
+  for (const ip of devices) {
+    try {
+      const result = await ping.promise.probe(ip);
+      const newStatus = result.alive ? "Online" : "Offline";
+
+      if (deviceStatus[ip] !== newStatus) {
+        logDeviceChange(ip, newStatus);
+      }
+      deviceStatus[ip] = newStatus;
+    } catch (error) {
+      console.error(`Error pinging ${ip}:`, error);
+      deviceStatus[ip] = "Offline";
+    }
+  }
+  console.log("Updated device status:", deviceStatus);
+}
+
+// Ping devices every 30 seconds
+setInterval(pingDevices, 30000);
+
+// API to get real-time device status
+app.get("/api/region/devices/status", (req, res) => {
+  res.json(deviceStatus);
+});
+
+// API to get uptime/downtime trends
+app.get("/api/region/devices/trend", (req, res) => {
+  res.json(deviceLogs);
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send("Something went wrong!");
+});
+
+// Start Server
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+  pingDevices(); // Initial ping on startup
+});
+
+
+
+
+
+
+
+
+
+
+
 RegionController.js
 
 
