@@ -1,4 +1,70 @@
+const fetchRegionTrendData = async (regionName) => {
+    console.log("Region being filtered: ", regionName);
 
+    if (!regionName) {
+        console.error("Error: regionName is undefined or empty!");
+        return { error: "Invalid region name" };
+    }
+
+    // Normalize the region name
+    const normalizedRegion = regionName.trim().toLowerCase();
+
+    // Filter devices by region
+    const devices = {
+        cameras: allData.cameras.filter(device => {
+            if (!device.location) {
+                console.warn(`Camera device missing location:`, device);
+                return false; // Skip devices with no location
+            }
+            return device.location.trim().toLowerCase() === normalizedRegion;
+        }),
+        archivers: allData.archivers.filter(device => {
+            if (!device.location) {
+                console.warn(`Archiver device missing location:`, device);
+                return false;
+            }
+            return device.location.trim().toLowerCase() === normalizedRegion;
+        }),
+        controllers: allData.controllers.filter(device => {
+            if (!device.location) {
+                console.warn(`Controller device missing location:`, device);
+                return false;
+            }
+            return device.location.trim().toLowerCase() === normalizedRegion;
+        }),
+        servers: allData.servers.filter(device => {
+            if (!device.location) {
+                console.warn(`Server device missing location:`, device);
+                return false;
+            }
+            return device.location.trim().toLowerCase() === normalizedRegion;
+        }),
+    };
+
+    console.log("Filtered devices: ", devices);
+
+    // If no devices are found, log the issue
+    if (Object.values(devices).every(arr => arr.length === 0)) {
+        console.error("No devices found for region:", regionName);
+        return { error: `No devices found for region: ${regionName}` };
+    }
+
+    // Create an object to store trend data for each device
+    const deviceTrends = {};
+
+    // Iterate over each device list and calculate trends
+    for (const deviceType in devices) {
+        devices[deviceType].forEach(device => {
+            deviceTrends[device.ip_address] = {
+                daily: calculateTrendForDevice(device, "daily"),
+                weekly: calculateTrendForDevice(device, "weekly"),
+                monthly: calculateTrendForDevice(device, "monthly")
+            };
+        });
+    }
+
+    return { devices: deviceTrends };
+};
 
 
 
