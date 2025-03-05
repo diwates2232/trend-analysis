@@ -1,4 +1,40 @@
 const computeDeviceStats = (history) => {
+    if (!Array.isArray(history) || history.length === 0) {
+        return { uptime: 0, downtime: 0, downtimeDuration: 0 };
+    }
+
+    let uptime = 0, downtime = 0, downtimeDuration = 0;
+    let lastStatus = null;
+    let lastTimestamp = null;
+
+    history.forEach((log, index) => {
+        let currentTime = new Date(log.timestamp).getTime();
+
+        if (index > 0 && lastTimestamp) {
+            let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert ms to minutes
+
+            if (lastStatus === "online") {
+                uptime += timeDiff; // Add uptime duration
+            } else if (lastStatus === "offline") {
+                downtime += timeDiff; // Add downtime duration
+                downtimeDuration++;
+            }
+        }
+
+        lastStatus = log.status;
+        lastTimestamp = currentTime;
+    });
+
+    return { uptime: Math.round(uptime), downtime: Math.round(downtime), downtimeDuration };
+};
+
+
+
+
+
+
+
+const computeDeviceStats = (history) => {
     if (!Array.isArray(history)) {
         return { uptime: 0, downtime: 0, downtimeDuration: 0 };  // Default values
     }
