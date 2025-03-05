@@ -1,3 +1,32 @@
+const { fetchRegionTrendData } = require("../services/excelService");
+
+const getRegionTrendDetails = async (req, res) => {
+    const { regionName } = req.params; // Get regionName from URL
+
+    if (!regionName) {
+        return res.status(400).json({ error: "Region parameter is missing" });
+    }
+
+    try {
+        const trendData = await fetchRegionTrendData(regionName);
+        res.status(200).json({ region: regionName, trends: trendData });
+    } catch (error) {
+        res.status(500).json({ error: "Internal server error", details: error.message });
+    }
+};
+
+module.exports = { getRegionTrendDetails };
+
+
+
+
+
+
+
+
+
+
+
 const fetchRegionTrendData = async (region) => {
     if (!region) {
         throw new Error("Region parameter is missing");
