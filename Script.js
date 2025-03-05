@@ -1,3 +1,38 @@
+const fetchRegionTrendData = async (region) => {
+    if (!region) {
+        throw new Error("Region parameter is missing");
+    }
+
+    // Ensure devices have a valid location before filtering
+    const filterByRegion = (devices) => {
+        return devices.filter(device => 
+            device.location && typeof device.location === "string" &&
+            device.location.toLowerCase() === region.toLowerCase()
+        );
+    };
+
+    const devices = {
+        cameras: filterByRegion(allData.cameras),
+        archivers: filterByRegion(allData.archivers),
+        controllers: filterByRegion(allData.controllers),
+        servers: filterByRegion(allData.servers),
+    };
+
+    // Sample logic to compute trends
+    const trends = {
+        daily: calculateTrend(devices, "daily"),
+        weekly: calculateTrend(devices, "weekly"),
+        monthly: calculateTrend(devices, "monthly"),
+    };
+
+    return trends;
+};
+
+
+
+
+
+
 
 
 
