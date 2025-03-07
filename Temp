@@ -1,3 +1,39 @@
+const getRegionTrendDetails = async (req, res) => {
+    try {
+        console.log("Request Params:", req.params); // Log params
+        const { region } = req.params;
+        console.log("Extracted Region:", region); // Log extracted value
+
+        if (!region) {
+            return res.status(400).json({ error: "Region parameter is missing" });
+        }
+
+        const trendData = await fetchRegionTrendData(region);
+        console.log("Trend Data Response:", JSON.stringify(trendData, null, 2));
+
+        if (!trendData || typeof trendData !== "object") {
+            return res.status(500).json({ error: "Failed to fetch trend data" });
+        }
+
+        res.json({
+            region,
+            trends: trendData
+        });
+    } catch (error) {
+        console.error("Error in getRegionTrendDetails:", error);
+        res.status(500).json({ error: "Internal server error", details: error.message });
+    }
+};
+
+
+
+
+
+
+
+
+
+
 regionController.js
 
 const { fetchGlobalData, fetchRegionData, fetchRegionTrendData } = require("../services/excelService");
