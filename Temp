@@ -1,4 +1,33 @@
+const fetchRegionTrendData = async (region) => {
+    console.log("Fetching trend data for region:", region);
+    
+    // Check all data
+    console.log("All Data:", JSON.stringify(allData, null, 2));
 
+    // Filter devices by region
+    const filteredDevices = allData.cameras.filter(device =>
+        device.location?.toLowerCase() === region.toLowerCase()
+    );
+
+    console.log("Filtered Cameras:", JSON.stringify(filteredDevices, null, 2));
+
+    // Ensure history exists
+    const cameras = filteredDevices.map(device => {
+        console.log(`Processing device: ${device.deviceName} (${device.ipAddress})`);
+        return {
+            ...device,
+            history: device.history || []
+        };
+    });
+
+    console.log("Devices with History:", JSON.stringify(cameras, null, 2));
+
+    return {
+        daily: calculateTrend(cameras, "daily"),
+        weekly: calculateTrend(cameras, "weekly"),
+        monthly: calculateTrend(cameras, "monthly"),
+    };
+};
 
 
 
