@@ -17,7 +17,10 @@ Devices with History: [
 
 http://localhost/api/regions/trend/details/apac
 responce-
-http://localhost/api/regions/trend/details/apac
+{
+  "error": "Internal server error",
+  "details": "Cannot read properties of undefined (reading 'map')"
+}
 
 
 
