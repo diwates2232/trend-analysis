@@ -1,134 +1,534 @@
-const fetchRegionTrendData = async (region) => {
-    console.log("Fetching trend data for region:", region);
-
-    if (!allData || !allData.cameras) {
-        console.error("Error: allData is undefined or missing cameras property");
-        return null; // Prevent further errors
-    }
-
-    const devices = {
-        cameras: allData.cameras
-            .filter(device => device.location?.toLowerCase() === region.toLowerCase())
-            .map(device => ({
-                ...device,
-                history: Array.isArray(device.history) ? device.history : [] // Ensure history is an array
-            })),
-        archivers: allData.archivers
-            ? allData.archivers.filter(device => device.location?.toLowerCase() === region.toLowerCase())
-            : [],
-        controllers: allData.controllers
-            ? allData.controllers.filter(device => device.location?.toLowerCase() === region.toLowerCase())
-            : [],
-        servers: allData.servers
-            ? allData.servers.filter(device => device.location?.toLowerCase() === region.toLowerCase())
-            : []
-    };
-
-    console.log("Devices with History:", JSON.stringify(devices, null, 2));
-
-    if (!devices.cameras.length && !devices.archivers.length && !devices.controllers.length && !devices.servers.length) {
-        console.log(`No devices found for region: ${region}`);
-        return null;
-    }
-
-    // For each device, compute trend and status
-    const deviceTrends = calculateDeviceTrends(devices);
-
-    return {
-        daily: deviceTrends.daily,
-        weekly: deviceTrends.weekly,
-        monthly: deviceTrends.monthly,
-        devices: devices // Add detailed device information
-    };
-};
-
-// Modify calculateTrend to include device-specific details
-const calculateDeviceTrends = (devices) => {
-    const trends = {
-        daily: [],
-        weekly: [],
-        monthly: [],
-    };
-
-    // Process each device type
-    for (const [deviceType, deviceList] of Object.entries(devices)) {
-        deviceList.forEach((device) => {
-            const { uptime, downtime, downtimeDuration } = computeDeviceStats(device.history);
-            trends.daily.push({
-                deviceName: device.device_name,
-                uptime,
-                downtime,
-                downtimeDuration
-            });
-        });
-    }
-
-    return trends;
-};
-
-
-
-
-// Controller for fetch trend data
-const getRegionTrendDetails = async (req, res) => {
-    try {
-        const { region } = req.params;
-        console.log("Requested Region:", region);
-
-        if (!region) {
-            return res.status(400).json({ error: "Region parameter is missing" });
-        }
-
-        const trendData = await fetchRegionTrendData(region);
-        console.log("Trend Data Response:", JSON.stringify(trendData, null, 2));
-
-        if (!trendData || typeof trendData !== "object") {
-            return res.status(500).json({ error: "Failed to fetch trend data" });
-        }
-
-        res.json({
-            region,
-            trends: trendData,
-            devices: trendData.devices,  // Include detailed device information in the response
-        });
-    } catch (error) {
-        console.error("Error in getRegionTrendDetails:", error);
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
-
-
-
-
-
-
-
-
-
-
-
 http://localhost/api/regions/trend/details/apac
+
 
 {
   "region": "apac",
   "trends": {
-    "daily": {
-      "uptime": 20,
-      "downtime": 26,
-      "downtimeDuration": 3
-    },
-    "weekly": {
-      "uptime": 84,
-      "downtime": 42,
-      "downtimeDuration": 0
-    },
-    "monthly": {
-      "uptime": 3,
-      "downtime": 31,
-      "downtimeDuration": 1
+    "daily": [
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      }
+    ],
+    "weekly": [],
+    "monthly": [],
+    "devices": {
+      "cameras": [
+        {
+          "cameraname": "PUNE Green Zone to yellow zone passage - 10.199.10.20 (FLIR CM-3102-11-I T71552107) - 350",
+          "ip_address": "10.199.10.20",
+          "location": "APAC",
+          "history": []
+        },
+        {
+          "cameraname": "PUNE IN-PNQ-PF - Green Zone Exit Passage 10.199.10.139",
+          "ip_address": "10.199.10.139",
+          "location": "APAC",
+          "history": []
+        },
+        {
+          "cameraname": "PUNE IN-PNQ-PF - Green Zone IDF (01) Room 10.199.10.142",
+          "ip_address": "10.199.10.142",
+          "location": "APAC",
+          "history": []
+        },
+        {
+          "cameraname": "PUNE IN-PNQ-PF - Green Zone Locker Store Room - 02 10.199.10.141",
+          "ip_address": "10.199.10.141",
+          "location": "APAC",
+          "history": []
+        },
+        {
+          "cameraname": "PUNE IN-PNQ-PF - Green Zone Reception Entry 10.199.10.10",
+          "ip_address": "10.199.10.10",
+          "location": "APAC",
+          "history": []
+        },
+        {
+          "cameraname": "PUNE IN-PNQ-PF Green Zone Lift Lobby - 10.199.12.15 (c26B-6D) - 28",
+          "ip_address": "10.199.12.15",
+          "location": "APAC",
+          "history": []
+        },
+        {
+          "cameraname": "PUNE IN-PNQ-PF- Green Zone ST4 10.199.10.11",
+          "ip_address": "10.199.10.11",
+          "location": "APAC",
+          "history": []
+        },
+        {
+          "cameraname": "PUNE IN-PNQ-PF- Green Zone UPS B 10.199.10.14",
+          "ip_address": "10.199.10.14",
+          "location": "APAC",
+          "history": []
+        },
+        {
+          "cameraname": "PUNE IN-PNQ-PF- Green Zone UPS Room 10.199.10.13",
+          "ip_address": "10.199.10.13",
+          "location": "APAC",
+          "history": []
+        }
+      ],
+      "archivers": [
+        {
+          "archivername": "Archiver Manila",
+          "ip_address": "10.193.132.8",
+          "location": "APAC"
+        },
+        {
+          "archivername": "Archiver Taguig City Philippines",
+          "ip_address": "10.194.2.190",
+          "location": "APAC"
+        },
+        {
+          "archivername": "Archiver Pune-podium flr- India",
+          "ip_address": "10.199.8.10",
+          "location": "APAC"
+        },
+        {
+          "archivername": "Archiver Pune_2nd Flr & TOWER B",
+          "ip_address": "10.199.8.12",
+          "location": "APAC"
+        },
+        {
+          "archivername": "Archiver Mumbai",
+          "ip_address": "10.194.122.136",
+          "location": "APAC"
+        },
+        {
+          "archivername": "Archiver Server Kuala Lumpur",
+          "ip_address": "10.192.5.9",
+          "location": "APAC"
+        },
+        {
+          "archivername": "Archiver China Beijing",
+          "ip_address": "172.21.47.31",
+          "location": "APAC"
+        }
+      ],
+      "controllers": [
+        {
+          "controllername": "APAC_CN_BEIJING_ISTAR PRO_01",
+          "ip_address": "172.21.47.19",
+          "location": "APAC"
+        },
+        {
+          "controllername": "IN-PUN-2NDFLR-ISTAR PRO",
+          "ip_address": "10.199.13.10",
+          "location": "APAC"
+        },
+        {
+          "controllername": "IN-PUN-PODIUM-ISTAR PRO-01",
+          "ip_address": "10.199.8.20",
+          "location": "APAC"
+        },
+        {
+          "controllername": "IN-PUN-PODIUM-ISTAR PRO-02",
+          "ip_address": "10.199.8.21",
+          "location": "APAC"
+        },
+        {
+          "controllername": "IN-PUN-PODIUM-ISTAR PRO-03",
+          "ip_address": "10.199.10.15",
+          "location": "APAC"
+        },
+        {
+          "controllername": "IN-PUN-PODIUM-ISTAR ULTRA-4",
+          "ip_address": "10.199.8.30",
+          "location": "APAC"
+        },
+        {
+          "controllername": "IN-PUN-PODIUM-ISTAR ULTRA-5",
+          "ip_address": "10.199.10.150",
+          "location": "APAC"
+        },
+        {
+          "controllername": "IN-PUN-TOWER B-ISTAR ULTRA G2-CONTROLLER 1",
+          "ip_address": "10.199.16.40",
+          "location": "APAC"
+        },
+        {
+          "controllername": "IN-PUN-TOWER B-ISTAR ULTRA G2-CONTROLLER 2",
+          "ip_address": "10.199.16.41",
+          "location": "APAC"
+        },
+        {
+          "controllername": "APAC_JP_TOKYO_7TH FLOOR_ISTAR PRO_01",
+          "ip_address": "10.192.2.11",
+          "location": "APAC"
+        },
+        {
+          "controllername": "APAC_IN_MUM_ISTAR PRO_01",
+          "ip_address": "10.194.122.200",
+          "location": "APAC"
+        },
+        {
+          "controllername": "APAC_MY_KUALA LUMPUR_ISTAR ULTRA_CONTROLLER_01",
+          "ip_address": "10.192.4.11",
+          "location": "APAC"
+        },
+        {
+          "controllername": "APAC_PH_MANILA_ 6TH FLOOR_ ISTAR ULTRA SE_01",
+          "ip_address": "10.193.133.11",
+          "location": "APAC"
+        },
+        {
+          "controllername": "APAC_PH_MANILA_ 7TH FLOOR_ISTAR ULTRA SE_02",
+          "ip_address": "10.193.132.140",
+          "location": "APAC"
+        },
+        {
+          "controllername": "APAC_PH_MANILA_ISTAR PRO_01",
+          "ip_address": "10.194.2.13",
+          "location": "APAC"
+        }
+      ],
+      "servers": [
+        {
+          "servername": "New APACServer  ",
+          "ip_address": "10.199.22.61",
+          "location": "APAC"
+        }
+      ]
     }
+  },
+  "devices": {
+    "cameras": [
+      {
+        "cameraname": "PUNE Green Zone to yellow zone passage - 10.199.10.20 (FLIR CM-3102-11-I T71552107) - 350",
+        "ip_address": "10.199.10.20",
+        "location": "APAC",
+        "history": []
+      },
+      {
+        "cameraname": "PUNE IN-PNQ-PF - Green Zone Exit Passage 10.199.10.139",
+        "ip_address": "10.199.10.139",
+        "location": "APAC",
+        "history": []
+      },
+      {
+        "cameraname": "PUNE IN-PNQ-PF - Green Zone IDF (01) Room 10.199.10.142",
+        "ip_address": "10.199.10.142",
+        "location": "APAC",
+        "history": []
+      },
+      {
+        "cameraname": "PUNE IN-PNQ-PF - Green Zone Locker Store Room - 02 10.199.10.141",
+        "ip_address": "10.199.10.141",
+        "location": "APAC",
+        "history": []
+      },
+      {
+        "cameraname": "PUNE IN-PNQ-PF - Green Zone Reception Entry 10.199.10.10",
+        "ip_address": "10.199.10.10",
+        "location": "APAC",
+        "history": []
+      },
+      {
+        "cameraname": "PUNE IN-PNQ-PF Green Zone Lift Lobby - 10.199.12.15 (c26B-6D) - 28",
+        "ip_address": "10.199.12.15",
+        "location": "APAC",
+        "history": []
+      },
+      {
+        "cameraname": "PUNE IN-PNQ-PF- Green Zone ST4 10.199.10.11",
+        "ip_address": "10.199.10.11",
+        "location": "APAC",
+        "history": []
+      },
+      {
+        "cameraname": "PUNE IN-PNQ-PF- Green Zone UPS B 10.199.10.14",
+        "ip_address": "10.199.10.14",
+        "location": "APAC",
+        "history": []
+      },
+      {
+        "cameraname": "PUNE IN-PNQ-PF- Green Zone UPS Room 10.199.10.13",
+        "ip_address": "10.199.10.13",
+        "location": "APAC",
+        "history": []
+      }
+    ],
+    "archivers": [
+      {
+        "archivername": "Archiver Manila",
+        "ip_address": "10.193.132.8",
+        "location": "APAC"
+      },
+      {
+        "archivername": "Archiver Taguig City Philippines",
+        "ip_address": "10.194.2.190",
+        "location": "APAC"
+      },
+      {
+        "archivername": "Archiver Pune-podium flr- India",
+        "ip_address": "10.199.8.10",
+        "location": "APAC"
+      },
+      {
+        "archivername": "Archiver Pune_2nd Flr & TOWER B",
+        "ip_address": "10.199.8.12",
+        "location": "APAC"
+      },
+      {
+        "archivername": "Archiver Mumbai",
+        "ip_address": "10.194.122.136",
+        "location": "APAC"
+      },
+      {
+        "archivername": "Archiver Server Kuala Lumpur",
+        "ip_address": "10.192.5.9",
+        "location": "APAC"
+      },
+      {
+        "archivername": "Archiver China Beijing",
+        "ip_address": "172.21.47.31",
+        "location": "APAC"
+      }
+    ],
+    "controllers": [
+      {
+        "controllername": "APAC_CN_BEIJING_ISTAR PRO_01",
+        "ip_address": "172.21.47.19",
+        "location": "APAC"
+      },
+      {
+        "controllername": "IN-PUN-2NDFLR-ISTAR PRO",
+        "ip_address": "10.199.13.10",
+        "location": "APAC"
+      },
+      {
+        "controllername": "IN-PUN-PODIUM-ISTAR PRO-01",
+        "ip_address": "10.199.8.20",
+        "location": "APAC"
+      },
+      {
+        "controllername": "IN-PUN-PODIUM-ISTAR PRO-02",
+        "ip_address": "10.199.8.21",
+        "location": "APAC"
+      },
+      {
+        "controllername": "IN-PUN-PODIUM-ISTAR PRO-03",
+        "ip_address": "10.199.10.15",
+        "location": "APAC"
+      },
+      {
+        "controllername": "IN-PUN-PODIUM-ISTAR ULTRA-4",
+        "ip_address": "10.199.8.30",
+        "location": "APAC"
+      },
+      {
+        "controllername": "IN-PUN-PODIUM-ISTAR ULTRA-5",
+        "ip_address": "10.199.10.150",
+        "location": "APAC"
+      },
+      {
+        "controllername": "IN-PUN-TOWER B-ISTAR ULTRA G2-CONTROLLER 1",
+        "ip_address": "10.199.16.40",
+        "location": "APAC"
+      },
+      {
+        "controllername": "IN-PUN-TOWER B-ISTAR ULTRA G2-CONTROLLER 2",
+        "ip_address": "10.199.16.41",
+        "location": "APAC"
+      },
+      {
+        "controllername": "APAC_JP_TOKYO_7TH FLOOR_ISTAR PRO_01",
+        "ip_address": "10.192.2.11",
+        "location": "APAC"
+      },
+      {
+        "controllername": "APAC_IN_MUM_ISTAR PRO_01",
+        "ip_address": "10.194.122.200",
+        "location": "APAC"
+      },
+      {
+        "controllername": "APAC_MY_KUALA LUMPUR_ISTAR ULTRA_CONTROLLER_01",
+        "ip_address": "10.192.4.11",
+        "location": "APAC"
+      },
+      {
+        "controllername": "APAC_PH_MANILA_ 6TH FLOOR_ ISTAR ULTRA SE_01",
+        "ip_address": "10.193.133.11",
+        "location": "APAC"
+      },
+      {
+        "controllername": "APAC_PH_MANILA_ 7TH FLOOR_ISTAR ULTRA SE_02",
+        "ip_address": "10.193.132.140",
+        "location": "APAC"
+      },
+      {
+        "controllername": "APAC_PH_MANILA_ISTAR PRO_01",
+        "ip_address": "10.194.2.13",
+        "location": "APAC"
+      }
+    ],
+    "servers": [
+      {
+        "servername": "New APACServer  ",
+        "ip_address": "10.199.22.61",
+        "location": "APAC"
+      }
+    ]
   }
 }
+
 
 
 
