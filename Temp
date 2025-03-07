@@ -1,3 +1,22 @@
+app.get("/api/regions/trend/details/:region", async (req, res) => {
+    try {
+        const region = req.params.region.toLowerCase();
+        console.log("Requested Region:", region);
+
+        const trends = await fetchRegionTrendData(region);
+        return res.json({ region, trends });
+    } catch (error) {
+        console.error("Error fetching trend data:", error);
+        return res.status(500).json({ error: "Internal server error", details: error.message });
+    }
+});
+
+
+
+
+
+
+
 const fetchRegionTrendData = async (region) => {
     console.log("Fetching trend data for region:", region);
     
