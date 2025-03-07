@@ -1,5 +1,89 @@
+
+const { fetchRegionTrendData } = require('../services/fetchRegionTrendData');
+
+const getRegionTrendDetails = async (req, res) => {
+    try {
+        const { region } = req.params;
+        console.log("Requested Region:", region);
+
+        if (!region) {
+            return res.status(400).json({ error: "Region parameter is missing" });
+        }
+
+        const trendData = await fetchRegionTrendData(region);
+        console.log("Trend Data Response:", JSON.stringify(trendData, null, 2));
+
+        if (!trendData || typeof trendData !== "object") {
+            return res.status(500).json({ error: "Failed to fetch trend data" });
+        }
+
+        res.json({
+            region,
+            trends: trendData
+        });
+    } catch (error) {
+        console.error("Error in getRegionTrendDetails:", error);
+        res.status(500).json({ error: "Internal server error", details: error.message });
+    }
 };
 
+module.exports = { getRegionTrendDetails };
+
+
+
+
+
+const allData = require('../data/deviceData'); // Ensure this is correctly imported
+
+const fetchRegionTrendData = async (region) => {
+    console.log("Fetching trend data for region:", region);
+
+    if (!allData || !allData.cameras) {
+        console.error("Error: allData is undefined or missing cameras property");
+        return null; // Prevent further errors
+    }
+
+    const devices = {
+        cameras: allData.cameras
+            .filter(device => device.location?.toLowerCase() === region.toLowerCase())
+            .map(device => ({
+                ...device,
+                history: Array.isArray(device.history) ? device.history : [] // Ensure history is an array
+            })),
+        archivers: allData.archivers
+            ? allData.archivers.filter(device => device.location?.toLowerCase() === region.toLowerCase())
+            : [],
+        controllers: allData.controllers
+            ? allData.controllers.filter(device => device.location?.toLowerCase() === region.toLowerCase())
+            : [],
+        servers: allData.servers
+            ? allData.servers.filter(device => device.location?.toLowerCase() === region.toLowerCase())
+            : []
+    };
+
+    console.log("Devices with History:", JSON.stringify(devices, null, 2));
+
+    if (!devices.cameras.length && !devices.archivers.length && !devices.controllers.length && !devices.servers.length) {
+        console.log(`No devices found for region: ${region}`);
+        return null;
+    }
+
+    return {
+        daily: calculateTrend(devices, "daily"),
+        weekly: calculateTrend(devices, "weekly"),
+        monthly: calculateTrend(devices, "monthly"),
+    };
+};
+
+const calculateTrend = (devices, period) => {
+    return {
+        uptime: Math.floor(Math.random() * 100),  // Replace with actual calculation logic
+        downtime: Math.floor(Math.random() * 50),
+        downtimeDuration: Math.floor(Math.random() * 10),
+    };
+};
+
+module.exports = { fetchRegionTrendData };
 
 
 
