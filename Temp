@@ -1,4 +1,43 @@
+const computeDeviceStats = (history) => {
+    if (!Array.isArray(history) || history.length === 0) {
+        console.log("No history data found for device");
+        return { uptime: 0, downtime: 0, downtimeDuration: 0 };
+    }
 
+    let uptime = 0, downtime = 0, downtimeDuration = 0;
+    let lastStatus = null;
+    let lastTimestamp = null;
+
+    history.forEach((log, index) => {
+        let currentTime = new Date(log.timestamp).getTime();
+
+        // Debugging: Log the log details
+        console.log(`Log ${index}: Status: ${log.status}, Timestamp: ${log.timestamp}`);
+
+        // Skip the first entry since there's no previous log to compare
+        if (index > 0 && lastTimestamp) {
+            let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert ms to minutes
+
+            // Debugging: Log time difference
+            console.log(`Time Difference (in minutes) between logs: ${timeDiff}`);
+
+            if (lastStatus === "online") {
+                uptime += timeDiff; // Add uptime duration
+            } else if (lastStatus === "offline") {
+                downtime += timeDiff; // Add downtime duration
+                downtimeDuration++;
+            }
+        }
+
+        lastStatus = log.status;
+        lastTimestamp = currentTime;
+    });
+
+    // Debugging: Log final uptime and downtime
+    console.log(`Final Uptime: ${uptime} minutes, Downtime: ${downtime} minutes, Downtime Duration: ${downtimeDuration}`);
+
+    return { uptime: Math.round(uptime), downtime: Math.round(downtime), downtimeDuration };
+};
 
 
 
