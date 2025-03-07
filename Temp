@@ -1,3 +1,30 @@
+
+Terminal Output- 
+Devices with History: [
+  {
+    "cameraname": "PUNE Green Zone to yellow zone passage - 10.199.10.20 (FLIR CM-3102-11-I T71552107) - 350",
+    "ip_address": "10.199.10.20",
+    "location": "APAC",
+    "history": []
+  },
+  {
+    "cameraname": "PUNE IN-PNQ-PF - Green Zone Exit Passage 10.199.10.139",
+    "ip_address": "10.199.10.139",
+    "location": "APAC",
+    "history": []
+  },
+
+
+http://localhost/api/regions/trend/details/apac
+responce-
+http://localhost/api/regions/trend/details/apac
+
+
+
+
+
+
+
 app.get("/api/regions/trend/details/:region", async (req, res) => {
     try {
         const region = req.params.region.toLowerCase();
