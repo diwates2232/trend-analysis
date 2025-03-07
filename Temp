@@ -1,3 +1,112 @@
+const fetchRegionTrendData = async (region) => {
+    console.log("Fetching trend data for region:", region);
+
+    if (!allData || !allData.cameras) {
+        console.error("Error: allData is undefined or missing cameras property");
+        return null; // Prevent further errors
+    }
+
+    const devices = {
+        cameras: allData.cameras
+            .filter(device => device.location?.toLowerCase() === region.toLowerCase())
+            .map(device => ({
+                ...device,
+                history: Array.isArray(device.history) ? device.history : [] // Ensure history is an array
+            })),
+        archivers: allData.archivers
+            ? allData.archivers.filter(device => device.location?.toLowerCase() === region.toLowerCase())
+            : [],
+        controllers: allData.controllers
+            ? allData.controllers.filter(device => device.location?.toLowerCase() === region.toLowerCase())
+            : [],
+        servers: allData.servers
+            ? allData.servers.filter(device => device.location?.toLowerCase() === region.toLowerCase())
+            : []
+    };
+
+    console.log("Devices with History:", JSON.stringify(devices, null, 2));
+
+    if (!devices.cameras.length && !devices.archivers.length && !devices.controllers.length && !devices.servers.length) {
+        console.log(`No devices found for region: ${region}`);
+        return null;
+    }
+
+    // For each device, compute trend and status
+    const deviceTrends = calculateDeviceTrends(devices);
+
+    return {
+        daily: deviceTrends.daily,
+        weekly: deviceTrends.weekly,
+        monthly: deviceTrends.monthly,
+        devices: devices // Add detailed device information
+    };
+};
+
+// Modify calculateTrend to include device-specific details
+const calculateDeviceTrends = (devices) => {
+    const trends = {
+        daily: [],
+        weekly: [],
+        monthly: [],
+    };
+
+    // Process each device type
+    for (const [deviceType, deviceList] of Object.entries(devices)) {
+        deviceList.forEach((device) => {
+            const { uptime, downtime, downtimeDuration } = computeDeviceStats(device.history);
+            trends.daily.push({
+                deviceName: device.device_name,
+                uptime,
+                downtime,
+                downtimeDuration
+            });
+        });
+    }
+
+    return trends;
+};
+
+
+
+
+// Controller for fetch trend data
+const getRegionTrendDetails = async (req, res) => {
+    try {
+        const { region } = req.params;
+        console.log("Requested Region:", region);
+
+        if (!region) {
+            return res.status(400).json({ error: "Region parameter is missing" });
+        }
+
+        const trendData = await fetchRegionTrendData(region);
+        console.log("Trend Data Response:", JSON.stringify(trendData, null, 2));
+
+        if (!trendData || typeof trendData !== "object") {
+            return res.status(500).json({ error: "Failed to fetch trend data" });
+        }
+
+        res.json({
+            region,
+            trends: trendData,
+            devices: trendData.devices,  // Include detailed device information in the response
+        });
+    } catch (error) {
+        console.error("Error in getRegionTrendDetails:", error);
+        res.status(500).json({ error: "Internal server error", details: error.message });
+    }
+};
+
+
+
+
+
+
+
+
+
+
+
 http://localhost/api/regions/trend/details/apac
 
 {
