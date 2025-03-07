@@ -3,651 +3,137 @@
   "trends": {
     "region": "apac",
     "trends": {
-      "daily": [
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        }
-      ],
-      "weekly": [
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        }
-      ],
-      "monthly": [
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        },
-        {
-          "uptime": 0,
-          "downtime": 0,
-          "downtimeDuration": 0
-        }
-      ]
+      "daily": [],
+      "weekly": [],
+      "monthly": []
     },
     "devices": {
       "cameras": [
         {
-          "status": "Online",
           "ip_address": "10.199.10.20",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.199.10.139",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.199.10.142",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.199.10.141",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.199.10.10",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.199.12.15",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.199.10.11",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.199.10.14",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.199.10.13",
           "location": "APAC"
         }
       ],
       "archivers": [
         {
-          "status": "Online",
           "ip_address": "10.193.132.8",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.194.2.190",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.199.8.10",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.199.8.12",
           "location": "APAC"
         },
         {
-          "status": "Offline",
           "ip_address": "10.194.122.136",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.192.5.9",
           "location": "APAC"
         },
         {
-          "status": "Offline",
           "ip_address": "172.21.47.31",
           "location": "APAC"
         }
       ],
       "controllers": [
         {
-          "status": "Online",
           "ip_address": "172.21.47.19",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.199.13.10",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.199.8.20",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.199.8.21",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.199.10.15",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.199.8.30",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.199.10.150",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.199.16.40",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.199.16.41",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.192.2.11",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.194.122.200",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.192.4.11",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.193.133.11",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.193.132.140",
           "location": "APAC"
         },
         {
-          "status": "Online",
           "ip_address": "10.194.2.13",
           "location": "APAC"
         }
@@ -659,174 +145,5 @@
         }
       ]
     }
-  },
-  "devices": {
-    "cameras": [
-      {
-        "status": "Online",
-        "ip_address": "10.199.10.20",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.199.10.139",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.199.10.142",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.199.10.141",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.199.10.10",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.199.12.15",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.199.10.11",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.199.10.14",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.199.10.13",
-        "location": "APAC"
-      }
-    ],
-    "archivers": [
-      {
-        "status": "Online",
-        "ip_address": "10.193.132.8",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.194.2.190",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.199.8.10",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.199.8.12",
-        "location": "APAC"
-      },
-      {
-        "status": "Offline",
-        "ip_address": "10.194.122.136",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.192.5.9",
-        "location": "APAC"
-      },
-      {
-        "status": "Offline",
-        "ip_address": "172.21.47.31",
-        "location": "APAC"
-      }
-    ],
-    "controllers": [
-      {
-        "status": "Online",
-        "ip_address": "172.21.47.19",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.199.13.10",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.199.8.20",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.199.8.21",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.199.10.15",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.199.8.30",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.199.10.150",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.199.16.40",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.199.16.41",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.192.2.11",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.194.122.200",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.192.4.11",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.193.133.11",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.193.132.140",
-        "location": "APAC"
-      },
-      {
-        "status": "Online",
-        "ip_address": "10.194.2.13",
-        "location": "APAC"
-      }
-    ],
-    "servers": [
-      {
-        "ip_address": "10.199.22.61",
-        "location": "APAC"
-      }
-    ]
   }
 }
