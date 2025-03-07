@@ -1,1 +1,119 @@
+// Function to fetch trend data for a region
+const fetchRegionTrendData = async (region) => {
+    console.log("Fetching trend data for region:", region);
 
+    if (!allData || !allData.cameras) {
+        console.error("Error: allData is undefined or missing cameras property");
+        return null;
+    }
+
+    // Filter devices by region
+    const devices = {
+        cameras: allData.cameras?.filter(device => device.location?.toLowerCase() === region.toLowerCase()) || [],
+        archivers: allData.archivers?.filter(device => device.location?.toLowerCase() === region.toLowerCase()) || [],
+        controllers: allData.controllers?.filter(device => device.location?.toLowerCase() === region.toLowerCase()) || [],
+        servers: allData.servers?.filter(device => device.location?.toLowerCase() === region.toLowerCase()) || []
+    };
+
+    console.log("Devices:", JSON.stringify(devices, null, 2));
+
+    if (!devices.cameras.length && !devices.archivers.length && !devices.controllers.length && !devices.servers.length) {
+        console.log(`No devices found for region: ${region}`);
+        return null;
+    }
+
+    // Compute trends
+    const trends = calculateDeviceTrends(devices);
+
+    // Construct the final response
+    const response = {
+        region: region,
+        trends: trends,  // Correct placement of trends object
+        devices: {
+            cameras: devices.cameras.map(device => ({
+                device_name: device.device_name,
+                status: device.status,
+                ip_address: device.ip_address,
+                location: device.location
+            })),
+            archivers: devices.archivers.map(device => ({
+                device_name: device.device_name,
+                status: device.status,
+                ip_address: device.ip_address,
+                location: device.location
+            })),
+            controllers: devices.controllers.map(device => ({
+                device_name: device.device_name,
+                status: device.status,
+                ip_address: device.ip_address,
+                location: device.location
+            })),
+            servers: devices.servers.map(device => ({
+                device_name: device.device_name,
+                status: device.status,
+                ip_address: device.ip_address,
+                location: device.location
+            }))
+        }
+    };
+
+    return response;
+};
+
+// Function to calculate device trends
+const calculateDeviceTrends = (devices) => {
+    const trends = {
+        daily: calculateTrend(devices, "daily"),
+        weekly: calculateTrend(devices, "weekly"),
+        monthly: calculateTrend(devices, "monthly")
+    };
+    return trends;
+};
+
+// Function to calculate trend details for a given period
+const calculateTrend = (devices, period) => {
+    const allDevices = [...devices.cameras, ...devices.archivers, ...devices.controllers, ...devices.servers];
+
+    return allDevices.map(device => {
+        const { uptime, downtime, downtimeDuration } = computeDeviceStats(device.history);
+        return {
+            device_name: device.device_name || "Unknown",
+            ip_address: device.ip_address,
+            uptime,
+            downtime,
+            downtimeDuration
+        };
+    });
+};
+
+// Compute uptime and downtime for a device
+const computeDeviceStats = (history) => {
+    if (!Array.isArray(history) || history.length === 0) {
+        console.log("No history data found for device");
+        return { uptime: 0, downtime: 0, downtimeDuration: 0 };
+    }
+
+    let uptime = 0, downtime = 0, downtimeDuration = 0;
+    let lastStatus = null;
+    let lastTimestamp = null;
+
+    history.forEach((log, index) => {
+        let currentTime = new Date(log.timestamp).getTime();
+
+        if (index > 0 && lastTimestamp) {
+            let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert ms to minutes
+
+            if (lastStatus === "online") {
+                uptime += timeDiff;
+            } else if (lastStatus === "offline") {
+                downtime += timeDiff;
+                downtimeDuration++;
+            }
+        }
+
+        lastStatus = log.status;
+        lastTimestamp = currentTime;
+    });
+
+    return { uptime: Math.round(uptime), downtime: Math.round(downtime), downtimeDuration };
+};
