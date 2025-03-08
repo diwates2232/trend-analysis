@@ -1,3 +1,44 @@
+const computeDeviceStats = (history) => {
+    if (!Array.isArray(history) || history.length === 0) {
+        console.log("No history data found for device");
+        return { uptime: 0, downtime: 0, downtimeDuration: 0 };
+    }
+
+    let uptime = 0, downtime = 0, downtimeDuration = 0;
+    let lastStatus = null;
+    let lastTimestamp = null;
+
+    history.forEach((log, index) => {
+        let currentTime = new Date(log.timestamp).getTime();
+
+        if (index > 0 && lastTimestamp) {
+            let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert ms to minutes
+
+            if (lastStatus === "online") {
+                uptime += timeDiff;
+            } else if (lastStatus === "offline") {
+                downtime += timeDiff;
+                downtimeDuration++;
+            }
+        }
+
+        lastStatus = log.status;
+        lastTimestamp = currentTime;
+    });
+
+    return { uptime: Math.round(uptime), downtime: Math.round(downtime), downtimeDuration };
+};
+
+
+
+
+
+
+
+
+
+
+
 Api - http://localhost/api/regions/trend/details/emea
 
 responce -
