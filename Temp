@@ -555,3 +555,837 @@ function previousDevice() {
 document.getElementById("piePeriod").addEventListener("change", updatePieChartForCurrentDevice);
 
 
+
+
+
+API- http://localhost/api/regions/trend/details/apac
+
+
+responce-
+
+{
+  "region": "apac",
+  "trends": {
+    "region": "apac",
+    "trends": {
+      "daily": [
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.20",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.139",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.142",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.141",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.10",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.12.15",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.11",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.14",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.13",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.193.132.8",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.194.2.190",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.8.10",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.8.12",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.194.122.136",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.192.5.9",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "172.21.47.31",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "172.21.47.19",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.13.10",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.8.20",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.8.21",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.15",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.8.30",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.150",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.16.40",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.16.41",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.192.2.11",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.194.122.200",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.192.4.11",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.193.133.11",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.193.132.140",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.194.2.13",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.22.61",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        }
+      ],
+      "weekly": [
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.20",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.139",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.142",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.141",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.10",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.12.15",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.11",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.14",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.13",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.193.132.8",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.194.2.190",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.8.10",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.8.12",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.194.122.136",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.192.5.9",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "172.21.47.31",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "172.21.47.19",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.13.10",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.8.20",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.8.21",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.15",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.8.30",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.150",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.16.40",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.16.41",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.192.2.11",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.194.122.200",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.192.4.11",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.193.133.11",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.193.132.140",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.194.2.13",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.22.61",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        }
+      ],
+      "monthly": [
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.20",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.139",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.142",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.141",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.10",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.12.15",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.11",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.14",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.13",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.193.132.8",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.194.2.190",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.8.10",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.8.12",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.194.122.136",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.192.5.9",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "172.21.47.31",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "172.21.47.19",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.13.10",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.8.20",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.8.21",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.15",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.8.30",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.150",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.16.40",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.16.41",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.192.2.11",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.194.122.200",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.192.4.11",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.193.133.11",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.193.132.140",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.194.2.13",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.199.22.61",
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0
+        }
+      ]
+    },
+    "devices": {
+      "cameras": [
+        {
+          "ip_address": "10.199.10.20",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.199.10.139",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.199.10.142",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.199.10.141",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.199.10.10",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.199.12.15",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.199.10.11",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.199.10.14",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.199.10.13",
+          "location": "APAC"
+        }
+      ],
+      "archivers": [
+        {
+          "ip_address": "10.193.132.8",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.194.2.190",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.199.8.10",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.199.8.12",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.194.122.136",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.192.5.9",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "172.21.47.31",
+          "location": "APAC"
+        }
+      ],
+      "controllers": [
+        {
+          "ip_address": "172.21.47.19",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.199.13.10",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.199.8.20",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.199.8.21",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.199.10.15",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.199.8.30",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.199.10.150",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.199.16.40",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.199.16.41",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.192.2.11",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.194.122.200",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.192.4.11",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.193.133.11",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.193.132.140",
+          "location": "APAC"
+        },
+        {
+          "ip_address": "10.194.2.13",
+          "location": "APAC"
+        }
+      ],
+      "servers": [
+        {
+          "ip_address": "10.199.22.61",
+          "location": "APAC"
+        }
+      ]
+    }
+  }
+}
+
+
