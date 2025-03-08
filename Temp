@@ -1,3 +1,36 @@
+const calculateTrend = (devices, period) => {
+    const allDevices = [...devices.cameras, ...devices.archivers, ...devices.controllers, ...devices.servers];
+
+    return allDevices.map(device => {
+        // Ensure history is defined before calculating uptime/downtime
+        if (!device.history || device.history.length === 0) {
+            console.log(`No history for device ${device.device_name}`);
+            return {
+                device_name: device.device_name || "Unknown",
+                ip_address: device.ip_address,
+                uptime: 0,
+                downtime: 0,
+                downtimeDuration: 0
+            };
+        }
+
+        const { uptime, downtime, downtimeDuration } = computeDeviceStats(device.history);
+        return {
+            device_name: device.device_name || "Unknown",
+            ip_address: device.ip_address,
+            uptime,
+            downtime,
+            downtimeDuration
+        };
+    });
+};
+
+
+
+
+
+
+
 const computeDeviceStats = (history) => {
     if (!Array.isArray(history) || history.length === 0) {
         console.log("No history data found for device");
