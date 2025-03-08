@@ -1,3 +1,42 @@
+const pingDevices = async () => {
+   for (const ip of devices) {
+       try {
+           const result = await ping.promise.probe(ip);
+           const newStatus = result.alive ? "Online" : "Offline";
+
+           if (deviceStatus[ip] !== newStatus) {
+               logDeviceChange(ip, newStatus);
+               // Update device's history with status and timestamp
+               updateDeviceHistory(ip, newStatus);
+           }
+           deviceStatus[ip] = newStatus;
+       } catch (error) {
+           console.error(`Error pinging ${ip}:`, error);
+           deviceStatus[ip] = "Offline";
+       }
+   }
+   console.log("Updated device status:", deviceStatus);
+};
+
+const updateDeviceHistory = (ip, newStatus) => {
+   const device = findDeviceByIp(ip);
+   if (device) {
+       const timestamp = new Date().toISOString();
+       device.history.push({ status: newStatus, timestamp });
+   }
+};
+
+const findDeviceByIp = (ip) => {
+   // Find the device by IP address (cameras, archivers, etc.)
+   return [...allData.cameras, ...allData.archivers, ...allData.controllers, ...allData.servers]
+       .find(device => device.ip_address === ip);
+};
+
+
+
+
+
+
 const calculateTrend = (devices, period) => {
     const allDevices = [...devices.cameras, ...devices.archivers, ...devices.controllers, ...devices.servers];
 
