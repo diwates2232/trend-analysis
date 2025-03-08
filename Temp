@@ -1,3 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trend Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h3>Device Trend Analysis</h3>
+
+        <!-- Region Selector -->
+        <div class="region-selector">
+            <button onclick="fetchTrendData('apac', getDeviceType())">APAC</button>
+            <button onclick="fetchTrendData('emea', getDeviceType())">EMEA</button>
+            <button onclick="fetchTrendData('laca', getDeviceType())">LACA</button>
+            <button onclick="fetchTrendData('namer', getDeviceType())">NAMER</button>
+        </div>
+
+        <!-- Device Type Dropdown -->
+        <div class="device-type">
+            <label for="deviceType">Select Device Type:</label>
+            <select id="deviceType" onchange="fetchTrendData(getRegion(), this.value)">
+                <option value="cameras">Cameras</option>
+                <option value="archivers">Archivers</option>
+                <option value="servers">Servers</option>
+                <option value="controllers">Controllers</option>
+                <option value="Unknown">Unknown</option>
+            </select>
+        </div>
+
+        <!-- Pie Chart Modal (hidden by default) -->
+        <div id="pieChartModal" style="display: none;">
+            <div class="modal-content">
+                <span class="close-btn" onclick="closePieChartModal()">X</span>
+                <h2>Device Details</h2>
+                <p id="deviceInfo"></p>
+                <p id="deviceAlert"></p>
+                <label for="piePeriod">Select Period:</label>
+                <select id="piePeriod" onchange="updatePieChartForCurrentDevice()">
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                </select>
+                <canvas id="pieChartCanvas"></canvas>
+                <button onclick="previousDevice()">Previous Device</button>
+                <button onclick="nextDevice()">Next Device</button>
+            </div>
+        </div>
+
+        <!-- Search Device -->
+        <input type="text" id="searchBox" placeholder="Search Device" oninput="searchDevice()">
+        <select id="deviceDropdown" onchange="updatePieChartForCurrentDevice()"></select>
+
+        <!-- Back to Dashboard Button -->
+        <button onclick="window.location.href='index.html'">Back to Dashboard</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="chart-container">
+            <canvas id="trendChart"></canvas>
+        </div>
+    </div>
+
+    <script src="trend.js"></script> <!-- JavaScript to fetch and display trends -->
+
+    <!-- Footer -->
+    <footer class="footer">
+        <img src="images/FooterLogo.png" alt="Company Logo" class="footer-logo">
+        <p>&copy;2025 VisionWatch | Powered by <strong>Western Union Services India Pvt Ltd.</strong></p>
+        <p>Contact: 
+            <a href="mailto:gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com">gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com</a> | 
+            <a href="tel:+91 20 67632394">+91 2067632394</a>
+        </p>
+    </footer>
+</body>
+</html>
+
+
+
+
+
+let chartInstance = null;       // For the trend bar chart
+let pieChartInstance = null;    // For the pie chart (device details)
+let currentFilteredDevices = [];  // Stores filtered devices (from trend data)
+let currentDeviceIndex = 0;    // Index of the device being shown in the pie modal
+let devicesData = []; // Store all devices globally
+let pieChart; // Store the Pie Chart instance
+
+// ---------------- Trend Bar Chart Functions ----------------
+
+// On page load, default to APAC region and "cameras"
+document.addEventListener("DOMContentLoaded", function () {
+    fetchTrendData('apac', 'cameras');
+});
+
+// Fetch and display the trend bar chart for the selected region and device type
+function fetchTrendData(region, deviceType = 'cameras') {
+    console.log(`Fetching data for region: ${region}, device type: ${deviceType}`);
+    fetch(`http://localhost:80/api/regions/trend/details/${region}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log("API Response:", data);
+            if (data && data.devices && data.devices.length > 0) {
+                const filteredDevices = filterDevicesByType(data.devices, deviceType);
+                console.log("Filtered Devices:", filteredDevices);
+                currentFilteredDevices = filteredDevices; // Save globally for pie chart details
+                displayTrendChart(filteredDevices);
+                updateDeviceDropdown(filteredDevices); // Update the device selection dropdown
+            } else {
+                console.error("No devices data available.");
+                alert("No devices found for the selected region and device type.");
+            }
+        })
+        .catch(error => {
+            console.error("Error fetching trend data:", error);
+            alert("Error fetching trend data");
+        });
+}
+
+// Filter devices based on the selected device type
+function filterDevicesByType(devices, deviceType) {
+    return devices.filter(device => device.type.toLowerCase().trim() === deviceType.toLowerCase());
+}
+
+// Create or update the trend bar chart using Chart.js
+function displayTrendChart(devices) {
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
+    const labels = devices.map(device => device.ip);
+    const uptimeData = devices.map(device => convertToMinutes(device.daily.uptime));
+    const downtimeData = devices.map(device => convertToMinutes(device.daily.downtimeDuration));
+    const ctx = document.getElementById("trendChart").getContext("2d");
+
+    // Create gradients for better visual effect
+    let gradientUptime = ctx.createLinearGradient(0, 0, 0, 400);
+    gradientUptime.addColorStop(0, "rgb(75, 192, 89)");
+    gradientUptime.addColorStop(1, "rgba(59, 190, 83, 0.95)");
+
+    let gradientDowntime = ctx.createLinearGradient(0, 0, 0, 400);
+    gradientDowntime.addColorStop(0, "rgb(244, 29, 29)");
+    gradientDowntime.addColorStop(1, "rgba(235, 20, 20, 0.9)");
+
+    chartInstance = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: "Uptime (minutes)",
+                    data: uptimeData,
+                    backgroundColor: gradientUptime,
+                    borderColor: "rgb(23, 179, 33)",
+                    borderWidth: 2,
+                    hoverBackgroundColor: "rgba(63, 193, 100, 0.85)"
+                },
+                {
+                    label: "Downtime (minutes)",
+                    data: downtimeData,
+                    backgroundColor: gradientDowntime,
+                    borderColor: "rgb(226, 39, 43)",
+                    borderWidth: 2,
+                    hoverBackgroundColor: "rgba(219, 29, 29, 0.9)"
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 1500,
+                easing: "easeInOutQuart"
+            },
+            plugins: {
+                legend: {
+                    position: "top",
+                    labels: {
+                        font: { size: 14 }
+                    }
+                },
+                tooltip: {
+                    enabled: true,
+                    backgroundColor: "rgba(233, 40, 40, 0.74)",
+                    titleFont: { size: 14 },
+                    bodyFont: { size: 12 },
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ": " + context.parsed.y + " mins";
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { font: { size: 12 } },
+                    grid: { display: false },
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.8
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: { font: { size: 12 } },
+                    grid: { color: "rgba(200, 200, 200, 0.2)" }
+                }
+            }
+        }
+    });
+}
+
+// Utility: Convert "Xd Xh Xm Xs" format to minutes
+function convertToMinutes(timeString) {
+    const parts = timeString.split(" ");
+    let totalMinutes = 0;
+    parts.forEach(part => {
+        if (part.includes("d")) totalMinutes += parseInt(part) * 1440;
+        if (part.includes("h")) totalMinutes += parseInt(part) * 60;
+        if (part.includes("m")) totalMinutes += parseInt(part);
+        if (part.includes("s")) totalMinutes += parseInt(part) / 60; // Convert seconds to minutes
+    });
+    return totalMinutes;
+}
+
+// Update the device dropdown options based on the filtered devices
+function updateDeviceDropdown(devices) {
+    const dropdown = document.getElementById('deviceDropdown');
+    dropdown.innerHTML = '';  // Clear previous options
+    devices.forEach((device, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = device.ip;
+        dropdown.appendChild(option);
+    });
+}
+
+// Search device by IP
+function searchDevice() {
+    const searchQuery = document.getElementById('searchBox').value.toLowerCase();
+    const filteredDevices = currentFilteredDevices.filter(device => device.ip.toLowerCase().includes(searchQuery));
+    updateDeviceDropdown(filteredDevices);
+}
+
+// Fetch device details and show in a pie chart modal
+function updatePieChartForCurrentDevice() {
+    const selectedDeviceIndex = document.getElementById('deviceDropdown').value;
+    const selectedDevice = currentFilteredDevices[selectedDeviceIndex];
+    
+    if (selectedDevice) {
+        // Update modal content
+        document.getElementById('deviceInfo').textContent = `IP: ${selectedDevice.ip}, Type: ${selectedDevice.type}`;
+        document.getElementById('deviceAlert').textContent = `Alert Status: ${selectedDevice.alertStatus}`;
+        
+        // Fetch and display the pie chart
+        createPieChart(selectedDevice);
+        document.getElementById('pieChartModal').style.display = 'block';
+    }
+}
+
+// Create or update the pie chart with device uptime and downtime data
+function createPieChart(device) {
+    if (pieChartInstance) {
+        pieChartInstance.destroy();
+    }
+
+    const ctx = document.getElementById('pieChartCanvas').getContext('2d');
+    const uptime = convertToMinutes(device.daily.uptime);
+    const downtime = convertToMinutes(device.daily.downtimeDuration);
+
+    pieChartInstance = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Uptime', 'Downtime'],
+            datasets: [{
+                label: 'Device Uptime vs Downtime',
+                data: [uptime, downtime],
+                backgroundColor: ['rgb(75, 192, 89)', 'rgb(244, 29, 29)'],
+                hoverOffset: 4
+            }]
+        }
+    });
+}
+
+// Close the pie chart modal
+function closePieChartModal() {
+    document.getElementById('pieChartModal').style.display = 'none';
+}
+
+// Navigate to the next device in the list
+function nextDevice() {
+    currentDeviceIndex = (currentDeviceIndex + 1) % currentFilteredDevices.length;
+    updatePieChartForCurrentDevice();
+}
+
+// Navigate to the previous device in the list
+function previousDevice() {
+    currentDeviceIndex = (currentDeviceIndex - 1 + currentFilteredDevices.length) % currentFilteredDevices.length;
+    updatePieChartForCurrentDevice();
+}
+
+
+
+
+
+
 trend.html
 
 <!DOCTYPE html>
