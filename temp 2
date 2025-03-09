@@ -1,20 +1,12 @@
-http://localhost/api/regions/trend/details/apac
+http://localhost/api/devices/history/10.199.10.142
 
-Requested Region: apac
-Trend Data Response: {
-  "trends": {
-    "daily": [
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.20",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.139",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
+
+{
+  "ip_address": "10.199.10.142",
+  "history": [
+    {
+      "status": "Online",
+      "timestamp": "2025-03-05T10:53:16.871Z"
+    }
+  ]
+}
