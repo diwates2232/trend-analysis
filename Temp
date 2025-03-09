@@ -1,3 +1,108 @@
+const fetchRegionTrendData = async (region) => {
+    console.log("Fetching trend data for region:", region);
+
+    if (!allData || !allData.cameras || !allData.archivers || !allData.controllers || !allData.servers) {
+        console.error("Error: allData is undefined or missing device properties");
+        return null;
+    }
+
+    const filterByRegion = (devices) => 
+        devices ? devices.filter(device => device.location && device.location.toLowerCase() === region.toLowerCase()) : [];
+
+    // Filter devices safely
+    const devices = {
+        cameras: filterByRegion(allData.cameras),
+        archivers: filterByRegion(allData.archivers),
+        controllers: filterByRegion(allData.controllers),
+        servers: filterByRegion(allData.servers)
+    };
+
+    console.log("Filtered Devices:", JSON.stringify(devices, null, 2));
+
+    if (!devices.cameras.length && !devices.archivers.length && !devices.controllers.length && !devices.servers.length) {
+        console.log(`No devices found for region: ${region}`);
+        return null;
+    }
+
+    const trends = calculateDeviceTrends(devices);
+    return { region, trends };
+};
+
+// Function to calculate device trends
+const calculateDeviceTrends = (devices) => {
+    return {
+        daily: calculateTrend(devices, "daily"),
+        weekly: calculateTrend(devices, "weekly"),
+        monthly: calculateTrend(devices, "monthly")
+    };
+};
+
+// Function to calculate trend details for a given period
+const calculateTrend = (devices, period) => {
+    const allDevices = [...devices.cameras, ...devices.archivers, ...devices.controllers, ...devices.servers];
+
+    return allDevices.map(device => {
+        // Ensure history is defined before calculating uptime/downtime
+        if (!device.history || device.history.length === 0) {
+            console.log(`No history for device ${device.device_name}`);
+            return {
+                device_name: device.device_name || "Unknown",
+                ip_address: device.ip_address,
+                uptime: 0,
+                downtime: 0,
+                downtimeDuration: 0
+            };
+        }
+
+        const { uptime, downtime, downtimeDuration } = computeDeviceStats(device.history);
+        return {
+            device_name: device.device_name || "Unknown",
+            ip_address: device.ip_address,
+            uptime,
+            downtime,
+            downtimeDuration
+        };
+    });
+};
+
+// Compute uptime and downtime for a device
+const computeDeviceStats = (history) => {
+    if (!Array.isArray(history) || history.length === 0) {
+        console.log("No history data found for device");
+        return { uptime: 0, downtime: 0, downtimeDuration: 0 };
+    }
+
+    let uptime = 0, downtime = 0, downtimeDuration = 0;
+    let lastStatus = history[0].status; // Start with the first entry
+    let lastTimestamp = new Date(history[0].timestamp).getTime();
+
+    for (let i = 1; i < history.length; i++) {
+        let currentTime = new Date(history[i].timestamp).getTime();
+        let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert ms to minutes
+
+        if (lastStatus === "online") {
+            uptime += timeDiff;
+        } else if (lastStatus === "offline") {
+            downtime += timeDiff;
+            downtimeDuration += timeDiff; // Track total downtime duration in minutes
+        }
+
+        lastStatus = history[i].status;
+        lastTimestamp = currentTime;
+    }
+
+    return { uptime: Math.round(uptime), downtime: Math.round(downtime), downtimeDuration: Math.round(downtimeDuration) };
+};
+
+
+
+
+
+
+
+
+
+
 
 const fetchRegionTrendData = async (region) => {
     console.log("Fetching trend data for region:", region);
