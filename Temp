@@ -1,3 +1,94 @@
+// deviceHistory.js
+const { DateTime } = require('luxon');  // Ensure luxon is installed using npm
+
+// Assuming allData is an object that contains your device data (like cameras, servers, etc.)
+const allData = require('./yourDeviceDataModule');  // Replace with your actual data source
+
+const clearDeviceHistory = () => {
+    allData.cameras.forEach(device => device.history = []);
+    allData.archivers.forEach(device => device.history = []);
+    allData.controllers.forEach(device => device.history = []);
+    allData.servers.forEach(device => device.history = []);
+};
+
+const addDeviceHistory = (device, status) => {
+    const istTime = DateTime.now().setZone('Asia/Kolkata').toISO();
+
+    // Remove entries older than 1 month
+    device.history = device.history.filter(entry => {
+        const entryTime = DateTime.fromISO(entry.timestamp);
+        return entryTime > DateTime.now().minus({ months: 1 });
+    });
+
+    // Add new history entry
+    device.history.push({
+        status: status,
+        timestamp: istTime
+    });
+};
+
+module.exports = { clearDeviceHistory, addDeviceHistory };
+
+
+
+
+const { clearDeviceHistory, addDeviceHistory } = require('./deviceHistory');
+
+// Example of clearing device history and adding new history record for a device
+clearDeviceHistory();
+
+const sampleDevice = allData.cameras.find(device => device.ip_address === '10.199.10.142');
+if (sampleDevice) {
+    addDeviceHistory(sampleDevice, 'Online');
+}
+
+
+
+const express = require('express');
+const { clearDeviceHistory, addDeviceHistory } = require('./deviceHistory');
+const router = express.Router();
+
+router.post('/updateDeviceHistory', (req, res) => {
+    const { ip_address, status } = req.body;  // Assuming you're sending IP address and status from client
+
+    const device = allData.cameras.find(d => d.ip_address === ip_address); // Find the device
+    if (device) {
+        addDeviceHistory(device, status);  // Add the status history
+        res.status(200).send('Device history updated');
+    } else {
+        res.status(404).send('Device not found');
+    }
+});
+
+module.exports = router;
+
+
+
+const express = require('express');
+const app = express();
+const deviceRoutes = require('./deviceRoutes');
+
+app.use(express.json());
+app.use('/api/devices', deviceRoutes);
+
+app.listen(3000, () => {
+    console.log('Server is running on port 3000');
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 http://localhost/api/devices/history/10.199.10.142
 
 {
