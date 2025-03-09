@@ -104,3 +104,50 @@ const computeDeviceStats = (history) => {
 
     return { uptime: Math.round(uptime), downtime: Math.round(downtime), downtimeDuration };
 };
+
+
+
+
+
+check Above code and help me to get Correct API responce
+
+
+http://localhost/api/regions/trend/details/apac
+
+reesponce-
+{
+  "region": "apac",
+  "trends": {
+    "daily": [
+      {
+        "device_name": "Unknown",
+        "ip_address": "10.199.10.20",
+        "uptime": [],
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "device_name": "Unknown",
+        "ip_address": "10.199.10.139",
+        "uptime": [],
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "device_name": "Unknown",
+        "ip_address": "10.199.10.142",
+        "uptime": [],
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+
+
+device uptime ,downtime histort is store in deviceLogs.json
+in this api device uptime is not increasing when device status is online
+and device downtime is not increasing when device status is offline .
+
+kindly check code and correct it as per my request
+
+
+
+
