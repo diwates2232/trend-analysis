@@ -1,315 +1,111 @@
-const computeDeviceStats = (history) => {
-    if (!Array.isArray(history) || history.length === 0) {
-        console.log("No history data found for device");
-        return { uptime: 0, downtime: 0, downtimeDuration: 0 };
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const fs = require("fs");
+const ping = require("ping");
+const regionRoutes = require("./routes/regionRoutes");
+const { fetchAllIpAddress } = require("./services/excelService");
+
+const app = express();
+const PORT = process.env.PORT || 80;
+
+
+// Middleware
+app.use(
+  cors({
+    origin: "http://127.0.0.1:5500", 
+    methods: "GET,POST,PUT,DELETE",
+    allowedHeaders: "Content-Type,Authorization",
+  })
+);
+app.use(bodyParser.json());
+
+// Routes
+app.use("/api/regions", regionRoutes);
+
+// Device Status Tracking
+const devices = fetchAllIpAddress();
+let deviceStatus = {};
+const logFile = "./deviceLogs.json";
+
+// Load previous logs if exists
+let deviceLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile)) : {};
+
+// Function to log device status changes
+function logDeviceChange(devices,ip, status) {
+  const timestamp = new Date().toISOString();
+  
+  if (!deviceLogs[ip]) {
+    deviceLogs[ip] = [];
+  }
+
+  const lastLog = deviceLogs[ip].length ? deviceLogs[ip][deviceLogs[ip].length - 1] : null;
+  
+  if (!lastLog || lastLog.status !== status) {
+    deviceLogs[ip].push({ status, timestamp });
+    fs.writeFileSync(logFile, JSON.stringify(deviceLogs, null, 2)); 
+  }
+}
+
+// Ping all devices and log changes
+async function pingDevices() {
+  for (const ip of devices) {
+    try {
+      const result = await ping.promise.probe(ip);
+      const newStatus = result.alive ? "Online" : "Offline";
+
+      if (deviceStatus[ip] !== newStatus) {
+        logDeviceChange(ip, newStatus);
+      }
+      deviceStatus[ip] = newStatus;
+    } catch (error) {
+      console.error(`Error pinging ${ip}:`, error);
+      deviceStatus[ip] = "Offline";
     }
+  }
+  console.log("Updated device status:", deviceStatus);
+}
 
-    let uptime = 0, downtime = 0, downtimeDuration = 0;
-    let lastStatus = history[0].status;
-    let lastTimestamp = new Date(history[0].timestamp).getTime();
+// Ping devices every 30 seconds
+setInterval(pingDevices, 30000);
 
-    console.log(`Processing history for device. Initial status: ${lastStatus}, Time: ${history[0].timestamp}`);
+// API to get real-time device status
+app.get("/api/region/devices/status", (req, res) => {
+  res.json(deviceStatus);
+});
 
-    for (let i = 1; i < history.length; i++) {
-        let currentStatus = history[i].status;
-        let currentTime = new Date(history[i].timestamp).getTime();
-        let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert ms to minutes
 
-        console.log(`Log ${i}: Status: ${currentStatus}, Time: ${history[i].timestamp}, TimeDiff: ${timeDiff} minutes`);
 
-        if (timeDiff > 0) { // Only count if there's a valid difference
-            if (lastStatus === "online" && currentStatus === "online") {
-                uptime += timeDiff;
-            } else if (lastStatus === "offline" && currentStatus === "offline") {
-                downtime += timeDiff;
-                downtimeDuration += timeDiff;
-            } else if (lastStatus === "online" && currentStatus === "offline") {
-                uptime += timeDiff; // Add uptime before switching to offline
-            } else if (lastStatus === "offline" && currentStatus === "online") {
-                downtime += timeDiff; // Add downtime before switching to online
-                downtimeDuration += timeDiff;
-            }
-        }
 
-        lastStatus = currentStatus;
-        lastTimestamp = currentTime;
-    }
 
-    console.log(`Final Uptime: ${uptime} minutes, Downtime: ${downtime} minutes, Downtime Duration: ${downtimeDuration} minutes`);
 
-    return { 
-        uptime: Math.round(uptime), 
-        downtime: Math.round(downtime), 
-        downtimeDuration: Math.round(downtimeDuration) 
-    };
-};
 
+app.get("/api/regions/devices/trend/details/:region", async (req, res) => {
+  try {
+      const region = req.params.region.toLowerCase();
+      console.log("Requested Region:", region);
 
+      const trends = await fetchRegionTrendData(region);
+      return res.json({ region, trends });
+  } catch (error) {
+      console.error("Error fetching trend data:", error);
+      return res.status(500).json({ error: "Internal server error", details: error.message });
+  }
+});
 
 
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send("Something went wrong!");
+});
 
-
-
-
-
-
-
-const fetchRegionTrendData = async (region) => {
-    console.log("Fetching trend data for region:", region);
-
-    if (!allData || !allData.cameras || !allData.archivers || !allData.controllers || !allData.servers) {
-        console.error("Error: allData is undefined or missing device properties");
-        return null;
-    }
-
-    const filterByRegion = (devices) => 
-        devices ? devices.filter(device => device.location && device.location.toLowerCase() === region.toLowerCase()) : [];
-
-    // Filter devices safely
-    const devices = {
-        cameras: filterByRegion(allData.cameras),
-        archivers: filterByRegion(allData.archivers),
-        controllers: filterByRegion(allData.controllers),
-        servers: filterByRegion(allData.servers)
-    };
-
-    console.log("Filtered Devices:", JSON.stringify(devices, null, 2));
-
-    if (!devices.cameras.length && !devices.archivers.length && !devices.controllers.length && !devices.servers.length) {
-        console.log(`No devices found for region: ${region}`);
-        return null;
-    }
-
-    const trends = calculateDeviceTrends(devices);
-    return { region, trends };
-};
-
-// Function to calculate device trends
-const calculateDeviceTrends = (devices) => {
-    return {
-        daily: calculateTrend(devices, "daily"),
-        weekly: calculateTrend(devices, "weekly"),
-        monthly: calculateTrend(devices, "monthly")
-    };
-};
-
-// Function to calculate trend details for a given period
-const calculateTrend = (devices, period) => {
-    const allDevices = [...devices.cameras, ...devices.archivers, ...devices.controllers, ...devices.servers];
-
-    return allDevices.map(device => {
-        // Ensure history is defined before calculating uptime/downtime
-        if (!device.history || device.history.length === 0) {
-            console.log(`No history for device ${device.device_name}`);
-            return {
-                device_name: device.device_name || "Unknown",
-                ip_address: device.ip_address,
-                uptime: 0,
-                downtime: 0,
-                downtimeDuration: 0
-            };
-        }
-
-        const { uptime, downtime, downtimeDuration } = computeDeviceStats(device.history);
-        return {
-            device_name: device.device_name || "Unknown",
-            ip_address: device.ip_address,
-            uptime,
-            downtime,
-            downtimeDuration
-        };
-    });
-};
-
-// Compute uptime and downtime for a device
-const computeDeviceStats = (history) => {
-    if (!Array.isArray(history) || history.length === 0) {
-        console.log("No history data found for device");
-        return { uptime: 0, downtime: 0, downtimeDuration: 0 };
-    }
-
-    let uptime = 0, downtime = 0, downtimeDuration = 0;
-    let lastStatus = history[0].status; // Start with the first entry
-    let lastTimestamp = new Date(history[0].timestamp).getTime();
-
-    for (let i = 1; i < history.length; i++) {
-        let currentTime = new Date(history[i].timestamp).getTime();
-        let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert ms to minutes
-
-        if (lastStatus === "online") {
-            uptime += timeDiff;
-        } else if (lastStatus === "offline") {
-            downtime += timeDiff;
-            downtimeDuration += timeDiff; // Track total downtime duration in minutes
-        }
-
-        lastStatus = history[i].status;
-        lastTimestamp = currentTime;
-    }
-
-    return { uptime: Math.round(uptime), downtime: Math.round(downtime), downtimeDuration: Math.round(downtimeDuration) };
-};
-
-
-
-
-
-
-
-
-
-
-
-const fetchRegionTrendData = async (region) => {
-    console.log("Fetching trend data for region:", region);
-
-    if (!allData || !allData.cameras || !allData.archivers || !allData.controllers || !allData.servers) {
-        console.error("Error: allData is undefined or missing device properties");
-        return null;
-    }
-
-    const filterByRegion = (devices) => 
-        devices ? devices.filter(device => device.location && device.location.toLowerCase() === region.toLowerCase()) : [];
-
-    // Filter devices safely
-    const devices = {
-        cameras: filterByRegion(allData.cameras),
-        archivers: filterByRegion(allData.archivers),
-        controllers: filterByRegion(allData.controllers),
-        servers: filterByRegion(allData.servers)
-    };
-
-    console.log("Filtered Devices:", JSON.stringify(devices, null, 2));
-
-    if (!devices.cameras.length && !devices.archivers.length && !devices.controllers.length && !devices.servers.length) {
-        console.log(`No devices found for region: ${region}`);
-        return null;
-    }
-
-    const trends = calculateDeviceTrends(devices);
-    return trends;
-};
-
-
-
-
-
-// Function to calculate device trends
-const calculateDeviceTrends = (devices) => {
-    const trends = {
-        daily: calculateTrend(devices, "daily",),
-        weekly: calculateTrend(devices, "weekly"),
-        monthly: calculateTrend(devices, "monthly")
-    };
-    return trends;
-};
-
-// Function to calculate trend details for a given period
-const calculateTrend = (devices, period) => {
-    const allDevices = [...devices.cameras, ...devices.archivers, ...devices.controllers, ...devices.servers];
-    deviceLogs=[];
-deviceHistory=[];
-    return allDevices.map(device => {
-        // Ensure history is defined before calculating uptime/downtime
-        if (!device.history || device.history.length === 0) {
-            console.log(`No history for device ${device.device_name}`);
-            return {
-                device_name: device.device_name || "Unknown",
-                ip_address: device.ip_address,
-                uptime:deviceHistory,
-                downtime: 0,
-                downtimeDuration: 0
-            };
-        }
-
-        const { uptime, downtime, downtimeDuration } = computeDeviceStats(device.history);
-        return {
-            device_name: device.devices || "Unknown",
-            ip_address: device.ip_address,
-            uptime,
-            downtime,
-            downtimeDuration
-        };
-    });
-};
-
-// Compute uptime and downtime for a device
-
-const computeDeviceStats = (history) => {
-    if (!Array.isArray(history) || history.length === 0) {
-        console.log("No history data found for device");
-        return { uptime: 0, downtime: 0, downtimeDuration: 0 };
-    }
-
-    let uptime = 0, downtime = 0, downtimeDuration = 0;
-    let lastStatus = null;
-    let lastTimestamp = null;
-
-    history.forEach((log, index) => {
-        let currentTime = new Date(log.timestamp).getTime();
-
-        if (index > 0 && lastTimestamp) {
-            let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert ms to minutes
-
-            if (lastStatus === "online") {
-                uptime += timeDiff;
-            } else if (lastStatus === "offline") {
-                downtime += timeDiff;
-                downtimeDuration++;
-            }
-        }
-
-        lastStatus = log.status;
-        lastTimestamp = currentTime;
-    });
-
-    return { uptime: Math.round(uptime), downtime: Math.round(downtime), downtimeDuration };
-};
-
-
-
-
-
-check Above code and help me to get Correct API responce
-
-
-http://localhost/api/regions/trend/details/apac
-
-reesponce-
-{
-  "region": "apac",
-  "trends": {
-    "daily": [
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.20",
-        "uptime": [],
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.139",
-        "uptime": [],
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.142",
-        "uptime": [],
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-
-
-device uptime ,downtime histort is store in deviceLogs.json
-in this api device uptime is not increasing when device status is online
-and device downtime is not increasing when device status is offline .
-
-kindly check code and correct it as per my request
-
-
+// Start Server
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+  pingDevices(); // Initial ping on startup
+});
 
 
