@@ -1,3 +1,44 @@
+const fetchRegionTrendData = async (region) => {
+    console.log("Fetching trend data for region:", region);
+
+    if (!allData || !allData.cameras || !allData.archivers || !allData.controllers || !allData.servers) {
+        console.error("Error: allData is undefined or missing device properties");
+        return null;
+    }
+
+    const filterByRegion = (devices) => 
+        devices ? devices.filter(device => device.location && device.location.toLowerCase() === region.toLowerCase()) : [];
+
+    // Filter devices safely
+    const devices = {
+        cameras: filterByRegion(allData.cameras),
+        archivers: filterByRegion(allData.archivers),
+        controllers: filterByRegion(allData.controllers),
+        servers: filterByRegion(allData.servers)
+    };
+
+    console.log("Filtered Devices:", JSON.stringify(devices, null, 2));
+
+    if (!devices.cameras.length && !devices.archivers.length && !devices.controllers.length && !devices.servers.length) {
+        console.log(`No devices found for region: ${region}`);
+        return null;
+    }
+
+    const trends = calculateDeviceTrends(devices);
+    return trends;
+};
+
+
+
+
+
+
+
+
+
+
+
+
 regionController.js
 
 
