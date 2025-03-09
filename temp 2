@@ -1,250 +1,76 @@
-// Function to clear history for a device
-const clearDeviceHistory = (device) => {
-    console.log(`Clearing history for device ${device.device_name || device.ip_address}`);
-    device.history = [];  // Clear the existing history
-};
-
-// Example usage when fetching history for a device
-const fetchDeviceHistory = async (device) => {
-    // Clear previous history
-    clearDeviceHistory(device);
-
-    // Now fetch the logs from the device (for simplicity, assuming logs are in UTC format)
-    const deviceLogs = await getDeviceLogs(device.ip_address);  // Replace with actual log fetching
-
-    // Convert logs from UTC to IST and add them to the device history
-    deviceLogs.forEach(log => {
-        const convertedTimestamp = DateTime.fromISO(log.timestamp, { zone: 'utc' }).setZone('Asia/Kolkata').toISO(); // Convert from UTC to IST
-        device.history.push({
-            status: log.status,
-            timestamp: convertedTimestamp
-        });
-    });
-
-    console.log(`Device ${device.device_name || device.ip_address} history after fetch:`, device.history);
-};
-
-
-
-
-
-// Function to compute Uptime & Downtime from Device History
-const computeDeviceStats = (history) => {
-    let uptime = 0, downtime = 0, downtimeDuration = 0;
-    let lastStatus = history[0].status;
-    let lastTimestamp = DateTime.fromISO(history[0].timestamp, { zone: 'Asia/Kolkata' }).toMillis(); // Convert from ISO string to milliseconds
-
-    for (let i = 1; i < history.length; i++) {
-        let currentStatus = history[i].status;
-        let currentTime = DateTime.fromISO(history[i].timestamp, { zone: 'Asia/Kolkata' }).toMillis(); // Convert from ISO string to milliseconds
-        let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert to minutes
-
-        if (timeDiff > 0) {
-            if (lastStatus === "Online" && currentStatus === "Online") uptime += timeDiff;
-            if (lastStatus === "Offline" && currentStatus === "Offline") downtime += timeDiff;
-            if (lastStatus === "Offline" && currentStatus === "Online") downtimeDuration += timeDiff;
-        }
-
-        lastStatus = currentStatus;
-        lastTimestamp = currentTime;
-    }
-
-    // Return uptime, downtime, and downtime duration in minutes
-    return { uptime: Math.round(uptime), downtime: Math.round(downtime), downtimeDuration: Math.round(downtimeDuration) };
-};
-
-
-
-
-
-
-
-
-
-const fetchRegionTrendData = async (region) => {
-    if (!allData || Object.keys(allData).length === 0) {
-        console.error("Error: Device data is not loaded.");
-        return null;
-    }
-
-    const filterByRegion = (devices) => 
-        devices.filter(device => device.location?.toLowerCase() === region.toLowerCase());
-
-    const regionDevices = {
-        cameras: filterByRegion(allData.cameras),
-        archivers: filterByRegion(allData.archivers),
-        controllers: filterByRegion(allData.controllers),
-        servers: filterByRegion(allData.servers)
-    };
-
-    if (!regionDevices.cameras.length && !regionDevices.archivers.length && !regionDevices.controllers.length && !regionDevices.servers.length) {
-        console.log(`No devices found for region: ${region}`);
-        return null;
-    }
-
-    // Clear history for all devices in the region
-    regionDevices.cameras.forEach(device => clearDeviceHistory(device));
-    regionDevices.archivers.forEach(device => clearDeviceHistory(device));
-    regionDevices.controllers.forEach(device => clearDeviceHistory(device));
-    regionDevices.servers.forEach(device => clearDeviceHistory(device));
-
-    // Fetch and update the history for each device in the region
-    await Promise.all([
-        ...regionDevices.cameras.map(device => fetchDeviceHistory(device)),
-        ...regionDevices.archivers.map(device => fetchDeviceHistory(device)),
-        ...regionDevices.controllers.map(device => fetchDeviceHistory(device)),
-        ...regionDevices.servers.map(device => fetchDeviceHistory(device))
-    ]);
-
-    // Now calculate trends after updating histories
-    const trends = calculateDeviceTrends(regionDevices);
-
-    // Return the trend analysis data
-    return { trends };
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Function to add device history with IST timestamp and keep only the last 30 days of history
-const addDeviceHistory = (device, status) => {
-    const istTime = DateTime.now().setZone('Asia/Kolkata').toISO(); // Current IST time
-
-    // Log device status and timestamp before adding history
-    console.log(`Adding history for device ${device.device_name || device.ip_address}: Status - ${status}, Timestamp - ${istTime}`);
-
-    // Add a new status change entry to the device's history
-    device.history.push({
-        status: status,
-        timestamp: istTime
-    });
-
-    // Keep history entries only for the past 30 days
-    device.history = device.history.filter(entry => {
-        const entryTime = DateTime.fromISO(entry.timestamp);
-        return entryTime > DateTime.now().minus({ months: 1 });
-    });
-
-    // Log after adding the status
-    console.log(`History for device ${device.device_name || device.ip_address}:`, device.history);
-};
-
-
-
-
-
-
-
-// Compute Uptime & Downtime from Device History
-const computeDeviceStats = (history) => {
-    let uptime = 0, downtime = 0, downtimeDuration = 0;
-    let lastStatus = history[0].status;
-    let lastTimestamp = new Date(history[0].timestamp).getTime();
-
-    for (let i = 1; i < history.length; i++) {
-        let currentStatus = history[i].status;
-        let currentTime = new Date(history[i].timestamp).getTime();
-        let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert to minutes
-
-        if (timeDiff > 0) {
-            if (lastStatus === "Online" && currentStatus === "Online") uptime += timeDiff;
-            if (lastStatus === "Offline" && currentStatus === "Offline") downtime += timeDiff;
-            if (lastStatus === "Offline" && currentStatus === "Online") downtimeDuration += timeDiff;
-        }
-
-        lastStatus = currentStatus;
-        lastTimestamp = currentTime;
-    }
-
-    // Return uptime, downtime, and downtime duration in minutes
-    return { uptime: Math.round(uptime), downtime: Math.round(downtime), downtimeDuration: Math.round(downtimeDuration) };
-};
-
-
-
-
-
-// Fetch Region Trend Data for a Region
-const fetchRegionTrendData = async (region) => {
-    if (!allData || Object.keys(allData).length === 0) {
-        console.error("Error: Device data is not loaded.");
-        return null;
-    }
-
-    const filterByRegion = (devices) => 
-        devices.filter(device => device.location?.toLowerCase() === region.toLowerCase());
-
-    const regionDevices = {
-        cameras: filterByRegion(allData.cameras),
-        archivers: filterByRegion(allData.archivers),
-        controllers: filterByRegion(allData.controllers),
-        servers: filterByRegion(allData.servers)
-    };
-
-    if (!regionDevices.cameras.length && !regionDevices.archivers.length && !regionDevices.controllers.length && !regionDevices.servers.length) {
-        console.log(`No devices found for region: ${region}`);
-        return null;
-    }
-
-    const trends = calculateDeviceTrends(regionDevices);
-
-    // Return the trend analysis data
-    return { trends };
-};
-
-// Calculate Trends for Devices
-const calculateDeviceTrends = (devices) => {
-    return {
-        daily: calculateTrend(devices, "daily"),
-        weekly: calculateTrend(devices, "weekly"),
-        monthly: calculateTrend(devices, "monthly")
-    };
-};
-
-// Compute Uptime and Downtime for the given trend period
-const calculateTrend = (devices, period) => {
-    const allDevices = [...devices.cameras, ...devices.archivers, ...devices.controllers, ...devices.servers];
-
-    return allDevices.map(device => {
-        if (!device.history || device.history.length === 0) {
-            return { device_name: device.device_name || "Unknown", ip_address: device.ip_address, uptime: 0, downtime: 0, downtimeDuration: 0 };
-        }
-
-        return { ...computeDeviceStats(device.history), device_name: device.device_name || "Unknown", ip_address: device.ip_address };
-    });
-};
-
-
-
-
-
-
-
-
-
-http://localhost/api/devices/history/10.199.10.142
-
-
-{
-  "ip_address": "10.199.10.142",
-  "history": [
-    {
-      "status": "Online",
-      "timestamp": "2025-03-05T10:53:16.871Z"
-    }
-  ]
-}
+Requested Region: apac
+Clearing history for device 10.199.10.20
+Clearing history for device 10.199.10.139
+Clearing history for device 10.199.10.142
+Clearing history for device 10.199.10.141
+Clearing history for device 10.199.10.10
+Clearing history for device 10.199.12.15
+Clearing history for device 10.199.10.11
+Clearing history for device 10.199.10.14
+Clearing history for device 10.199.10.13
+Clearing history for device 10.193.132.8
+Clearing history for device 10.194.2.190
+Clearing history for device 10.199.8.10
+Clearing history for device 10.199.8.12
+Clearing history for device 10.194.122.136
+Clearing history for device 10.192.5.9
+Clearing history for device 172.21.47.31
+Clearing history for device 172.21.47.19
+Clearing history for device 10.199.13.10
+Clearing history for device 10.199.8.20
+Clearing history for device 10.199.8.21
+Clearing history for device 10.199.10.15
+Clearing history for device 10.199.8.30
+Clearing history for device 10.199.10.150
+Clearing history for device 10.199.16.40
+Clearing history for device 10.199.16.41
+Clearing history for device 10.192.2.11
+Clearing history for device 10.194.122.200
+Clearing history for device 10.192.4.11
+Clearing history for device 10.193.133.11
+Clearing history for device 10.193.132.140
+Clearing history for device 10.194.2.13
+Clearing history for device 10.199.22.61
+Clearing history for device 10.199.10.20
+Clearing history for device 10.199.10.139
+Clearing history for device 10.199.10.142
+Clearing history for device 10.199.10.141
+Clearing history for device 10.199.10.10
+Clearing history for device 10.199.12.15
+Clearing history for device 10.199.10.11
+Clearing history for device 10.199.10.14
+Clearing history for device 10.199.10.13
+Clearing history for device 10.193.132.8
+Clearing history for device 10.194.2.190
+Clearing history for device 10.199.8.10
+Clearing history for device 10.199.8.12
+Clearing history for device 10.194.122.136
+Clearing history for device 10.192.5.9
+Clearing history for device 172.21.47.31
+Clearing history for device 172.21.47.19
+Clearing history for device 10.199.13.10
+Clearing history for device 10.199.8.20
+Clearing history for device 10.199.8.21
+Clearing history for device 10.199.10.15
+Clearing history for device 10.199.8.30
+Clearing history for device 10.199.10.150
+Clearing history for device 10.199.16.40
+Clearing history for device 10.199.16.41
+Clearing history for device 10.192.2.11
+Clearing history for device 10.194.122.200
+Clearing history for device 10.192.4.11
+Clearing history for device 10.193.133.11
+Clearing history for device 10.193.132.140
+Clearing history for device 10.194.2.13
+Clearing history for device 10.199.22.61
+Error in getRegionTrendDetails: ReferenceError: getDeviceLogs is not defined
+    at fetchDeviceHistory (C:\Users\W0024618\Desktop\Backend\src\services\excelService.js:461:24)
+    at C:\Users\W0024618\Desktop\Backend\src\services\excelService.js:567:48
+    at Array.map (<anonymous>)
+    at fetchRegionTrendData (C:\Users\W0024618\Desktop\Backend\src\services\excelService.js:567:34)
+    at getRegionTrendDetails (C:\Users\W0024618\Desktop\Backend\src\controllers\regionControllers.js:18:33)
+    at Layer.handle [as handle_request] (C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\index.js:284:15
