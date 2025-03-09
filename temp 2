@@ -1,4 +1,45 @@
+const { DateTime } = require('luxon'); // Import Luxon for timezone handling
 
+// Function to add device history with IST timestamp and keep only the last 30 days of history
+const addDeviceHistory = (device, status) => {
+    // Get current date and time in IST (Indian Standard Time)
+    const istTime = DateTime.now().setZone('Asia/Kolkata').toISO();
+
+    // Remove any entries older than 1 month (30 days)
+    device.history = device.history.filter(entry => {
+        const entryTime = DateTime.fromISO(entry.timestamp);
+        return entryTime > DateTime.now().minus({ months: 1 }); // Keep records from the past 1 month
+    });
+
+    // Add the status record to the device's history
+    device.history.push({
+        status: status,
+        timestamp: istTime // Timestamps will be in IST timezone
+    });
+};
+
+// Function to clear all device history (for example, to reset all devices' history at the start)
+const clearDeviceHistory = () => {
+    // Loop through all devices and clear their history
+    allData.cameras.forEach(device => device.history = []);
+    allData.archivers.forEach(device => device.history = []);
+    allData.controllers.forEach(device => device.history = []);
+    allData.servers.forEach(device => device.history = []);
+};
+
+// Example: Add a sample history for a device (e.g., for a camera with IP '10.199.10.142')
+const sampleDevice = allData.cameras.find(device => device.ip_address === '10.199.10.142');
+if (sampleDevice) {
+    addDeviceHistory(sampleDevice, 'Online'); // Add a new status with 'Online' status
+}
+
+// Periodic check to clear histories older than 30 days (you can set a timer to do this daily or monthly)
+setInterval(() => {
+    allData.cameras.forEach(device => {
+        addDeviceHistory(device, device.status); // Add current status for each device
+    });
+    // Repeat this for archivers, controllers, and servers
+}, 1000 * 60 * 60 * 24); // This example runs the task every 24 hours (can adjust this as needed)
 
 
 regionController.js
