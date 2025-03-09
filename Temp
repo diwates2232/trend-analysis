@@ -1,691 +1,106 @@
-No history for device undefined
-No history for device undefined
-No history for device undefined
+
+const fetchRegionTrendData = async (region) => {
+    console.log("Fetching trend data for region:", region);
+
+    if (!allData || !allData.cameras || !allData.archivers || !allData.controllers || !allData.servers) {
+        console.error("Error: allData is undefined or missing device properties");
+        return null;
+    }
+
+    const filterByRegion = (devices) => 
+        devices ? devices.filter(device => device.location && device.location.toLowerCase() === region.toLowerCase()) : [];
+
+    // Filter devices safely
+    const devices = {
+        cameras: filterByRegion(allData.cameras),
+        archivers: filterByRegion(allData.archivers),
+        controllers: filterByRegion(allData.controllers),
+        servers: filterByRegion(allData.servers)
+    };
+
+    console.log("Filtered Devices:", JSON.stringify(devices, null, 2));
+
+    if (!devices.cameras.length && !devices.archivers.length && !devices.controllers.length && !devices.servers.length) {
+        console.log(`No devices found for region: ${region}`);
+        return null;
+    }
+
+    const trends = calculateDeviceTrends(devices);
+    return trends;
+};
 
 
-APi - http://localhost/api/regions/trend/details/apac
 
-responce -
-{
-  "region": "apac",
-  "trends": {
-    "daily": [
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.20",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.139",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.142",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.141",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.10",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.12.15",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.11",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.14",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.13",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.193.132.8",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.194.2.190",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.8.10",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.8.12",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.194.122.136",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.192.5.9",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "172.21.47.31",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "172.21.47.19",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.13.10",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.8.20",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.8.21",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.15",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.8.30",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.150",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.16.40",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.16.41",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.192.2.11",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.194.122.200",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.192.4.11",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.193.133.11",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.193.132.140",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.194.2.13",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.22.61",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      }
-    ],
-    "weekly": [
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.20",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.139",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.142",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.141",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.10",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.12.15",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.11",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.14",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.13",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.193.132.8",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.194.2.190",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.8.10",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.8.12",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.194.122.136",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.192.5.9",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "172.21.47.31",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "172.21.47.19",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.13.10",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.8.20",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.8.21",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.15",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.8.30",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.150",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.16.40",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.16.41",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.192.2.11",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.194.122.200",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.192.4.11",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.193.133.11",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.193.132.140",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.194.2.13",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.22.61",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      }
-    ],
-    "monthly": [
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.20",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.139",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.142",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.141",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.10",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.12.15",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.11",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.14",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.13",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.193.132.8",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.194.2.190",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.8.10",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.8.12",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.194.122.136",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.192.5.9",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "172.21.47.31",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "172.21.47.19",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.13.10",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.8.20",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.8.21",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.15",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.8.30",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.150",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.16.40",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.16.41",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.192.2.11",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.194.122.200",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.192.4.11",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.193.133.11",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.193.132.140",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.194.2.13",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      },
-      {
-        "device_name": "Unknown",
-        "ip_address": "10.199.22.61",
-        "uptime": 0,
-        "downtime": 0,
-        "downtimeDuration": 0
-      }
-    ]
-  }
-}
+
+
+// Function to calculate device trends
+const calculateDeviceTrends = (devices) => {
+    const trends = {
+        daily: calculateTrend(devices, "daily",),
+        weekly: calculateTrend(devices, "weekly"),
+        monthly: calculateTrend(devices, "monthly")
+    };
+    return trends;
+};
+
+// Function to calculate trend details for a given period
+const calculateTrend = (devices, period) => {
+    const allDevices = [...devices.cameras, ...devices.archivers, ...devices.controllers, ...devices.servers];
+    deviceLogs=[];
+deviceHistory=[];
+    return allDevices.map(device => {
+        // Ensure history is defined before calculating uptime/downtime
+        if (!device.history || device.history.length === 0) {
+            console.log(`No history for device ${device.device_name}`);
+            return {
+                device_name: device.device_name || "Unknown",
+                ip_address: device.ip_address,
+                uptime:deviceHistory,
+                downtime: 0,
+                downtimeDuration: 0
+            };
+        }
+
+        const { uptime, downtime, downtimeDuration } = computeDeviceStats(device.history);
+        return {
+            device_name: device.devices || "Unknown",
+            ip_address: device.ip_address,
+            uptime,
+            downtime,
+            downtimeDuration
+        };
+    });
+};
+
+// Compute uptime and downtime for a device
+
+const computeDeviceStats = (history) => {
+    if (!Array.isArray(history) || history.length === 0) {
+        console.log("No history data found for device");
+        return { uptime: 0, downtime: 0, downtimeDuration: 0 };
+    }
+
+    let uptime = 0, downtime = 0, downtimeDuration = 0;
+    let lastStatus = null;
+    let lastTimestamp = null;
+
+    history.forEach((log, index) => {
+        let currentTime = new Date(log.timestamp).getTime();
+
+        if (index > 0 && lastTimestamp) {
+            let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert ms to minutes
+
+            if (lastStatus === "online") {
+                uptime += timeDiff;
+            } else if (lastStatus === "offline") {
+                downtime += timeDiff;
+                downtimeDuration++;
+            }
+        }
+
+        lastStatus = log.status;
+        lastTimestamp = currentTime;
+    });
+
+    return { uptime: Math.round(uptime), downtime: Math.round(downtime), downtimeDuration };
+};
