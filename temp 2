@@ -1,186 +1,3 @@
-const { DateTime } = require('luxon'); // Import Luxon for timezone handling
-
-// Function to add device history with IST timestamp and keep only the last 30 days of history
-const addDeviceHistory = (device, status) => {
-    // Get current date and time in IST (Indian Standard Time)
-    const istTime = DateTime.now().setZone('Asia/Kolkata').toISO();
-
-    // Remove any entries older than 1 month (30 days)
-    device.history = device.history.filter(entry => {
-        const entryTime = DateTime.fromISO(entry.timestamp);
-        return entryTime > DateTime.now().minus({ months: 1 }); // Keep records from the past 1 month
-    });
-
-    // Add the status record to the device's history
-    device.history.push({
-        status: status,
-        timestamp: istTime // Timestamps will be in IST timezone
-    });
-};
-
-// Function to clear all device history (for example, to reset all devices' history at the start)
-const clearDeviceHistory = () => {
-    // Loop through all devices and clear their history
-    allData.cameras.forEach(device => device.history = []);
-    allData.archivers.forEach(device => device.history = []);
-    allData.controllers.forEach(device => device.history = []);
-    allData.servers.forEach(device => device.history = []);
-};
-
-// Example: Add a sample history for a device (e.g., for a camera with IP '10.199.10.142')
-const sampleDevice = allData.cameras.find(device => device.ip_address === '10.199.10.142');
-if (sampleDevice) {
-    addDeviceHistory(sampleDevice, 'Online'); // Add a new status with 'Online' status
-}
-
-// Periodic check to clear histories older than 30 days (you can set a timer to do this daily or monthly)
-setInterval(() => {
-    allData.cameras.forEach(device => {
-        addDeviceHistory(device, device.status); // Add current status for each device
-    });
-    // Repeat this for archivers, controllers, and servers
-}, 1000 * 60 * 60 * 24); // This example runs the task every 24 hours (can adjust this as needed)
-
-
-regionController.js
-
-
-
-const { fetchGlobalData, fetchRegionData, fetchRegionTrendData } = require("../services/excelService");
-
-
-// Controller for fetch trend data
-const getRegionTrendDetails = async (req, res) => {
-    try {
-        const { region} = req.params;
-        console.log("Requested Region:", region);
-
-        if (!region) {
-            return res.status(400).json({ error: "Region parameter is missing" });
-        }
-
-        const trendData = await fetchRegionTrendData(region);
-        console.log("Trend Data Response:", JSON.stringify(trendData, null, 2));
-
-        if (!trendData || typeof trendData !== "object") {
-            return res.status(500).json({ error: "Failed to fetch trend data" });
-        }
-
-        res.json({
-            region,
-            trends: trendData
-        });
-    } catch (error) {
-        console.error("Error in getRegionTrendDetails:", error);
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
-
-// Region Trend Summary Controller (for uptime/downtime trends)
-const getRegionTrendSummary = async (req, res) => {
-    try {
-        const { region } = req.params;
-        console.log("Fetching trend summary for region:", region);
-        const trendData = await fetchRegionTrendData(region);
-
-        if (!trendData) {
-            return res.status(500).json({ error: "Failed to fetch trend data for region" });
-        }
-
-        res.json({ region, trendData });
-    } catch (error) {
-        console.error("Error in getRegionTrendSummary:", error);
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
-
-
-
-// Global Summary Controller
-const getGlobalSummary = async (req, res) => {
-    try {
-        const globalData = await fetchGlobalData();
-        res.status(200).json({ summary: globalData.summary });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
-
-// Global Details Controller
-const getGlobalDetails = async (req, res) => {
-    try {
-        const globalData = await fetchGlobalData();
-        res.status(200).json({ details: globalData.details });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
-
-// Region Summary Controller
-const getRegionSummary = async (req, res) => {
-    const { regionName } = req.params;
-    try {
-        const regionData = await fetchRegionData(regionName);
-        res.status(200).json({ summary: regionData.summary });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
-
-// Region Details Controller
-const getRegionDetails = async (req, res) => {
-    const { regionName } = req.params;
-    try {
-        const regionData = await fetchRegionData(regionName);
-        res.status(200).json({ details: regionData.details });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
-
-module.exports = {
-    getGlobalSummary,
-    getGlobalDetails,
-    getRegionSummary,
-    getRegionDetails,
-    getRegionTrendDetails,
-    getRegionTrendSummary,
-};
-
-
-
-regionRoutes.js
-
-
- const express = require("express");
- const {
-     getGlobalSummary,
-     getGlobalDetails,
-     getRegionSummary,
-     getRegionDetails,
-     getRegionTrendDetails,
-     getRegionTrendSummary,
- } = require("../controllers/regionControllers");
- 
- const router = express.Router();
- 
- // Global Routes
- router.get("/summary/global", getGlobalSummary);
- router.get("/details/global", getGlobalDetails);
- 
- 
- // Region Routes
- router.get("/summary/:regionName", getRegionSummary);
- router.get("/details/:regionName", getRegionDetails);
- router.get("/trend/details/:region",getRegionTrendDetails);
- router.get("/trend/summary/:region",getRegionTrendSummary)
- 
- module.exports = router;
-
-
-
-
-excelService.js
 
 
 const xlsx = require("xlsx");
@@ -401,6 +218,55 @@ const computeDeviceStats = (history) => {
     return { uptime: Math.round(uptime), downtime: Math.round(downtime), downtimeDuration: Math.round(downtimeDuration) };
 };
 
+
+
+
+
+
+const { DateTime } = require('luxon'); // Import Luxon for timezone handling
+
+// Function to add device history with IST timestamp and keep only the last 30 days of history
+const addDeviceHistory = (device, status) => {
+    // Get current date and time in IST (Indian Standard Time)
+    const istTime = DateTime.now().setZone('Asia/Kolkata').toISO();
+
+    // Remove any entries older than 1 month (30 days)
+    device.history = device.history.filter(entry => {
+        const entryTime = DateTime.fromISO(entry.timestamp);
+        return entryTime > DateTime.now().minus({ months: 1 }); // Keep records from the past 1 month
+    });
+
+    // Add the status record to the device's history
+    device.history.push({
+        status: status,
+        timestamp: istTime // Timestamps will be in IST timezone
+    });
+};
+
+// Function to clear all device history (for example, to reset all devices' history at the start)
+const clearDeviceHistory = () => {
+    // Loop through all devices and clear their history
+    allData.cameras.forEach(device => device.history = []);
+    allData.archivers.forEach(device => device.history = []);
+    allData.controllers.forEach(device => device.history = []);
+    allData.servers.forEach(device => device.history = []);
+};
+
+
+// Periodic check to clear histories older than 30 days (you can set a timer to do this daily or monthly)
+setInterval(() => {
+    allData.cameras.forEach(device => {
+        addDeviceHistory(device, device.status); // Add current status for each device
+    });
+    // Repeat this for archivers, controllers, and servers
+}, 1000 * 60 * 60 * 24); // This example runs the task every 24 hours (can adjust this as needed)
+
+
+
+
+
+
+
 // Preload Data
 loadExcelData();
 
@@ -408,127 +274,7 @@ module.exports = { fetchGlobalData, fetchRegionData, fetchAllIpAddress, fetchReg
 
 
 
-app.js
 
-
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-const fs = require("fs");
-const ping = require("ping");
-const regionRoutes = require("./routes/regionRoutes");
-const { fetchAllIpAddress } = require("./services/excelService");
-
-const app = express();
-const PORT = process.env.PORT || 80;
-
-// Middleware
-app.use(
-  cors({
-    origin: "http://127.0.0.1:5500",
-    methods: "GET,POST,PUT,DELETE",
-    allowedHeaders: "Content-Type,Authorization",
-  })
-);
-app.use(bodyParser.json());
-
-// Routes
-app.use("/api/regions", regionRoutes);
-
-// Device Status Tracking
-const devices = fetchAllIpAddress();
-let deviceStatus = {};
-const logFile = "./deviceLogs.json";
-
-// Load previous logs if exists
-let deviceLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
-
-// Function to log device status changes
-function logDeviceChange(ip, status) {
-  const timestamp = new Date().toISOString();
-
-  if (!deviceLogs[ip]) {
-    deviceLogs[ip] = [];
-  }
-
-  const lastLog = deviceLogs[ip].length ? deviceLogs[ip][deviceLogs[ip].length - 1] : null;
-
-  // Log only if status changes
-  if (!lastLog || lastLog.status !== status) {
-    deviceLogs[ip].push({ status, timestamp });
-    fs.writeFileSync(logFile, JSON.stringify(deviceLogs, null, 2));
-  }
-}
-
-// Ping all devices and log changes
-async function pingDevices() {
-  for (const ip of devices) {
-    try {
-      const result = await ping.promise.probe(ip);
-      const newStatus = result.alive ? "Online" : "Offline";
-
-      if (deviceStatus[ip] !== newStatus) {
-        logDeviceChange(ip, newStatus);
-      }
-      deviceStatus[ip] = newStatus;
-    } catch (error) {
-      console.error(`Error pinging ${ip}:`, error);
-      deviceStatus[ip] = "Offline";
-    }
-  }
-  console.log("Updated device status:", deviceStatus);
-}
-
-// Ping devices every 30 seconds
-setInterval(pingDevices, 30000);
-
-// API to get real-time device status
-app.get("/api/region/devices/status", (req, res) => {
-  res.json(deviceStatus);
-});
-
-// API to fetch device history for all devices
-app.get("/api/devices/history", (req, res) => {
-  res.json(deviceLogs);
-});
-
-// API to fetch history of a specific device by IP address
-app.get("/api/devices/history/:ip", (req, res) => {
-  const deviceIp = req.params.ip;
-
-  if (!deviceLogs[deviceIp]) {
-    return res.status(404).json({ error: "Device history not found" });
-  }
-
-  res.json({ ip_address: deviceIp, history: deviceLogs[deviceIp] });
-});
-
-// API to fetch region device trends
-app.get("/api/regions/devices/trend/details/:region", async (req, res) => {
-  try {
-    const region = req.params.region.toLowerCase();
-    console.log("Requested Region:", region);
-
-    const trends = await fetchRegionTrendData(region);
-    return res.json({ region, trends });
-  } catch (error) {
-    console.error("Error fetching trend data:", error);
-    return res.status(500).json({ error: "Internal server error", details: error.message });
-  }
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send("Something went wrong!");
-});
-
-// Start Server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  pingDevices(); // Initial ping on startup
-});
 
 
 
