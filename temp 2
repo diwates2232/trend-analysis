@@ -1,3 +1,119 @@
+// Function to add device history with IST timestamp and keep only the last 30 days of history
+const addDeviceHistory = (device, status) => {
+    const istTime = DateTime.now().setZone('Asia/Kolkata').toISO(); // Current IST time
+
+    // Log device status and timestamp before adding history
+    console.log(`Adding history for device ${device.device_name || device.ip_address}: Status - ${status}, Timestamp - ${istTime}`);
+
+    // Add a new status change entry to the device's history
+    device.history.push({
+        status: status,
+        timestamp: istTime
+    });
+
+    // Keep history entries only for the past 30 days
+    device.history = device.history.filter(entry => {
+        const entryTime = DateTime.fromISO(entry.timestamp);
+        return entryTime > DateTime.now().minus({ months: 1 });
+    });
+
+    // Log after adding the status
+    console.log(`History for device ${device.device_name || device.ip_address}:`, device.history);
+};
+
+
+
+
+
+
+
+// Compute Uptime & Downtime from Device History
+const computeDeviceStats = (history) => {
+    let uptime = 0, downtime = 0, downtimeDuration = 0;
+    let lastStatus = history[0].status;
+    let lastTimestamp = new Date(history[0].timestamp).getTime();
+
+    for (let i = 1; i < history.length; i++) {
+        let currentStatus = history[i].status;
+        let currentTime = new Date(history[i].timestamp).getTime();
+        let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert to minutes
+
+        if (timeDiff > 0) {
+            if (lastStatus === "Online" && currentStatus === "Online") uptime += timeDiff;
+            if (lastStatus === "Offline" && currentStatus === "Offline") downtime += timeDiff;
+            if (lastStatus === "Offline" && currentStatus === "Online") downtimeDuration += timeDiff;
+        }
+
+        lastStatus = currentStatus;
+        lastTimestamp = currentTime;
+    }
+
+    // Return uptime, downtime, and downtime duration in minutes
+    return { uptime: Math.round(uptime), downtime: Math.round(downtime), downtimeDuration: Math.round(downtimeDuration) };
+};
+
+
+
+
+
+// Fetch Region Trend Data for a Region
+const fetchRegionTrendData = async (region) => {
+    if (!allData || Object.keys(allData).length === 0) {
+        console.error("Error: Device data is not loaded.");
+        return null;
+    }
+
+    const filterByRegion = (devices) => 
+        devices.filter(device => device.location?.toLowerCase() === region.toLowerCase());
+
+    const regionDevices = {
+        cameras: filterByRegion(allData.cameras),
+        archivers: filterByRegion(allData.archivers),
+        controllers: filterByRegion(allData.controllers),
+        servers: filterByRegion(allData.servers)
+    };
+
+    if (!regionDevices.cameras.length && !regionDevices.archivers.length && !regionDevices.controllers.length && !regionDevices.servers.length) {
+        console.log(`No devices found for region: ${region}`);
+        return null;
+    }
+
+    const trends = calculateDeviceTrends(regionDevices);
+
+    // Return the trend analysis data
+    return { trends };
+};
+
+// Calculate Trends for Devices
+const calculateDeviceTrends = (devices) => {
+    return {
+        daily: calculateTrend(devices, "daily"),
+        weekly: calculateTrend(devices, "weekly"),
+        monthly: calculateTrend(devices, "monthly")
+    };
+};
+
+// Compute Uptime and Downtime for the given trend period
+const calculateTrend = (devices, period) => {
+    const allDevices = [...devices.cameras, ...devices.archivers, ...devices.controllers, ...devices.servers];
+
+    return allDevices.map(device => {
+        if (!device.history || device.history.length === 0) {
+            return { device_name: device.device_name || "Unknown", ip_address: device.ip_address, uptime: 0, downtime: 0, downtimeDuration: 0 };
+        }
+
+        return { ...computeDeviceStats(device.history), device_name: device.device_name || "Unknown", ip_address: device.ip_address };
+    });
+};
+
+
+
+
+
+
+
+
+
 http://localhost/api/devices/history/10.199.10.142
 
 
