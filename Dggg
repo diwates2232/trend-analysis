@@ -1,0 +1,175 @@
+const fs = require("fs");
+const ping = require("ping");
+const { DateTime } = require("luxon");
+
+// Routes
+app.use("/api/regions", regionRoutes);
+
+const devices = fetchAllIpAddress();
+let deviceStatus = {};
+let uptimeTracker = {};   // Tracks total uptime per device
+let downtimeTracker = {}; // Tracks total downtime per device
+let statusStartTime = {}; // Stores when the current status started
+
+const logFile = "./deviceLogs.json";
+let deviceLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+
+// Function to log device status changes
+function logDeviceChange(ip, newStatus) {
+    const timestamp = DateTime.now().setZone('Asia/Kolkata').toISO(); // Convert to IST
+
+    if (!deviceLogs[ip]) {
+        deviceLogs[ip] = [];
+    }
+
+    const lastLog = deviceLogs[ip].length ? deviceLogs[ip][deviceLogs[ip].length - 1] : null;
+
+    if (!lastLog || lastLog.status !== newStatus) {
+        deviceLogs[ip].push({ status: newStatus, timestamp });
+
+        // Reset uptime/downtime tracking and update start time
+        statusStartTime[ip] = DateTime.fromISO(timestamp).toMillis();
+
+        if (newStatus === "Online") {
+            uptimeTracker[ip] = 0;
+        } else {
+            downtimeTracker[ip] = 0;
+        }
+
+        fs.writeFileSync(logFile, JSON.stringify(deviceLogs, null, 2));
+        console.log(`Device ${ip} changed status to ${newStatus} at ${timestamp}`);
+    }
+}
+
+// Function to format time into hours and minutes
+function formatTime(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
+}
+
+// Function to update uptime and downtime
+function updateUptimeDowntime() {
+    const nowMillis = DateTime.now().setZone('Asia/Kolkata').toMillis();
+
+    for (const ip of devices) {
+        if (!statusStartTime[ip]) {
+            statusStartTime[ip] = nowMillis;
+        }
+
+        const elapsedSeconds = Math.floor((nowMillis - statusStartTime[ip]) / 1000);
+
+        if (deviceStatus[ip] === "Online") {
+            uptimeTracker[ip] += elapsedSeconds;
+        } else if (deviceStatus[ip] === "Offline") {
+            downtimeTracker[ip] += elapsedSeconds;
+        }
+
+        statusStartTime[ip] = nowMillis; // Reset timer after update
+    }
+
+    console.log("Current Uptime/Downtime Tracking:", {
+        uptime: Object.fromEntries(Object.entries(uptimeTracker).map(([ip, time]) => [ip, formatTime(time)])),
+        downtime: Object.fromEntries(Object.entries(downtimeTracker).map(([ip, time]) => [ip, formatTime(time)])),
+    });
+
+    fs.writeFileSync(logFile, JSON.stringify(deviceLogs, null, 2)); // Save data
+}
+
+// Ping devices and update status
+async function pingDevices() {
+    for (const ip of devices) {
+        try {
+            const result = await ping.promise.probe(ip);
+            const newStatus = result.alive ? "Online" : "Offline";
+
+            if (!deviceStatus[ip] || deviceStatus[ip] !== newStatus) {
+                logDeviceChange(ip, newStatus);
+            }
+
+            deviceStatus[ip] = newStatus;
+        } catch (error) {
+            console.error(`Error pinging ${ip}:`, error);
+            deviceStatus[ip] = "Offline";
+        }
+    }
+    console.log("Updated device statuses:", deviceStatus);
+}
+
+// Interval to update uptime/downtime and ping devices
+setInterval(pingDevices, 60000);
+setInterval(updateUptimeDowntime, 60000);
+
+
+
+const fs = require("fs");
+const { DateTime } = require("luxon");
+
+const logFile = "./deviceLogs.json";
+let deviceLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+
+// Fetch device history
+const fetchDeviceHistory = async (device) => {
+    const logs = deviceLogs[device.ip] || [];
+
+    logs.forEach(log => {
+        const convertedTimestamp = DateTime.fromISO(log.timestamp, { zone: 'utc' }).setZone('Asia/Kolkata').toISO();
+        device.history.push({ status: log.status, timestamp: convertedTimestamp });
+    });
+
+    console.log(`Device ${device.device_name || device.ip} history fetched`, device.history);
+};
+
+// Compute uptime & downtime stats
+const computeDeviceStats = (history) => {
+    let uptime = 0, downtime = 0, downtimeDuration = 0;
+    let lastStatus = history[0]?.status || "Offline";
+    let lastTimestamp = history[0] ? DateTime.fromISO(history[0].timestamp).toMillis() : DateTime.now().toMillis();
+
+    for (let i = 1; i < history.length; i++) {
+        let currentStatus = history[i].status;
+        let currentTime = DateTime.fromISO(history[i].timestamp).toMillis();
+        let timeDiff = (currentTime - lastTimestamp) / 60000;
+
+        if (timeDiff > 0) {
+            if (lastStatus === "Online" && currentStatus === "Online") uptime += timeDiff;
+            if (lastStatus === "Offline" && currentStatus === "Offline") downtime += timeDiff;
+            if (lastStatus === "Offline" && currentStatus === "Online") downtimeDuration += timeDiff;
+        }
+
+        lastStatus = currentStatus;
+        lastTimestamp = currentTime;
+    }
+
+    return { uptime: Math.round(uptime), downtime: Math.round(downtime), downtimeDuration: Math.round(downtimeDuration) };
+};
+
+// Fetch regional trend data
+const fetchRegionTrendData = async (region) => {
+    if (!global.allData) {
+        console.error("Error: Device data is not loaded.");
+        return null;
+    }
+
+    const regionDevices = {
+        cameras: global.allData.cameras.filter(d => d.location?.toLowerCase() === region.toLowerCase()),
+        archivers: global.allData.archivers.filter(d => d.location?.toLowerCase() === region.toLowerCase()),
+        controllers: global.allData.controllers.filter(d => d.location?.toLowerCase() === region.toLowerCase()),
+        servers: global.allData.servers.filter(d => d.location?.toLowerCase() === region.toLowerCase()),
+    };
+
+    await Promise.all([...regionDevices.cameras, ...regionDevices.archivers, ...regionDevices.controllers, ...regionDevices.servers].map(fetchDeviceHistory));
+
+    return { trends: calculateDeviceTrends(regionDevices) };
+};
+
+// Calculate trends for devices
+const calculateDeviceTrends = (devices) => ({
+    daily: calculateTrend(devices, "daily"),
+    weekly: calculateTrend(devices, "weekly"),
+    monthly: calculateTrend(devices, "monthly"),
+});
+
+// Compute trends for given period
+const calculateTrend = (devices) => [...devices.cameras, ...devices.archivers, ...devices.controllers, ...devices.servers].map(device =>
+    device.history.length ? { ...computeDeviceStats(device.history), device_name: device.device_name || "Unknown", ip_address: device.ip_address } : { uptime: 0, downtime: 0, downtimeDuration: 0 });
