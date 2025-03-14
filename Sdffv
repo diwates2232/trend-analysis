@@ -1,0 +1,65 @@
+let allData = null;  // Initialize it globally
+
+const loadDeviceData = () => {
+    try {
+        allData = {
+            cameras: JSON.parse(fs.readFileSync("./data/Cameras.json", "utf8")),
+            archivers: JSON.parse(fs.readFileSync("./data/Archivers.json", "utf8")),
+            controllers: JSON.parse(fs.readFileSync("./data/Controllers.json", "utf8")),
+            servers: JSON.parse(fs.readFileSync("./data/Servers.json", "utf8"))
+        };
+        console.log("Device data loaded successfully.");
+    } catch (error) {
+        console.error("Error loading device data:", error);
+        allData = null; // Set it to null to avoid using incorrect data
+    }
+};
+
+// Load device data at startup
+loadDeviceData();
+
+
+
+
+const fetchRegionTrendData = async (region) => {
+    if (!allData || Object.keys(allData).length === 0) {
+        console.error("Error: Device data is not loaded.");
+        return { error: "Device data is not available. Try again later." };
+    }
+
+    const filterByRegion = (devices) => 
+        devices.filter(device => device.location?.toLowerCase() === region.toLowerCase());
+
+    const regionDevices = {
+        cameras: filterByRegion(allData.cameras || []),
+        archivers: filterByRegion(allData.archivers || []),
+        controllers: filterByRegion(allData.controllers || []),
+        servers: filterByRegion(allData.servers || [])
+    };
+
+    if (!regionDevices.cameras.length && !regionDevices.archivers.length && !regionDevices.controllers.length && !regionDevices.servers.length) {
+        console.log(`No devices found for region: ${region}`);
+        return { error: "No devices found for this region." };
+    }
+
+    await Promise.all([
+        ...regionDevices.cameras.map(device => fetchDeviceHistory(device)),
+        ...regionDevices.archivers.map(device => fetchDeviceHistory(device)),
+        ...regionDevices.controllers.map(device => fetchDeviceHistory(device)),
+        ...regionDevices.servers.map(device => fetchDeviceHistory(device))
+    ]);
+
+    const trends = calculateDeviceTrends(regionDevices);
+
+    return { trends };
+};
+
+
+
+
+
+app.get("/api/reload-data", (req, res) => {
+    loadDeviceData();
+    res.json({ message: "Device data reloaded successfully." });
+});
+
