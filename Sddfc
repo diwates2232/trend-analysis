@@ -1,0 +1,93 @@
+const fs = require("fs");
+const ping = require("ping");
+
+// Routes
+app.use("/api/regions", regionRoutes);
+
+// Device Status Tracking
+const devices = fetchAllIpAddress();
+let deviceStatus = {};
+let uptimeTracker = {};   // Tracks total uptime per device
+let downtimeTracker = {}; // Tracks total downtime per device
+let statusStartTime = {}; // Stores when the current status started
+
+const logFile = "./deviceLogs.json";
+
+// Load previous logs if they exist
+let deviceLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+
+// Function to log device status changes and reset timers
+function logDeviceChange(ip, newStatus) {
+    const timestamp = Date.now(); // Store timestamp in milliseconds
+
+    if (!deviceLogs[ip]) {
+        deviceLogs[ip] = [];
+    }
+
+    const lastLog = deviceLogs[ip].length ? deviceLogs[ip][deviceLogs[ip].length - 1] : null;
+
+    // If status changed, create a new log entry
+    if (!lastLog || lastLog.status !== newStatus) {
+        deviceLogs[ip].push({ status: newStatus, timestamp: new Date(timestamp).toISOString() });
+
+        // Reset uptime/downtime tracking and store new start time
+        statusStartTime[ip] = timestamp;
+        
+        if (newStatus === "Online") {
+            uptimeTracker[ip] = 0;  
+        } else {
+            downtimeTracker[ip] = 0; 
+        }
+
+        // Save updated log to file
+        fs.writeFileSync(logFile, JSON.stringify(deviceLogs, null, 2));
+        console.log(`Device ${ip} changed status to ${newStatus} at ${new Date(timestamp).toISOString()}`);
+    }
+}
+
+// Function to update uptime and downtime for devices
+function updateUptimeDowntime() {
+    const now = Date.now(); // Current time in milliseconds
+
+    for (const ip of devices) {
+        if (!statusStartTime[ip]) {
+            statusStartTime[ip] = now; // Initialize if not set
+        }
+
+        const elapsedTime = Math.floor((now - statusStartTime[ip]) / 1000); // Convert ms to seconds
+
+        if (deviceStatus[ip] === "Online") {
+            uptimeTracker[ip] = elapsedTime;
+        } else if (deviceStatus[ip] === "Offline") {
+            downtimeTracker[ip] = elapsedTime;
+        }
+    }
+
+    console.log("Current Uptime/Downtime Tracking:", { uptimeTracker, downtimeTracker });
+}
+
+// Ping all devices and log changes
+async function pingDevices() {
+    for (const ip of devices) {
+        try {
+            const result = await ping.promise.probe(ip);
+            const newStatus = result.alive ? "Online" : "Offline";
+
+            // Log only if status has changed
+            if (!deviceStatus[ip] || deviceStatus[ip] !== newStatus) {
+                logDeviceChange(ip, newStatus);
+            }
+
+            // Update current device status
+            deviceStatus[ip] = newStatus;
+        } catch (error) {
+            console.error(`Error pinging ${ip}:`, error);
+            deviceStatus[ip] = "Offline";
+        }
+    }
+    console.log("Updated device statuses:", deviceStatus);
+}
+
+// Call `pingDevices` function every 1 minute and update uptime/downtime every 1 minute
+setInterval(pingDevices, 60000); // Ping devices every 1 minute
+setInterval(updateUptimeDowntime, 1000); // Update uptime/downtime every second
