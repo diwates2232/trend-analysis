@@ -1,73 +1,57 @@
-const pingDevices = async (devices) => {
-    const limit = pLimit(10); // Ping max 10 devices concurrently
+Now API -http://localhost/api/regions/trend/details/apac
 
-    const pingPromises = devices.map((device) =>
-        limit(async () => {
-            if (!device.ip_address) {
-                device.status = "IP Address Missing";
-                return;
-            }
+responce 
+{
+  "region": "apac",
+  "trends": {
+    "daily": [
+      {
+        "device_name": "Unknown",
+        "ip_address": "10.199.10.20",
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "device_name": "Unknown",
+        "ip_address": "10.199.10.139",
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "device_name": "Unknown",
+        "ip_address": "10.199.10.142",
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
+      {
+        "device_name": "Unknown",
+        "ip_address": "10.199.10.141",
+        "uptime": 0,
+        "downtime": 0,
+        "downtimeDuration": 0
+      },
 
-            const prevStatus = cache.get(device.ip_address) || "Unknown";
-            const newStatus = await pingDevice(device.ip_address);
+in above responce Device uptime is not increase real time 
+and 
 
-            if (prevStatus !== newStatus) {
-                addDeviceHistory(device, newStatus);
-            }
+API-http://localhost/api/regions/trend/details/emea
+ responce -
+{"error":"Internal server error","details":"Cannot read properties of undefined (reading 'status')"}
 
-            cache.set(device.ip_address, newStatus);
-            device.status = newStatus;
-        })
-    );
-
-    await Promise.all(pingPromises);
-};
+Same error happen when i replace region name emea to laca ,namer 
 
 
-
-
-
-const fetchRegionTrendData = async (region) => {
-    if (!allData || Object.keys(allData).length === 0) {
-        console.error("Error: Device data is not loaded.");
-        return null;
-    }
-
-    const filterByRegion = (devices) => 
-        devices.filter(device => device.location?.toLowerCase() === region.toLowerCase());
-
-    const regionDevices = {
-        cameras: filterByRegion(allData.cameras),
-        archivers: filterByRegion(allData.archivers),
-        controllers: filterByRegion(allData.controllers),
-        servers: filterByRegion(allData.servers)
-    };
-
-    if (!regionDevices.cameras.length && !regionDevices.archivers.length && !regionDevices.controllers.length && !regionDevices.servers.length) {
-        console.log(`No devices found for region: ${region}`);
-        return null;
-    }
-
-    // Ping devices to fetch their live status
-    await pingDevices([...regionDevices.cameras, ...regionDevices.archivers, ...regionDevices.controllers, ...regionDevices.servers]);
-
-    const dailyTrends = [];
-    for (const deviceType of Object.values(regionDevices)) {
-        for (const device of deviceType) {
-            const { uptime, downtime, downtimeDuration } = computeDeviceStats(device.history);
-
-            dailyTrends.push({
-                device_name: device.device_name || "Unknown",
-                ip_address: device.ip_address,
-                uptime,
-                downtime,
-                downtimeDuration
-            });
-        }
-    }
-
-    return {
-        daily: dailyTrends
-    };
-};
-
+Eror in getRegionTrendDetails: TypeError: Cannot read properties of undefined (reading 'status')
+    at computeDeviceStats (C:\Users\W0024618\Desktop\Backend\src\services\excelService.js:540:33)
+    at fetchRegionTrendData (C:\Users\W0024618\Desktop\Backend\src\services\excelService.js:643:60)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async getRegionTrendDetails (C:\Users\W0024618\Desktop\Backend\src\controllers\regionControllers.js:18:27)
+Requested Region: emea
+Error in getRegionTrendDetails: TypeError: Cannot read properties of undefined (reading 'status')
+    at computeDeviceStats (C:\Users\W0024618\Desktop\Backend\src\services\excelService.js:540:33)
+    at fetchRegionTrendData (C:\Users\W0024618\Desktop\Backend\src\services\excelService.js:643:60)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async getRegionTrendDetails (C:\Users\W0024618\Desktop\Backend\src\controllers\regionControllers.js:18:27)
