@@ -1,5 +1,41 @@
 Read below Backend project files carefully check each function working properly if any changes need kindly inform me
 
+also check device history api - http://localhost/api/devices/history 
+working properly
+also check API -http://localhost/api/regions/trend/details/apac
+trend details api this api give responce 
+
+{
+  "region": "apac",
+  "trends": {
+"daily": [
+        {
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0,
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.20"
+        },
+        {
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0,
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.139"
+        },
+        {
+          "uptime": 0,
+          "downtime": 0,
+          "downtimeDuration": 0,
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.142"
+        },
+
+
+in this api i want if device is online then increse its uptime duration in real time  (min/hour) format
+if device goes offline then start monitor its downtime duration in real time.
+for many information read below my backend details and make changes in my files carefully.
+
 File -1
 RegionController.js
 
