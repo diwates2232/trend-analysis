@@ -1,0 +1,70 @@
+const computeDeviceStats = (history) => {
+    let uptime = 0, downtime = 0, downtimeDuration = 0;
+    let lastStatus = history[0]?.status || "Offline"; // Default to "Offline" if no history
+    let lastTimestamp = history[0] ? DateTime.fromISO(history[0].timestamp, { zone: 'Asia/Kolkata' }).toMillis() : DateTime.now().toMillis();
+
+    for (let i = 1; i < history.length; i++) {
+        let currentStatus = history[i].status;
+        let currentTime = DateTime.fromISO(history[i].timestamp, { zone: 'Asia/Kolkata' }).toMillis();
+        let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert to minutes
+
+        if (timeDiff > 0) {
+            if (lastStatus === "Online") {
+                uptime += timeDiff;
+            } else if (lastStatus === "Offline") {
+                downtime += timeDiff;
+            }
+
+            // Check if device just came back online, track downtime duration
+            if (lastStatus === "Offline" && currentStatus === "Online") {
+                downtimeDuration += downtime;
+                downtime = 0; // Reset downtime once device comes back online
+            }
+        }
+
+        lastStatus = currentStatus;
+        lastTimestamp = currentTime;
+    }
+
+    // Convert uptime, downtime, and downtimeDuration to days, hours, minutes format
+    const formatTime = (minutes) => {
+        const days = Math.floor(minutes / 1440);
+        const hours = Math.floor((minutes % 1440) / 60);
+        const mins = Math.floor(minutes % 60);
+        return `${days}d ${hours}h ${mins}m`;
+    };
+
+    return {
+        uptime: formatTime(uptime),
+        downtime: formatTime(downtime),
+        downtimeDuration: formatTime(downtimeDuration),
+    };
+};
+
+
+
+
+const pingDevices = async (devices) => {
+    const limit = pLimit(10);
+
+    const pingPromises = devices.map((device) =>
+        limit(async () => {
+            if (!device.ip_address) {
+                device.status = "IP Address Missing";
+                return;
+            }
+
+            if (cache.has(device.ip_address)) {
+                device.status = cache.get(device.ip_address);
+            } else {
+                device.status = await pingDevice(device.ip_address);
+                cache.set(device.ip_address, device.status);
+            }
+
+            monitorDevice(device);  // Ensure monitorDevice handles uptime/downtime properly
+        })
+    );
+
+    await Promise.all(pingPromises);
+};
+
