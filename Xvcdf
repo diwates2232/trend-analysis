@@ -1,0 +1,71 @@
+const computeDeviceStats = (history) => {
+    let uptime = 0, downtime = 0, downtimeDuration = 0;
+    let lastStatus = history[0]?.status || "Offline"; // Default to "Offline" if no history
+    let lastTimestamp = history[0] ? DateTime.fromISO(history[0].timestamp, { zone: 'Asia/Kolkata' }).toMillis() : DateTime.now().toMillis();
+
+    for (let i = 1; i < history.length; i++) {
+        let currentStatus = history[i].status;
+        let currentTime = DateTime.fromISO(history[i].timestamp, { zone: 'Asia/Kolkata' }).toMillis();
+        let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert to minutes
+
+        if (timeDiff > 0) {
+            if (lastStatus === "Online") {
+                uptime += timeDiff;
+            } else if (lastStatus === "Offline") {
+                downtime += timeDiff;
+            }
+
+            // Check if device just came back online, track downtime duration
+            if (lastStatus === "Offline" && currentStatus === "Online") {
+                downtimeDuration += downtime;
+            }
+        }
+
+        lastStatus = currentStatus;
+        lastTimestamp = currentTime;
+    }
+
+    return {
+        uptime: Math.floor(uptime / 60) + "h " + Math.floor(uptime % 60) + "m",
+        downtime: Math.floor(downtime / 60) + "h " + Math.floor(downtime % 60) + "m",
+        downtimeDuration: Math.floor(downtimeDuration / 60) + "h " + Math.floor(downtimeDuration % 60) + "m"
+    };
+};
+
+
+
+
+
+
+const calculateTrend = (devices, period) => {
+    const allDevices = [...devices.cameras, ...devices.archivers, ...devices.controllers, ...devices.servers];
+
+    return allDevices.map(device => {
+        if (!device.history || device.history.length === 0) {
+            return { 
+                device_name: device.device_name || "Unknown", 
+                ip_address: device.ip_address, 
+                uptime: "0h 0m", 
+                downtime: "0h 0m", 
+                downtimeDuration: "0h 0m" 
+            };
+        }
+
+        const stats = computeDeviceStats(device.history);
+        return {
+            device_name: device.device_name || "Unknown",
+            ip_address: device.ip_address,
+            ...stats
+        };
+    });
+};
+
+
+
+
+
+
+device.history = device.history.filter(entry => {
+    const entryTime = DateTime.fromISO(entry.timestamp);
+    return entryTime > DateTime.now().minus({ days: 7 }); // Keep last 7 days
+});
