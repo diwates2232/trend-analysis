@@ -1,0 +1,111 @@
+const fs = require("fs");
+const { DateTime } = require("luxon");
+
+const logFile = "./deviceLogs.json";
+
+// Load logs from the file
+const loadLogs = () => fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+
+// Save logs back to the file
+const saveLogs = (logs) => fs.writeFileSync(logFile, JSON.stringify(logs, null, 2), "utf8");
+
+// Track active monitoring sessions
+const activeDevices = {};
+
+// Function to monitor device status in real-time
+const monitorDevice = (device) => {
+    const logs = loadLogs();
+    const currentTime = DateTime.now().setZone("Asia/Kolkata").toISO();
+
+    // Get last status entry
+    let lastEntry = logs[device.ip]?.slice(-1)[0]; 
+    let lastStatus = lastEntry ? lastEntry.status : null;
+
+    // If status changed, log it and start monitoring
+    if (lastStatus !== device.status) {
+        console.log(`Status changed: ${device.device_name || device.ip} is now ${device.status}`);
+
+        // Save new status change
+        logs[device.ip] = logs[device.ip] || [];
+        logs[device.ip].push({ status: device.status, timestamp: currentTime });
+        saveLogs(logs);
+
+        // If status changed, start uptime/downtime tracking
+        if (device.status === "Online") {
+            startUptime(device);
+        } else {
+            startDowntime(device);
+        }
+    }
+};
+
+// Function to start uptime tracking
+const startUptime = (device) => {
+    if (activeDevices[device.ip]) {
+        clearInterval(activeDevices[device.ip]);
+    }
+
+    activeDevices[device.ip] = setInterval(() => {
+        console.log(`Device ${device.device_name || device.ip} is Online. Increasing Uptime...`);
+        updateUptime(device);
+    }, 60000); // Updates every minute
+};
+
+// Function to start downtime tracking
+const startDowntime = (device) => {
+    if (activeDevices[device.ip]) {
+        clearInterval(activeDevices[device.ip]);
+    }
+
+    activeDevices[device.ip] = setInterval(() => {
+        console.log(`Device ${device.device_name || device.ip} is Offline. Increasing Downtime...`);
+        updateDowntime(device);
+    }, 60000); // Updates every minute
+};
+
+// Function to update uptime in real-time
+const updateUptime = (device) => {
+    const logs = loadLogs();
+    const currentTime = DateTime.now().setZone("Asia/Kolkata").toISO();
+
+    logs[device.ip] = logs[device.ip] || [];
+    logs[device.ip].push({ status: "Online", timestamp: currentTime });
+
+    saveLogs(logs);
+};
+
+// Function to update downtime in real-time
+const updateDowntime = (device) => {
+    const logs = loadLogs();
+    const currentTime = DateTime.now().setZone("Asia/Kolkata").toISO();
+
+    logs[device.ip] = logs[device.ip] || [];
+    logs[device.ip].push({ status: "Offline", timestamp: currentTime });
+
+    saveLogs(logs);
+};
+
+// Function to stop tracking when a device status changes
+const stopTracking = (device) => {
+    if (activeDevices[device.ip]) {
+        clearInterval(activeDevices[device.ip]);
+        delete activeDevices[device.ip];
+    }
+};
+
+// Example function to check device status periodically (simulate real-time status checking)
+const checkDeviceStatus = (device) => {
+    setInterval(() => {
+        // Fetch current status (This should come from actual device monitoring logic)
+        const isOnline = Math.random() > 0.5; // Simulated device status change
+        device.status = isOnline ? "Online" : "Offline";
+
+        monitorDevice(device);
+    }, 30000); // Check status every 30 seconds
+};
+
+// Example device object
+const exampleDevice = { ip: "192.168.1.1", device_name: "Camera1", status: "Offline" };
+
+// Start monitoring
+checkDeviceStatus(exampleDevice);
