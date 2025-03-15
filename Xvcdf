@@ -1,3 +1,414 @@
+see Still We are not getting expected respone .i want responce in day /hour/minutes  format
+also check responce some devices are not starting increase its uptime they are in online status.kindly check code and do it correct
+
+
+
+API-http://localhost/api/regions/trend/details/emea
+
+responce
+{
+          "device_name": "Unknown",
+          "ip_address": "10.136.63.236",
+          "uptime": "26235h 5m",
+          "downtime": "52h 6m",
+          "downtimeDuration": "49753h 13m"
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.128.194.70",
+          "uptime": "511h 38m",
+          "downtime": "0h 46m",
+          "downtimeDuration": "41h 6m"
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.128.203.5",
+          "uptime": "24239h 11m",
+          "downtime": "2h 20m",
+          "downtimeDuration": "249h 13m"
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.128.203.4",
+          "uptime": "0h 0m",
+          "downtime": "0h 0m",
+          "downtimeDuration": "0h 0m"
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.130.36.56",
+          "uptime": "0h 0m",
+          "downtime": "0h 0m",
+          "downtimeDuration": "0h 0m"
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.128.194.102",
+          "uptime": "24254h 18m",
+          "downtime": "3h 5m",
+          "downtimeDuration": "493h 8m"
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.128.218.107",
+          "uptime": "12463h 16m",
+          "downtime": "2h 25m",
+          "downtimeDuration": "256h 55m"
+        },
+        {
+          "device_name": "Unknown",
+          "ip_address": "10.131.106.134",
+          "uptime": "0h 0m",
+          "downtime": "0h 0m",
+          "downtimeDuration": "0h 0m"
+        },
+
+
+excelService.js
+
+
+const fs = require("fs");
+const xlsx = require("xlsx");
+const path = require("path");
+const ping = require("ping");
+const pLimit = require("p-limit");
+const { DateTime } = require("luxon"); // Import Luxon for timezone handling
+
+// Paths for Excel files
+const archiverPath = path.join(__dirname, "../data/ArchiverData.xlsx");
+const controllerPath = path.join(__dirname, "../data/ControllerData.xlsx");
+const cameraPath = path.join(__dirname, "../data/CameraData.xlsx");
+const serverPath = path.join(__dirname, "../data/ServerData.xlsx");
+
+// Log file for device status history
+const logFile = "./deviceLogs.json";
+
+// Cache to store preloaded data
+let allData = {};
+const activeDevices = {}; // Store active monitoring sessions
+
+// Function to load logs
+const loadLogs = () => fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+
+// Function to save logs
+const saveLogs = (logs) => fs.writeFileSync(logFile, JSON.stringify(logs, null, 2), "utf8");
+
+// Function to normalize column headers
+const normalizeHeaders = (data) => {
+    return data.map((row) => {
+        const normalizedRow = {};
+        for (const key in row) {
+            const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+            normalizedRow[normalizedKey] = row[key];
+        }
+        return normalizedRow;
+    });
+};
+
+// Function to load Excel data into cache
+const loadExcelData = () => {
+    if (Object.keys(allData).length === 0) {
+        const loadSheet = (filePath) => {
+            const workbook = xlsx.readFile(filePath);
+            return normalizeHeaders(xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]));
+        };
+
+        allData = {
+            archivers: loadSheet(archiverPath),
+            controllers: loadSheet(controllerPath),
+            cameras: loadSheet(cameraPath),
+            servers: loadSheet(serverPath),
+        };
+
+        for (const deviceList of Object.values(allData)) {
+            deviceList.forEach(device => {
+                if (!device.history) {
+                    device.history = [];
+                }
+            });
+        }
+
+        console.log("Excel Data Loaded:", Object.keys(allData));
+    }
+};
+
+// Fetch all IP addresses from loaded devices
+const fetchAllIpAddress = () => {
+    if (!allData || Object.keys(allData).length === 0) {
+        console.error("Error: Device data is not loaded.");
+        return [];
+    }
+
+    return Object.values(allData).flatMap(devices => devices.map(device => device.ip_address).filter(Boolean));
+};
+
+// Function to monitor device status in real-time
+const monitorDevice = (device) => {
+    const logs = loadLogs();
+    const currentTime = DateTime.now().setZone("Asia/Kolkata").toISO();
+
+    let lastEntry = logs[device.ip]?.slice(-1)[0];
+    let lastStatus = lastEntry ? lastEntry.status : null;
+
+    if (lastStatus !== device.status) {
+        console.log(`Status changed: ${device.device_name || device.ip} is now ${device.status}`);
+
+        logs[device.ip] = logs[device.ip] || [];
+        logs[device.ip].push({ status: device.status, timestamp: currentTime });
+        saveLogs(logs);
+
+        if (device.status === "Online") {
+            startUptime(device);
+        } else {
+            startDowntime(device);
+        }
+    }
+};
+
+// Start uptime tracking
+const startUptime = (device) => {
+    if (activeDevices[device.ip]) {
+        clearInterval(activeDevices[device.ip]);
+    }
+
+    activeDevices[device.ip] = setInterval(() => {
+        console.log(`Device ${device.device_name || device.ip} is Online. Increasing Uptime...`);
+        updateUptime(device);
+    }, 60000);
+};
+
+// Start downtime tracking
+const startDowntime = (device) => {
+    if (activeDevices[device.ip]) {
+        clearInterval(activeDevices[device.ip]);
+    }
+
+    activeDevices[device.ip] = setInterval(() => {
+        console.log(`Device ${device.device_name || device.ip} is Offline. Increasing Downtime...`);
+        updateDowntime(device);
+    }, 60000);
+};
+
+// Update uptime in real-time
+const updateUptime = (device) => {
+    const logs = loadLogs();
+    const currentTime = DateTime.now().setZone("Asia/Kolkata").toISO();
+
+    logs[device.ip] = logs[device.ip] || [];
+    logs[device.ip].push({ status: "Online", timestamp: currentTime });
+
+    saveLogs(logs);
+};
+
+// Update downtime in real-time
+const updateDowntime = (device) => {
+    const logs = loadLogs();
+    const currentTime = DateTime.now().setZone("Asia/Kolkata").toISO();
+
+    logs[device.ip] = logs[device.ip] || [];
+    logs[device.ip].push({ status: "Offline", timestamp: currentTime });
+
+    saveLogs(logs);
+};
+
+// Stop tracking when device status changes
+const stopTracking = (device) => {
+    if (activeDevices[device.ip]) {
+        clearInterval(activeDevices[device.ip]);
+        delete activeDevices[device.ip];
+    }
+};
+
+// Function to Ping a Single Device
+const pingDevice = (ip) => {
+    return new Promise((resolve) => {
+        ping.sys.probe(ip, (isAlive) => {
+            resolve(isAlive ? "Online" : "Offline");
+        });
+    });
+};
+
+// Function to ping devices and cache results
+const cache = new Map();
+const pingDevices = async (devices) => {
+    const limit = pLimit(10);
+
+    const pingPromises = devices.map((device) =>
+        limit(async () => {
+            if (!device.ip_address) {
+                device.status = "IP Address Missing";
+                return;
+            }
+
+            if (cache.has(device.ip_address)) {
+                device.status = cache.get(device.ip_address);
+            } else {
+                device.status = await pingDevice(device.ip_address);
+                cache.set(device.ip_address, device.status);
+            }
+
+            monitorDevice(device);
+        })
+    );
+
+    await Promise.all(pingPromises);
+};
+
+// Fetch Global Data
+const fetchGlobalData = async () => {
+    if (!allData || Object.keys(allData).length === 0) {
+        console.error("Error: Device data is not loaded.");
+        return null;
+    }
+
+    const allDevices = [...allData.cameras, ...allData.archivers, ...allData.controllers, ...allData.servers];
+
+    await pingDevices(allDevices);
+    const summary = calculateSummary(allData);
+
+    return { summary, details: allData };
+};
+
+// Fetch Region Data
+const fetchRegionData = async (regionName) => {
+    if (!allData || Object.keys(allData).length === 0) {
+        console.error("Error: Device data is not loaded.");
+        return null;
+    }
+
+    const filterByRegion = (devices) =>
+        devices.filter(device => device.location?.toLowerCase() === regionName.toLowerCase());
+
+    const regionDevices = {
+        cameras: filterByRegion(allData.cameras),
+        archivers: filterByRegion(allData.archivers),
+        controllers: filterByRegion(allData.controllers),
+        servers: filterByRegion(allData.servers),
+    };
+
+    await pingDevices([...regionDevices.cameras, ...regionDevices.archivers, ...regionDevices.controllers, ...regionDevices.servers]);
+
+    const summary = calculateSummary(regionDevices);
+    return { summary, details: regionDevices };
+};
+
+// Calculate summary of devices
+const calculateSummary = (devices) => {
+    const summary = {};
+
+    for (const [key, deviceList] of Object.entries(devices)) {
+        const total = deviceList.length;
+        const online = deviceList.filter(device => device.status === "Online").length;
+        const offline = total - online;
+
+        summary[key] = { total, online, offline };
+    }
+
+    return {
+        totalDevices: Object.values(summary).reduce((sum, { total }) => sum + total, 0),
+        totalOnlineDevices: Object.values(summary).reduce((sum, { online }) => sum + online, 0),
+        totalOfflineDevices: Object.values(summary).reduce((sum, { offline }) => sum + offline, 0),
+        ...summary,
+    };
+};
+
+
+const fetchRegionTrendData = async (region) => {
+    if (!allData || Object.keys(allData).length === 0) {
+        console.error("Error: Device data is not loaded.");
+        return null;
+    }
+
+    const filterByRegion = (devices) => 
+        devices.filter(device => device.location?.toLowerCase() === region.toLowerCase());
+
+    const regionDevices = {
+        cameras: filterByRegion(allData.cameras),
+        archivers: filterByRegion(allData.archivers),
+        controllers: filterByRegion(allData.controllers),
+        servers: filterByRegion(allData.servers)
+    };
+
+    if (!regionDevices.cameras.length && !regionDevices.archivers.length && !regionDevices.controllers.length && !regionDevices.servers.length) {
+        console.log(`No devices found for region: ${region}`);
+        return null;
+    }
+
+    // Fetch history for each device
+    await Promise.all([
+        ...regionDevices.cameras.map(device => fetchDeviceHistory(device)),
+        ...regionDevices.archivers.map(device => fetchDeviceHistory(device)),
+        ...regionDevices.controllers.map(device => fetchDeviceHistory(device)),
+        ...regionDevices.servers.map(device => fetchDeviceHistory(device))
+    ]);
+
+    // Calculate trends
+    const trends = calculateDeviceTrends(regionDevices);
+
+    return { 
+        region,
+        trends // Removed extra nested "trends"
+    };
+};
+
+
+
+const fetchDeviceHistory = async (device) => {
+    const logFile = "./deviceLogs.json";
+    let devicesLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+    
+    if (!devicesLogs[device.ip_address]) {
+        console.log(`No history found for device: ${device.device_name || "Unknown"} (${device.ip_address})`);
+        return;
+    }
+
+    // Convert timestamps from UTC to IST
+    devicesLogs[device.ip_address].forEach(log => {
+        const convertedTimestamp = DateTime.fromISO(log.timestamp, { zone: 'utc' })
+            .setZone('Asia/Kolkata')
+            .toISO();
+
+        if (!device.history) device.history = [];
+        device.history.push({
+            status: log.status,
+            timestamp: convertedTimestamp
+        });
+    });
+
+    // Ensure device name is correctly assigned
+    if (!device.device_name) {
+        device.device_name = device.name || "Unknown";  // Check 'name' or fallback
+    }
+
+    console.log(`Device history for ${device.device_name} (${device.ip_address}):`, device.history);
+};
+
+
+
+// Function to add device history with IST timestamp and keep only the last 30 days of history
+const addDeviceHistory = (device, status) => {
+    const istTime = DateTime.now().setZone('Asia/Kolkata').toISO(); // Current IST time
+
+    // Log device status and timestamp before adding history
+    console.log(`Adding history for device ${device.device_name || device.ip_address}: Status - ${status}, Timestamp - ${istTime}`);
+
+    // Add a new status change entry to the device's history
+    device.history.push({
+        status: status,
+        timestamp: istTime
+    });
+
+    // Keep history entries only for the past 30 days or 7 days
+    device.history = device.history.filter(entry => {
+        const entryTime = DateTime.fromISO(entry.timestamp);
+        return entryTime > DateTime.now().minus({ days: 7 }); // Keep last 7 days
+    });
+    //months: 1 
+
+    // Log after adding the status
+    console.log(`History for device ${device.device_name || device.ip_address}:`, device.history);
+};
+
 const computeDeviceStats = (history) => {
     let uptime = 0, downtime = 0, downtimeDuration = 0;
     let lastStatus = history[0]?.status || "Offline"; // Default to "Offline" if no history
@@ -32,10 +443,14 @@ const computeDeviceStats = (history) => {
     };
 };
 
-
-
-
-
+// Calculate Trends for Devices
+const calculateDeviceTrends = (devices) => {
+    return {
+        daily: calculateTrend(devices, "daily"),
+      //  weekly: calculateTrend(devices, "weekly"),
+       // monthly: calculateTrend(devices, "monthly")
+    };
+};
 
 const calculateTrend = (devices, period) => {
     const allDevices = [...devices.cameras, ...devices.archivers, ...devices.controllers, ...devices.servers];
@@ -63,9 +478,8 @@ const calculateTrend = (devices, period) => {
 
 
 
+// Preload Data
+loadExcelData();
 
+module.exports = { fetchGlobalData, fetchRegionData, fetchAllIpAddress , fetchRegionTrendData };
 
-device.history = device.history.filter(entry => {
-    const entryTime = DateTime.fromISO(entry.timestamp);
-    return entryTime > DateTime.now().minus({ days: 7 }); // Keep last 7 days
-});
