@@ -1,5 +1,0 @@
-]
-Error in getRegionTrendDetails: ReferenceError: calculateDeviceTrends is not defined
-    at fetchRegionTrendData (C:\Users\W0024618\Desktop\Backend\src\services\excelService.js:787:20)
-    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
-    at async getRegionTrendDetails (C:\Users\W0024618\Desktop\Backend\src\controllers\regionControllers.js:18:27)
