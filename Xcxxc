@@ -1,0 +1,51 @@
+const fs = require("fs");
+const ping = require("ping");
+
+// Fetch device IPs
+const devices = fetchAllIpAddress();
+let deviceStatus = {};
+const logFile = "./deviceLogs.json";
+
+// Load previous logs if they exist
+let deviceLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+
+// Function to log every status change with a new entry
+function logDeviceChange(ip, status) {
+  const timestamp = new Date().toISOString();
+
+  // Ensure device has an array for logs
+  if (!deviceLogs[ip]) {
+    deviceLogs[ip] = [];
+  }
+
+  // Always log status change with timestamp (new entry each time)
+  deviceLogs[ip].push({ status, timestamp });
+
+  // Write updated logs to the file
+  fs.writeFileSync(logFile, JSON.stringify(deviceLogs, null, 2));
+}
+
+// Function to ping all devices and log changes
+async function pingDevices() {
+  for (const ip of devices) {
+    try {
+      const result = await ping.promise.probe(ip);
+      const newStatus = result.alive ? "Online" : "Offline";
+
+      // Log the change if the status is different from the previous one
+      if (deviceStatus[ip] !== newStatus) {
+        logDeviceChange(ip, newStatus);
+      }
+
+      // Update the device status
+      deviceStatus[ip] = newStatus;
+    } catch (error) {
+      console.error(`Error pinging ${ip}:`, error);
+      deviceStatus[ip] = "Offline";
+    }
+  }
+  console.log("Updated device status:", deviceStatus);
+}
+
+// Run the ping function every 60 seconds
+setInterval(pingDevices, 60000);
