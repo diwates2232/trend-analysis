@@ -1,0 +1,210 @@
+const fs = require("fs");
+const xlsx = require("xlsx");
+const path = require("path");
+const ping = require("ping");
+const pLimit = require("p-limit");
+const { DateTime } = require("luxon");
+
+// Paths for Excel files
+const archiverPath = path.join(__dirname, "../data/ArchiverData.xlsx");
+const controllerPath = path.join(__dirname, "../data/ControllerData.xlsx");
+const cameraPath = path.join(__dirname, "../data/CameraData.xlsx");
+const serverPath = path.join(__dirname, "../data/ServerData.xlsx");
+
+// Log file for device status history
+const logFile = "./deviceLogs.json";
+
+// Cache to store preloaded data
+let allData = {};
+const activeDevices = {}; // Store active monitoring sessions
+
+// Function to load logs
+const loadLogs = () => fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+
+// Function to save logs
+const saveLogs = (logs) => fs.writeFileSync(logFile, JSON.stringify(logs, null, 2), "utf8");
+
+// Function to load Excel data into cache
+const loadExcelData = () => {
+    if (Object.keys(allData).length === 0) {
+        const loadSheet = (filePath) => {
+            const workbook = xlsx.readFile(filePath);
+            return xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+        };
+
+        allData = {
+            archivers: loadSheet(archiverPath),
+            controllers: loadSheet(controllerPath),
+            cameras: loadSheet(cameraPath),
+            servers: loadSheet(serverPath),
+        };
+
+        console.log("Excel Data Loaded:", Object.keys(allData));
+    }
+};
+
+// Monitor device status and update logs
+const monitorDevice = (device) => {
+    const logs = loadLogs();
+    const currentTime = DateTime.now().setZone("Asia/Kolkata").toISO();
+
+    if (!logs[device.ip_address]) {
+        logs[device.ip_address] = [];
+    }
+
+    let lastEntry = logs[device.ip_address].slice(-1)[0];
+    let lastStatus = lastEntry ? lastEntry.status : "Unknown";
+
+    if (lastStatus !== device.status) {
+        console.log(`Status changed: ${device.device_name || device.ip_address} is now ${device.status}`);
+
+        logs[device.ip_address].push({ status: device.status, timestamp: currentTime });
+        saveLogs(logs);
+    }
+
+    if (device.status === "Online") {
+        startUptime(device);
+    } else {
+        startDowntime(device);
+    }
+};
+
+// Track uptime
+const startUptime = (device) => {
+    stopTracking(device);
+
+    activeDevices[device.ip_address] = setInterval(() => {
+        updateLogs(device, "Online");
+    }, 60000);
+};
+
+// Track downtime
+const startDowntime = (device) => {
+    stopTracking(device);
+
+    activeDevices[device.ip_address] = setInterval(() => {
+        updateLogs(device, "Offline");
+    }, 60000);
+};
+
+// Update logs for uptime and downtime
+const updateLogs = (device, status) => {
+    const logs = loadLogs();
+    const currentTime = DateTime.now().setZone("Asia/Kolkata").toISO();
+
+    logs[device.ip_address] = logs[device.ip_address] || [];
+    logs[device.ip_address].push({ status, timestamp: currentTime });
+
+    saveLogs(logs);
+};
+
+// Stop tracking when device status changes
+const stopTracking = (device) => {
+    if (activeDevices[device.ip_address]) {
+        clearInterval(activeDevices[device.ip_address]);
+        delete activeDevices[device.ip_address];
+    }
+};
+
+// Ping a single device
+const pingDevice = (ip) => {
+    return new Promise((resolve) => {
+        ping.sys.probe(ip, (isAlive) => {
+            resolve(isAlive ? "Online" : "Offline");
+        });
+    });
+};
+
+// Ping multiple devices
+const pingDevices = async (devices) => {
+    const limit = pLimit(10);
+
+    const pingPromises = devices.map((device) =>
+        limit(async () => {
+            if (!device.ip_address) {
+                device.status = "IP Address Missing";
+                return;
+            }
+
+            device.status = await pingDevice(device.ip_address);
+            monitorDevice(device);
+        })
+    );
+
+    await Promise.all(pingPromises);
+};
+
+// Fetch global data
+const fetchGlobalData = async () => {
+    if (!allData || Object.keys(allData).length === 0) {
+        console.error("Error: Device data is not loaded.");
+        return null;
+    }
+
+    const allDevices = [...allData.cameras, ...allData.archivers, ...allData.controllers, ...allData.servers];
+
+    await pingDevices(allDevices);
+    return { summary: calculateSummary(allData), details: allData };
+};
+
+// Compute device uptime, downtime, and downtime duration
+const computeDeviceStats = (history) => {
+    let uptime = 0, downtime = 0, lastStatus = "Offline";
+    let lastTimestamp = null;
+
+    for (const log of history) {
+        const currentStatus = log.status;
+        const currentTime = DateTime.fromISO(log.timestamp, { zone: 'Asia/Kolkata' }).toMillis();
+
+        if (lastTimestamp) {
+            let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert to minutes
+
+            if (lastStatus === "Online") {
+                uptime += timeDiff;
+            } else {
+                downtime += timeDiff;
+            }
+        }
+
+        lastStatus = currentStatus;
+        lastTimestamp = currentTime;
+    }
+
+    return {
+        uptime: formatTime(uptime),
+        downtime: formatTime(downtime),
+    };
+};
+
+// Format time as days, hours, minutes
+const formatTime = (minutes) => {
+    const days = Math.floor(minutes / 1440);
+    const hours = Math.floor((minutes % 1440) / 60);
+    const mins = Math.floor(minutes % 60);
+    return `${days}d ${hours}h ${mins}m`;
+};
+
+// Calculate summary
+const calculateSummary = (devices) => {
+    const summary = {};
+
+    for (const [key, deviceList] of Object.entries(devices)) {
+        const total = deviceList.length;
+        const online = deviceList.filter(device => device.status === "Online").length;
+        const offline = total - online;
+
+        summary[key] = { total, online, offline };
+    }
+
+    return {
+        totalDevices: Object.values(summary).reduce((sum, { total }) => sum + total, 0),
+        totalOnlineDevices: Object.values(summary).reduce((sum, { online }) => sum + online, 0),
+        totalOfflineDevices: Object.values(summary).reduce((sum, { offline }) => sum + offline, 0),
+        ...summary,
+    };
+};
+
+// Load data initially
+loadExcelData();
+
+module.exports = { fetchGlobalData, fetchAllIpAddress };
