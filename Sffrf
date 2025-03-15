@@ -1,0 +1,113 @@
+const fetchRegionTrendData = async (region) => {
+    if (!allData || Object.keys(allData).length === 0) {
+        console.error("Error: Device data is not loaded.");
+        return null;
+    }
+
+    const filterByRegion = (devices) => 
+        devices.filter(device => device.location?.toLowerCase() === region.toLowerCase());
+
+    const regionDevices = {
+        cameras: filterByRegion(allData.cameras),
+        archivers: filterByRegion(allData.archivers),
+        controllers: filterByRegion(allData.controllers),
+        servers: filterByRegion(allData.servers)
+    };
+
+    if (!regionDevices.cameras.length && !regionDevices.archivers.length && !regionDevices.controllers.length && !regionDevices.servers.length) {
+        console.log(`No devices found for region: ${region}`);
+        return null;
+    }
+
+    // Fetch history for each device
+    await Promise.all([
+        ...regionDevices.cameras.map(device => fetchDeviceHistory(device)),
+        ...regionDevices.archivers.map(device => fetchDeviceHistory(device)),
+        ...regionDevices.controllers.map(device => fetchDeviceHistory(device)),
+        ...regionDevices.servers.map(device => fetchDeviceHistory(device))
+    ]);
+
+    // Calculate trends
+    const trends = calculateDeviceTrends(regionDevices);
+
+    return { 
+        region,
+        trends // Removed extra nested "trends"
+    };
+};
+
+
+
+
+const fetchDeviceHistory = async (device) => {
+    const logFile = "./deviceLogs.json";
+    let devicesLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+    
+    if (!devicesLogs[device.ip_address]) {
+        console.log(`No history found for device: ${device.device_name || "Unknown"} (${device.ip_address})`);
+        return;
+    }
+
+    // Convert timestamps from UTC to IST
+    devicesLogs[device.ip_address].forEach(log => {
+        const convertedTimestamp = DateTime.fromISO(log.timestamp, { zone: 'utc' })
+            .setZone('Asia/Kolkata')
+            .toISO();
+
+        if (!device.history) device.history = [];
+        device.history.push({
+            status: log.status,
+            timestamp: convertedTimestamp
+        });
+    });
+
+    // Ensure device name is correctly assigned
+    if (!device.device_name) {
+        device.device_name = device.name || "Unknown";  // Check 'name' or fallback
+    }
+
+    console.log(`Device history for ${device.device_name} (${device.ip_address}):`, device.history);
+};
+
+
+
+
+const computeDeviceStats = (history) => {
+    let uptime = 0, downtime = 0, downtimeDuration = 0;
+    let lastStatus = history[0].status;
+    let lastTimestamp = DateTime.fromISO(history[0].timestamp, { zone: 'Asia/Kolkata' }).toMillis();
+
+    for (let i = 1; i < history.length; i++) {
+        let currentStatus = history[i].status;
+        let currentTime = DateTime.fromISO(history[i].timestamp, { zone: 'Asia/Kolkata' }).toMillis();
+        let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert to minutes
+
+        if (timeDiff > 0) {
+            if (lastStatus === "Online" && currentStatus === "Online") {
+                uptime += timeDiff;
+            }
+            if (lastStatus === "Offline" && currentStatus === "Offline") {
+                downtime += timeDiff;
+            }
+            if (lastStatus === "Offline" && currentStatus === "Online") {
+                downtimeDuration += timeDiff; 
+            }
+        }
+
+        lastStatus = currentStatus;
+        lastTimestamp = currentTime;
+    }
+
+    return {
+        uptime: Math.round(uptime),
+        downtime: Math.round(downtime),
+        downtimeDuration: Math.round(downtimeDuration) // Corrected calculation
+    };
+};
+
+
+
+
+
+
+
