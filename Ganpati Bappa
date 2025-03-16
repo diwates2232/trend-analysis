@@ -1,0 +1,204 @@
+const fs = require("fs");
+const xlsx = require("xlsx");
+const path = require("path");
+const ping = require("ping");
+const pLimit = require("p-limit");
+const { DateTime } = require("luxon");
+
+// Paths for Excel files
+const archiverPath = path.join(__dirname, "../data/ArchiverData.xlsx");
+const controllerPath = path.join(__dirname, "../data/ControllerData.xlsx");
+const cameraPath = path.join(__dirname, "../data/CameraData.xlsx");
+const serverPath = path.join(__dirname, "../data/ServerData.xlsx");
+
+// Log file for device status history
+const logFile = "./deviceLogs.json";
+
+// Cache to store preloaded data
+let allData = {};
+const activeDevices = {}; // Store active monitoring sessions
+
+// Function to load logs
+const loadLogs = () => fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+
+// Function to save logs
+const saveLogs = (logs) => fs.writeFileSync(logFile, JSON.stringify(logs, null, 2), "utf8");
+
+// Function to normalize column headers
+const normalizeHeaders = (data) => {
+    return data.map((row) => {
+        const normalizedRow = {};
+        for (const key in row) {
+            const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+            normalizedRow[normalizedKey] = row[key];
+        }
+        return normalizedRow;
+    });
+};
+
+// Function to load Excel data into cache
+const loadExcelData = () => {
+    if (Object.keys(allData).length === 0) {
+        const loadSheet = (filePath) => {
+            const workbook = xlsx.readFile(filePath);
+            return normalizeHeaders(xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]));
+        };
+
+        allData = {
+            archivers: loadSheet(archiverPath),
+            controllers: loadSheet(controllerPath),
+            cameras: loadSheet(cameraPath),
+            servers: loadSheet(serverPath),
+        };
+
+        for (const deviceList of Object.values(allData)) {
+            deviceList.forEach(device => {
+                if (!device.history) {
+                    device.history = [];
+                }
+            });
+        }
+
+        console.log("Excel Data Loaded:", Object.keys(allData));
+    }
+};
+
+// Helper function to compute uptime and downtime for a device
+const computeDeviceStats = (history) => {
+    let uptime = 0, downtime = 0, downtimeDuration = 0;
+    let lastStatus = history[0]?.status || "Offline";
+    let lastTimestamp = history[0] ? DateTime.fromISO(history[0].timestamp, { zone: 'Asia/Kolkata' }).toMillis() : DateTime.now().toMillis();
+
+    for (let i = 1; i < history.length; i++) {
+        let currentStatus = history[i].status;
+        let currentTime = DateTime.fromISO(history[i].timestamp, { zone: 'Asia/Kolkata' }).toMillis();
+        let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert to minutes
+
+        if (timeDiff > 0) {
+            if (lastStatus === "Online") {
+                uptime += timeDiff;
+            } else if (lastStatus === "Offline") {
+                downtime += timeDiff;
+            }
+
+            if (lastStatus === "Offline" && currentStatus === "Online") {
+                downtimeDuration += downtime;
+                downtime = 0;
+            }
+        }
+
+        lastStatus = currentStatus;
+        lastTimestamp = currentTime;
+    }
+
+    // Format the uptime and downtime in days, hours, minutes
+    const formatTime = (minutes) => {
+        const days = Math.floor(minutes / 1440); // 1440 minutes in a day
+        const hours = Math.floor((minutes % 1440) / 60);
+        const mins = Math.floor(minutes % 60);
+        return `${days}d ${hours}h ${mins}m`;
+    };
+
+    return {
+        uptime: formatTime(uptime),
+        downtime: formatTime(downtime),
+        downtimeDuration: formatTime(downtimeDuration)
+    };
+};
+
+// Function to calculate trends for devices
+const calculateTrend = (devices, timePeriod = "daily") => {
+    let trends = [];
+
+    for (const deviceType in devices) {
+        const deviceList = devices[deviceType];
+        
+        for (const device of deviceList) {
+            if (device.history && device.history.length > 0) {
+                const stats = computeDeviceStats(device.history);
+
+                trends.push({
+                    device_type: device.device_type || "Unknown",
+                    device_name: device.device_name || "Unknown",
+                    ip_address: device.ip_address,
+                    uptime: stats.uptime,
+                    downtime: stats.downtime,
+                    downtimeDuration: stats.downtimeDuration
+                });
+            }
+        }
+    }
+
+    return trends;
+};
+
+// Updated function to fetch region trend data
+const fetchRegionTrendData = async (region) => {
+    if (!allData || Object.keys(allData).length === 0) {
+        console.error("Error: Device data is not loaded.");
+        return null;
+    }
+
+    const filterByRegion = (devices) => 
+        devices.filter(device => device.location?.toLowerCase() === region.toLowerCase());
+
+    const regionDevices = {
+        cameras: filterByRegion(allData.cameras),
+        archivers: filterByRegion(allData.archivers),
+        controllers: filterByRegion(allData.controllers),
+        servers: filterByRegion(allData.servers)
+    };
+
+    if (!regionDevices.cameras.length && !regionDevices.archivers.length && !regionDevices.controllers.length && !regionDevices.servers.length) {
+        console.log(`No devices found for region: ${region}`);
+        return null;
+    }
+
+    // Fetch history for each device
+    await Promise.all([
+        ...regionDevices.cameras.map(device => fetchDeviceHistory(device)),
+        ...regionDevices.archivers.map(device => fetchDeviceHistory(device)),
+        ...regionDevices.controllers.map(device => fetchDeviceHistory(device)),
+        ...regionDevices.servers.map(device => fetchDeviceHistory(device))
+    ]);
+
+    // Calculate trends
+    const trends = calculateTrend(regionDevices);
+
+    return { 
+        region,
+        trends 
+    };
+};
+
+// Fetch Device History
+const fetchDeviceHistory = async (device) => {
+    const devicesLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+    
+    if (!devicesLogs[device.ip_address]) {
+        console.log(`No history found for device: ${device.device_name || "Unknown"} (${device.ip_address})`);
+        return;
+    }
+
+    // Convert timestamps from UTC to IST
+    devicesLogs[device.ip_address].forEach(log => {
+        const convertedTimestamp = DateTime.fromISO(log.timestamp, { zone: 'utc' })
+            .setZone('Asia/Kolkata')
+            .toISO();
+
+        if (!device.history) device.history = [];
+        device.history.push({
+            status: log.status,
+            timestamp: convertedTimestamp
+        });
+    });
+
+    // Ensure device name is correctly assigned
+    if (!device.device_name) {
+        device.device_name = device.name || "Unknown";
+    }
+
+    console.log(`Device history for ${device.device_name} (${device.ip_address}):`, device.history);
+};
+
+// Monitor and update device status (existing code continues here)...
