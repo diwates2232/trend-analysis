@@ -1,0 +1,31 @@
+app.get("/api/region/history/:region", async (req, res) => {
+    const region = req.params.region.toUpperCase(); // Ensure region is in uppercase
+    const devicesLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+
+    // Filter devices by region
+    const regionDevices = Object.values(allData)
+        .flat()
+        .filter(device => device.region.toUpperCase() === region);
+
+    if (regionDevices.length === 0) {
+        return res.status(404).json({ message: "No devices found for this region" });
+    }
+
+    const regionHistory = regionDevices.map(device => {
+        const history = devicesLogs[device.ip_address] || [];
+        return {
+            device_type: device.device_type || "Unknown",
+            device_name: device.device_name || "Unknown",
+            device_ip: device.ip_address,
+            history: history.map(log => ({
+                status: log.status,
+                timestamp: DateTime.fromISO(log.timestamp, { zone: 'utc' }).setZone('Asia/Kolkata').toISO()
+            }))
+        };
+    });
+
+    res.json({
+        region: region,
+        devices: regionHistory
+    });
+});
