@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trend Analysis</title>
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h3>Device Trend Analysis</h3>
+
+        <!-- Region Selector -->
+        <div class="region-selector">
+            <button onclick="fetchTrendData('apac', getDeviceType())">APAC</button>
+            <button onclick="fetchTrendData('emea', getDeviceType())">EMEA</button>
+            <button onclick="fetchTrendData('laca', getDeviceType())">LACA</button>
+            <button onclick="fetchTrendData('namer', getDeviceType())">NAMER</button>
+        </div>
+
+        <!-- Device Type Dropdown -->
+        <div class="device-type">
+            <label for="deviceType">Select Device Type:</label>
+            <select id="deviceType" onchange="fetchTrendData(getRegion(), this.value)">
+                <option value="cameras">Cameras</option>
+                <option value="archivers">Archivers</option>
+                <option value="servers">Servers</option>
+                <option value="controllers">Controllers</option>
+                <option value="Unknown">Unknown</option>
+            </select>
+        </div>
+
+        <!-- Search Device -->
+        <input type="text" id="searchBox" placeholder="Search Device" oninput="searchDevice()">
+
+        <!-- Back to Dashboard Button -->
+        <button onclick="window.location.href='index.html'">Back to Dashboard</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="chart-container">
+            <canvas id="trendChart"></canvas>
+        </div>
+        
+        <!-- Device Trend Report Table -->
+        <h1>Device Trend Report</h1>
+        
+        <div class="region-select">
+            <label for="region">Select Region:</label>
+            <select id="region" onchange="fetchDeviceData()">
+                <option value="apac">APAC</option>
+                <option value="emea">EMEA</option>
+                <option value="laca">LACA</option>
+                <option value="namer">NAMER</option>
+            </select>
+        </div>
+
+        <table id="device-table">
+            <thead>
+                <tr>
+                    <th>Device IP</th>
+                    <th>Device Name</th>
+                    <th>Device Type</th>
+                    <th>Uptime Duration</th>
+                    <th>Downtime Duration</th>
+                    <th>Details</th>
+                    <th>Remark</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Device data rows will be populated here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Device History Modal -->
+    <div id="device-history-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeHistoryModal()">&times;</span>
+            <h2>Device History</h2>
+            <div id="device-history">
+                <!-- History data will be displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script> <!-- JavaScript to fetch and display trends -->
+</body>
+</html>
+
+
+
+
+
+let deviceHistoryModal = document.getElementById("device-history-modal");
+
+function fetchDeviceData() {
+    let region = document.getElementById("region").value;
+    
+    fetch(`http://localhost/api/regions/trend/details/${region}`)
+        .then(response => response.json())
+        .then(data => {
+            populateDeviceTable(data.trends);
+        })
+        .catch(error => console.error('Error fetching data:', error));
+}
+
+function populateDeviceTable(devices) {
+    const tableBody = document.querySelector('#device-table tbody');
+    tableBody.innerHTML = ''; // Clear existing rows
+
+    devices.forEach(device => {
+        let row = document.createElement("tr");
+
+        let statusRemark = (device.downtimeDuration.includes('d') && parseInt(device.downtimeDuration.split('d')[0]) >= 1) ? "Device needs repair" : "Device working fine";
+        
+        row.innerHTML = `
+            <td>${device.ip_address}</td>
+            <td>${device.device_name}</td>
+            <td>${device.device_type}</td>
+            <td>${device.uptime}</td>
+            <td>${device.downtimeDuration}</td>
+            <td><button onclick="fetchDeviceHistory('${device.ip_address}')">Details</button></td>
+            <td>${statusRemark}</td>
+        `;
+
+        tableBody.appendChild(row);
+    });
+}
+
+function fetchDeviceHistory(ip) {
+    fetch(`http://localhost/api/devices/history`)
+        .then(response => response.json())
+        .then(data => {
+            displayDeviceHistory(ip, data[ip]);
+        })
+        .catch(error => console.error('Error fetching device history:', error));
+}
+
+function displayDeviceHistory(ip, history) {
+    let historyContainer = document.getElementById("device-history");
+    historyContainer.innerHTML = `<h3>History for ${ip}</h3>`;
+    let historyList = document.createElement('ul');
+
+    history.forEach(log => {
+        let listItem = document.createElement('li');
+        listItem.textContent = `${log.status} at ${new Date(log.timestamp).toLocaleString()}`;
+        historyList.appendChild(listItem);
+    });
+
+    historyContainer.appendChild(historyList);
+    deviceHistoryModal.style.display = "block";
+}
+
+function closeHistoryModal() {
+    deviceHistoryModal.style.display = "none";
+}
+
+// Fetch default region data on page load
+window.onload = fetchDeviceData;
+
+
+
+
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 50px auto;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+}
+
+.region-select {
+    margin-bottom: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+table, th, td {
+    border: 1px solid #ddd;
+}
+
+th, td {
+    padding: 12px;
+    text-align: center;
+}
+
+th {
+    background-color: #f2f2f2;
+}
+
+button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+#device-history-modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.4);
+    overflow: auto;
+}
+
+.modal-content {
+    background-color: #fff;
+    padding: 20px;
+    margin: 10% auto;
+    width: 80%;
+    max-width: 600px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#device-history {
+    margin-top: 20px;
+}
+
+#device-history ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+#device-history ul li {
+    margin-bottom: 10px;
+}
