@@ -1,93 +1,52 @@
-API- http://localhost/api/regions/trend/details/apac
-
-we can replace region name apac/emea/laca/namer
-
-responce
-
-"region": "apac",
-    "trends": [
-      {
-        "device_type": "Unknown",
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.20",
-        "uptime": "11d 6h 50m",
-        "downtime": "0d 0h 0m",
-        "downtimeDuration": "0d 2h 0m"
-      },
-      {
-        "device_type": "Unknown",
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.139",
-        "uptime": "11d 8h 50m",
-        "downtime": "0d 0h 0m",
-        "downtimeDuration": "0d 0h 0m"
-      },
-      {
-        "device_type": "Unknown",
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.142",
-        "uptime": "11d 8h 50m",
-        "downtime": "0d 0h 0m",
-        "downtimeDuration": "0d 0h 0m"
-      },
-      {
-        "device_type": "Unknown",
-        "device_name": "Unknown",
-        "ip_address": "10.199.10.141",
-        "uptime": "11d 8h 50m",
-        "downtime": "0d 0h 0m",
-        "downtimeDuration": "0d 0h 0m"
-      },
-
-
-
-API for fetching history 
-
-http://localhost/api/devices/history
-
-responce
-
-{
-  "10.199.10.20": [
-    {
-      "status": "Online",
-      "timestamp": "2025-03-05T10:53:16.323Z"
-    },
-    {
-      "status": "Offline",
-      "timestamp": "2025-03-10T10:53:16.323Z"
-    },
-    {
-      "status": "Online",
-      "timestamp": "2025-03-10T12:53:16.323Z"
-    },
-    {
-      "status": "Online",
-      "timestamp": "2025-03-16T03:11:42.207+05:30"
-    },
-    {
-      "status": "Online",
-      "timestamp": "2025-03-16T03:35:02.314+05:30"
-    },
-    {
-      "status": "Online",
-      "timestamp": "2025-03-16T03:36:03.731+05:30"
-    },
-    {
-      "status": "Online",
-      "timestamp": "2025-03-16T03:37:05.256+05:30"
-    },
-    {
-      "status": "Online",
-      "timestamp": "2025-03-16T03:38:07.792+05:30"
-    },
-    {
-      "status": "Online",
-      "timestamp": "2025-03-16T03:39:09.471+05:30"
-    },
-    {
-      "status": "Online",
-      "timestamp": "2025-03-16T03:40:10.176+05:30"
-    },
-
-check responce for each APAI then make frontend using javaScript,html & css
+[ContentMain]
+ContentMain.js:18 [ContentService] document.readyState: loading
+ContentMain.js:5 [ContentService.SetContentInitData] target: { TabId: 1454072882, FrameId: 0}
+script.js:21 Uncaught TypeError: Cannot read properties of null (reading 'addEventListener')
+    at HTMLDocument.<anonymous> (script.js:21:43)Understand this errorAI
+script.js:89 Summary Data: Object
+script.js:93 Error fetching summary: TypeError: Cannot set properties of null (setting 'textContent')
+    at updateSummary (script.js:158:58)
+    at script.js:90:13
+(anonymous) @ script.js:93Understand this errorAI
+script.js:56 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at updateCountdown (script.js:56:36)Understand this errorAI
+script.js:109 Details Data: Object
+script.js:116 Error fetching details: TypeError: Cannot set properties of null (setting 'innerHTML')
+    at updateDetails (script.js:189:32)
+    at script.js:110:13
+(anonymous) @ script.js:116Understand this errorAI
+script.js:117 Uncaught (in promise) TypeError: Cannot set properties of null (setting 'innerHTML')
+    at script.js:117:65Understand this errorAI
+script.js:56 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at updateCountdown (script.js:56:36)Understand this errorAI
+script.js:39 Summary Data: Object
+script.js:40 Details Data: Object
+script.js:45 Error fetching data: TypeError: Cannot set properties of null (setting 'textContent')
+    at updateSummary (script.js:158:58)
+    at script.js:41:9
+(anonymous) @ script.js:45Understand this errorAI
+trend.js:310 Error fetching data: TypeError: devices.forEach is not a function
+    at populateDeviceTable (trend.js:317:13)
+    at trend.js:308:13
+(anonymous) @ trend.js:310Understand this errorAI
+6script.js:56 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at updateCountdown (script.js:56:36)Understand this errorAI
+33script.js:56 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at updateCountdown (script.js:56:36)
+updateCountdown @ script.js:56Understand this errorAI
+7script.js:56 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at updateCountdown (script.js:56:36)Understand this errorAI
+trend.js:310 Error fetching data: TypeError: devices.forEach is not a function
+    at populateDeviceTable (trend.js:317:13)
+    at trend.js:308:13
+(anonymous) @ trend.js:310Understand this errorAI
+2script.js:56 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at updateCountdown (script.js:56:36)Understand this errorAI
+trend.js:310 Error fetching data: TypeError: devices.forEach is not a function
+    at populateDeviceTable (trend.js:317:13)
+    at trend.js:308:13
+(anonymous) @ trend.js:310Understand this errorAI
+2script.js:56 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at updateCountdown (script.js:56:36)Understand this errorAI
+11script.js:56 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at updateCountdown (script.js:56:36)
