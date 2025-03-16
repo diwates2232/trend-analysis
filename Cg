@@ -1,0 +1,22 @@
+// API to fetch device history region-wise
+app.get("/api/region/:region/history", (req, res) => {
+    const region = req.params.region; // Region parameter from URL
+    const deviceLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+
+    // Filter devices by the given region
+    const regionLogs = {};
+
+    Object.keys(deviceLogs).forEach(ip => {
+        const device = deviceLogs[ip];
+        if (device.region === region) {
+            regionLogs[ip] = device;
+        }
+    });
+
+    // Check if there are any devices for the region
+    if (Object.keys(regionLogs).length === 0) {
+        return res.status(404).json({ message: `No device history found for region: ${region}` });
+    }
+
+    res.json(regionLogs);
+});
