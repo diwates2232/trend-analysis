@@ -1,3 +1,6 @@
+When i upadte this code error occured 
+
+
 app.get("/api/region/history/:region", async (req, res) => {
     const region = req.params.region.toUpperCase(); // Ensure region is in uppercase
     const devicesLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
@@ -29,3 +32,66 @@ app.get("/api/region/history/:region", async (req, res) => {
         devices: regionHistory
     });
 });
+
+
+  
+error 
+
+Server running on http://localhost:80
+C:\Users\W0024618\Desktop\Backend\src\app.js:257
+  const regionDevices = Object.values(allData)
+                                      ^
+
+ReferenceError: allData is not defined
+    at C:\Users\W0024618\Desktop\Backend\src\app.js:257:39
+    at Layer.handle [as handle_request] (C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\index.js:284:15
+    at param (C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\index.js:365:14)
+    at param (C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\index.js:376:14)
+    at Function.process_params (C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\index.js:421:3)
+    at next (C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\index.js:280:10)
+
+
+
+
+this is my previous working code for more information
+
+
+// API to fetch device history for all devices
+app.get("/api/devices/history", (req, res) => {
+  res.json(deviceLogs);
+});
+
+
+// API to fetch history of a specific device by IP address
+app.get("/api/device/history/:ip", async (req, res) => {
+  const ip = req.params.ip;
+  const devicesLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+
+  if (!devicesLogs[ip]) {
+      return res.status(404).json({ message: "No history found for this device" });
+  }
+
+  // Find the device in your allData
+  const device = Object.values(allData).flat().find(d => d.ip_address === ip);
+
+  if (!device) {
+      return res.status(404).json({ message: "Device not found in records" });
+  }
+
+  const history = devicesLogs[ip].map(log => ({
+      status: log.status,
+      timestamp: DateTime.fromISO(log.timestamp, { zone: 'utc' }).setZone('Asia/Kolkata').toISO()
+  }));
+
+  res.json({
+      device_type: device.device_type || "Unknown",
+      device_name: device.device_name || "Unknown",
+      device_ip: device.ip_address,
+      history: history
+  });
+});
+
