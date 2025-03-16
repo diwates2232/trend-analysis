@@ -1,0 +1,72 @@
+const fs = require("fs");
+const XLSX = require("xlsx");
+const { DateTime } = require("luxon");
+
+// Path to your Excel files
+const filePaths = {
+  archivers: "Desktop/Backend/src/data/ArchiverData.xlsx",
+  cameras: "Desktop/Backend/src/data/CameraData.xlsx",
+  controllers: "Desktop/Backend/src/data/ControllerData.xlsx",
+  servers: "Desktop/Backend/src/data/ServerData.xlsx"
+};
+
+// Function to read Excel files and store data
+function readExcelData() {
+  let allData = {};
+  for (const [key, path] of Object.entries(filePaths)) {
+    if (fs.existsSync(path)) {
+      const workbook = XLSX.readFile(path);
+      const sheetName = workbook.SheetNames[0];
+      const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+      allData[key] = sheetData;
+    } else {
+      console.error(`File not found: ${path}`);
+      allData[key] = [];
+    }
+  }
+  return allData;
+}
+
+// Load device data at startup
+let allData = readExcelData();
+
+// Path to device history log file
+const logFile = "Desktop/Backend/src/logs/device_history.json";
+
+
+
+app.get("/api/region/history/:region", async (req, res) => {
+    const region = req.params.region.toUpperCase(); // Convert region to uppercase
+    const devicesLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+
+    // Reload Excel data to get the latest records
+    allData = readExcelData();
+
+    // Filter devices belonging to the requested region
+    const regionDevices = Object.values(allData)
+        .flat()
+        .filter(device => device.region && device.region.toUpperCase() === region);
+
+    if (regionDevices.length === 0) {
+        return res.status(404).json({ message: `No devices found for region: ${region}` });
+    }
+
+    // Map region devices with history data
+    const regionHistory = regionDevices.map(device => {
+        const history = devicesLogs[device.ip_address] || [];
+        return {
+            device_type: device.device_type || "Unknown",
+            device_name: device.device_name || "Unknown",
+            device_ip: device.ip_address,
+            history: history.map(log => ({
+                status: log.status,
+                timestamp: DateTime.fromISO(log.timestamp, { zone: "utc" }).setZone("Asia/Kolkata").toISO()
+            }))
+        };
+    });
+
+    res.json({
+        region: region,
+        devices: regionHistory
+    });
+});
