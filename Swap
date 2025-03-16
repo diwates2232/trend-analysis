@@ -1,63 +1,78 @@
-When i upadte this code error occured 
+
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const fs = require("fs");
+const ping = require("ping");
+const regionRoutes = require("./routes/regionRoutes");
+const { fetchAllIpAddress, fetchRegionTrendData } = require("./services/excelService");
 
 
-app.get("/api/region/history/:region", async (req, res) => {
-    const region = req.params.region.toUpperCase(); // Ensure region is in uppercase
-    const devicesLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+const app = express();
+const PORT = process.env.PORT || 80;
 
-    // Filter devices by region
-    const regionDevices = Object.values(allData)
-        .flat()
-        .filter(device => device.region.toUpperCase() === region);
+// Middleware
+app.use(
+  cors({
+    origin: "http://127.0.0.1:5500",
+    methods: "GET,POST,PUT,DELETE",
+    allowedHeaders: "Content-Type,Authorization",
+  })
+);
+app.use(bodyParser.json());
 
-    if (regionDevices.length === 0) {
-        return res.status(404).json({ message: "No devices found for this region" });
+
+// Routes
+app.use("/api/regions", regionRoutes);
+
+
+// Device Status Tracking
+const devices = fetchAllIpAddress();
+let deviceStatus = {};
+const logFile = "./deviceLogs.json";
+
+// Load previous logs if exists
+let deviceLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+
+// Function to log device status changes
+function logDeviceChange(ip, status) {
+  const timestamp = new Date().toISOString();
+
+  if (!deviceLogs[ip]) {
+    deviceLogs[ip] = [];
+  }
+
+  const lastLog = deviceLogs[ip].length ? deviceLogs[ip][deviceLogs[ip].length - 1] : null;
+
+  // Log only if status changes
+  if (!lastLog || lastLog.status !== status) {
+    deviceLogs[ip].push({ status, timestamp });
+    fs.writeFileSync(logFile, JSON.stringify(deviceLogs, null, 2));
+  }
+}
+
+// Ping all devices and log changes
+async function pingDevices() {
+  for (const ip of devices) {
+    try {
+      const result = await ping.promise.probe(ip);
+      const newStatus = result.alive ? "Online" : "Offline";
+
+      if (deviceStatus[ip] !== newStatus) {
+        logDeviceChange(ip, newStatus);
+      }
+      deviceStatus[ip] = newStatus;
+    } catch (error) {
+      console.error(`Error pinging ${ip}:`, error);
+      deviceStatus[ip] = "Offline";
     }
+  }
+  console.log("Updated device status:", deviceStatus);
+}
+// Interval to update uptime/downtime and ping devices
+setInterval(pingDevices, 60000);
 
-    const regionHistory = regionDevices.map(device => {
-        const history = devicesLogs[device.ip_address] || [];
-        return {
-            device_type: device.device_type || "Unknown",
-            device_name: device.device_name || "Unknown",
-            device_ip: device.ip_address,
-            history: history.map(log => ({
-                status: log.status,
-                timestamp: DateTime.fromISO(log.timestamp, { zone: 'utc' }).setZone('Asia/Kolkata').toISO()
-            }))
-        };
-    });
-
-    res.json({
-        region: region,
-        devices: regionHistory
-    });
-});
-
-
-  
-error 
-
-Server running on http://localhost:80
-C:\Users\W0024618\Desktop\Backend\src\app.js:257
-  const regionDevices = Object.values(allData)
-                                      ^
-
-ReferenceError: allData is not defined
-    at C:\Users\W0024618\Desktop\Backend\src\app.js:257:39
-    at Layer.handle [as handle_request] (C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\layer.js:95:5)
-    at next (C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\route.js:149:13)
-    at Route.dispatch (C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\route.js:119:3)
-    at Layer.handle [as handle_request] (C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\layer.js:95:5)
-    at C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\index.js:284:15
-    at param (C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\index.js:365:14)
-    at param (C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\index.js:376:14)
-    at Function.process_params (C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\index.js:421:3)
-    at next (C:\Users\W0024618\Desktop\Backend\node_modules\express\lib\router\index.js:280:10)
-
-
-
-
-this is my previous working code for more information
 
 
 // API to fetch device history for all devices
@@ -94,4 +109,37 @@ app.get("/api/device/history/:ip", async (req, res) => {
       history: history
   });
 });
+
+// API to fetch region device trends
+app.get("/api/regions/trend/details/:region", async (req, res) => {
+  const region = req.params.region;
+
+  // Clear previous data before fetching new trends
+  allData = {};
+  loadExcelData();
+
+  const trendData = await fetchRegionTrendData(region);
+
+  if (!trendData) {
+      return res.status(404).json({ message: "No devices found for the specified region" });
+  }
+
+  res.json(trendData);
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send("Something went wrong!");
+});
+
+
+
+
+// Start Server
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+  pingDevices(); // Initial ping on startup
+});
+
 
