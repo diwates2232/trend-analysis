@@ -1,0 +1,56 @@
+// Import required modules
+const fs = require("fs");
+const { DateTime } = require("luxon");
+
+// Load all device data from Excel or JSON file (if applicable)
+const allData = {
+  archivers: JSON.parse(fs.readFileSync("./src/data/ArchiverData.json", "utf8")),
+  cameras: JSON.parse(fs.readFileSync("./src/data/CameraData.json", "utf8")),
+  controllers: JSON.parse(fs.readFileSync("./src/data/ControllerData.json", "utf8")),
+  servers: JSON.parse(fs.readFileSync("./src/data/ServerData.json", "utf8"))
+};
+
+// Log file path (where device history is stored)
+const logFile = "./logs/device_history.json";
+
+
+
+
+
+app.get("/api/region/history/:region", async (req, res) => {
+    const region = req.params.region.toUpperCase(); // Convert region to uppercase
+    const devicesLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+
+    // Check if allData exists and contains devices
+    if (!allData || Object.keys(allData).length === 0) {
+        return res.status(500).json({ message: "Device data not available" });
+    }
+
+    // Filter devices belonging to the requested region
+    const regionDevices = Object.values(allData)
+        .flat()
+        .filter(device => device.region && device.region.toUpperCase() === region);
+
+    if (regionDevices.length === 0) {
+        return res.status(404).json({ message: `No devices found for region: ${region}` });
+    }
+
+    // Map region devices with history data
+    const regionHistory = regionDevices.map(device => {
+        const history = devicesLogs[device.ip_address] || [];
+        return {
+            device_type: device.device_type || "Unknown",
+            device_name: device.device_name || "Unknown",
+            device_ip: device.ip_address,
+            history: history.map(log => ({
+                status: log.status,
+                timestamp: DateTime.fromISO(log.timestamp, { zone: "utc" }).setZone("Asia/Kolkata").toISO()
+            }))
+        };
+    });
+
+    res.json({
+        region: region,
+        devices: regionHistory
+    });
+});
