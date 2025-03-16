@@ -1,7 +1,10 @@
-Once Check a API responce device type is not displying i expect( cameras , Archivar,cameras,Server)
-also device name id seeing Unknown 
-and check uptime downtime calculation working properly or not then make changes in my file 
-http://localhost/api/regions/trend/details/apac
+Once check Calculation In API respoce Uptime display 22 days but in deviceLogs device history are present only 7 days ,calculate device uptime and downtime by intrating deviceLogs check each device Entry then calculate its uptime and downtime 
+
+for many information i have shared with you excelService.js file where i write this calculation kindly check my code and give me updated code
+
+API-http://localhost/api/regions/trend/details/apac
+
+Response-
 
 "region": "apac",
     "trends": {
@@ -10,15 +13,23 @@ http://localhost/api/regions/trend/details/apac
           "device_type": "Unknown",
           "device_name": "Unknown",
           "ip_address": "10.199.10.20",
-          "uptime": "31d 6h 45m",
+          "uptime": "11d 5h 57m",
           "downtime": "0d 0h 0m",
-          "downtimeDuration": "0d 6h 0m"
+          "downtimeDuration": "0d 2h 0m"
+        },
+{
+          "device_type": "Unknown",
+          "device_name": "Unknown",
+          "ip_address": "10.199.10.14",
+          "uptime": "22d 16h 0m",
+          "downtime": "0d 0h 0m",
+          "downtimeDuration": "0d 0h 0m"
         },
         {
           "device_type": "Unknown",
           "device_name": "Unknown",
           "ip_address": "10.199.10.139",
-          "uptime": "31d 12h 45m",
+          "uptime": "11d 7h 57m",
           "downtime": "0d 0h 0m",
           "downtimeDuration": "0d 0h 0m"
         },
@@ -26,7 +37,7 @@ http://localhost/api/regions/trend/details/apac
           "device_type": "Unknown",
           "device_name": "Unknown",
           "ip_address": "10.199.10.142",
-          "uptime": "31d 12h 45m",
+          "uptime": "11d 7h 57m",
           "downtime": "0d 0h 0m",
           "downtimeDuration": "0d 0h 0m"
         },
@@ -34,7 +45,7 @@ http://localhost/api/regions/trend/details/apac
           "device_type": "Unknown",
           "device_name": "Unknown",
           "ip_address": "10.199.10.141",
-          "uptime": "31d 12h 45m",
+          "uptime": "11d 7h 57m",
           "downtime": "0d 0h 0m",
           "downtimeDuration": "0d 0h 0m"
         },
@@ -42,10 +53,13 @@ http://localhost/api/regions/trend/details/apac
           "device_type": "Unknown",
           "device_name": "Unknown",
           "ip_address": "10.199.10.10",
-          "uptime": "31d 12h 45m",
+          "uptime": "11d 7h 57m",
           "downtime": "0d 0h 0m",
           "downtimeDuration": "0d 0h 0m"
         },
+
+
+excelService.js
 
 
 const fs = require("fs");
@@ -284,6 +298,7 @@ const calculateSummary = (devices) => {
 
 
 // Updated function to fetch region trend data
+
 const fetchRegionTrendData = async (region) => {
     if (!allData || Object.keys(allData).length === 0) {
         console.error("Error: Device data is not loaded.");
@@ -389,12 +404,13 @@ const addDeviceHistory = (device, status) => {
     console.log(`History for device ${device.device_name || device.ip_address}:`, device.history);
 };
 
-// Compute device uptime, downtime, and downtime duration
 
 // Helper function to compute uptime and downtime for a device
+
+
 const computeDeviceStats = (history) => {
     let uptime = 0, downtime = 0, downtimeDuration = 0;
-    let lastStatus = history[0]?.status || "Offline"; // Default to "Offline" if no history
+    let lastStatus = history[0]?.status || "Offline";
     let lastTimestamp = history[0] ? DateTime.fromISO(history[0].timestamp, { zone: 'Asia/Kolkata' }).toMillis() : DateTime.now().toMillis();
 
     for (let i = 1; i < history.length; i++) {
@@ -409,10 +425,9 @@ const computeDeviceStats = (history) => {
                 downtime += timeDiff;
             }
 
-            // Check if device just came back online, track downtime duration
             if (lastStatus === "Offline" && currentStatus === "Online") {
                 downtimeDuration += downtime;
-                downtime = 0; // Reset downtime once device comes back online
+                downtime = 0;
             }
         }
 
@@ -420,7 +435,6 @@ const computeDeviceStats = (history) => {
         lastTimestamp = currentTime;
     }
 
-    // Convert uptime, downtime, and downtimeDuration to days, hours, minutes format
     const formatTime = (minutes) => {
         const days = Math.floor(minutes / 1440);
         const hours = Math.floor((minutes % 1440) / 60);
@@ -434,14 +448,8 @@ const computeDeviceStats = (history) => {
         downtimeDuration: formatTime(downtimeDuration),
     };
 };
-// Calculate Trends for Devices
-// const calculateDeviceTrends = (devices) => {
-//     return {
-//         daily: calculateTrend(devices, "daily"),
-//       //  weekly: calculateTrend(devices, "weekly"),
-//        // monthly: calculateTrend(devices, "monthly")
-//     };
-// };
+
+
 
 
 
@@ -477,3 +485,4 @@ const calculateTrend = (devices, period) => {
 loadExcelData();
 
 module.exports = { fetchGlobalData, fetchRegionData, fetchAllIpAddress , fetchRegionTrendData };
+
