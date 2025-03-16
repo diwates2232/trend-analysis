@@ -1,0 +1,127 @@
+const saveLogs = (logs) => {
+    const existingLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+    const mergedLogs = { ...existingLogs, ...logs }; // Merge new and old logs
+    fs.writeFileSync(logFile, JSON.stringify(mergedLogs, null, 2), "utf8");
+};
+
+
+
+
+
+const monitorDevice = (device) => {
+    const logs = loadLogs();
+    const currentTime = DateTime.now().setZone("Asia/Kolkata").toISO();
+
+    if (!logs[device.ip_address]) {
+        logs[device.ip_address] = [];
+    }
+
+    let lastEntry = logs[device.ip_address].slice(-1)[0];
+    if (lastEntry && lastEntry.status === device.status) {
+        return; // Avoid duplicate entries
+    }
+
+    console.log(`Status changed: ${device.device_name || device.ip_address} is now ${device.status}`);
+    logs[device.ip_address].push({ status: device.status, timestamp: currentTime });
+    saveLogs(logs);
+};
+
+
+
+
+const computeDeviceStats = (history) => {
+    let uptime = 0, downtime = 0, downtimeDuration = 0;
+    let lastStatus = history[0]?.status || "Offline";
+    let lastTimestamp = history[0] ? DateTime.fromISO(history[0].timestamp).toMillis() : DateTime.now().toMillis();
+
+    for (let i = 1; i < history.length; i++) {
+        let currentStatus = history[i].status;
+        let currentTime = DateTime.fromISO(history[i].timestamp).toMillis();
+        let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert to minutes
+
+        if (timeDiff > 0) {
+            if (lastStatus === "Online") {
+                uptime += timeDiff;
+            } else if (lastStatus === "Offline") {
+                downtime += timeDiff;
+            }
+
+            if (lastStatus === "Offline" && currentStatus === "Online") {
+                downtimeDuration += downtime;
+                downtime = 0;
+            }
+        }
+
+        lastStatus = currentStatus;
+        lastTimestamp = currentTime;
+    }
+
+    // Format time in days, hours, minutes
+    const formatTime = (minutes) => {
+        const days = Math.floor(minutes / 1440);
+        const hours = Math.floor((minutes % 1440) / 60);
+        const mins = Math.floor(minutes % 60);
+        return `${days}d ${hours}h ${mins}m`;
+    };
+
+    return {
+        uptime: formatTime(uptime),
+        downtime: formatTime(downtime),
+        downtimeDuration: formatTime(downtimeDuration)
+    };
+};
+
+
+
+
+
+
+
+const fetchRegionTrendData = async (region) => {
+    if (!allData || Object.keys(allData).length === 0) {
+        console.error("Error: Device data is not loaded.");
+        return null;
+    }
+
+    const filterByRegion = (devices) => 
+        devices.filter(device => device.location?.toLowerCase() === region.toLowerCase());
+
+    const regionDevices = {
+        cameras: filterByRegion(allData.cameras),
+        archivers: filterByRegion(allData.archivers),
+        controllers: filterByRegion(allData.controllers),
+        servers: filterByRegion(allData.servers)
+    };
+
+    if (!regionDevices.cameras.length && !regionDevices.archivers.length && !regionDevices.controllers.length && !regionDevices.servers.length) {
+        console.log(`No devices found for region: ${region}`);
+        return null;
+    }
+
+    // Ensure devices have history before calculating trends
+    await Promise.all([
+        ...regionDevices.cameras.map(device => fetchDeviceHistory(device)),
+        ...regionDevices.archivers.map(device => fetchDeviceHistory(device)),
+        ...regionDevices.controllers.map(device => fetchDeviceHistory(device)),
+        ...regionDevices.servers.map(device => fetchDeviceHistory(device))
+    ]);
+
+    // Ensure history data is correctly assigned
+    for (let deviceType in regionDevices) {
+        regionDevices[deviceType] = regionDevices[deviceType].map(device => ({
+            ...device,
+            history: device.history || []  // Ensure history is initialized
+        }));
+    }
+
+    // Calculate trends with accurate history
+    const trends = calculateTrend(regionDevices);
+
+    return { 
+        region,
+        trends 
+
+    };
+};
+
+
