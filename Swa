@@ -1,0 +1,50 @@
+const fetchDeviceHistory = async (device) => {
+    const devicesLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+
+    if (!devicesLogs[device.ip_address]) {
+        console.log(`No history found for device: ${device.device_name || "Unknown"} (${device.ip_address})`);
+        return;
+    }
+
+    // Reset history before assigning new logs
+    device.history = [];
+
+    devicesLogs[device.ip_address].forEach(log => {
+        const convertedTimestamp = DateTime.fromISO(log.timestamp, { zone: 'utc' })
+            .setZone('Asia/Kolkata')
+            .toISO();
+
+        device.history.push({
+            status: log.status,
+            timestamp: convertedTimestamp
+        });
+    });
+
+    console.log(`Device history for ${device.device_name} (${device.ip_address}):`, device.history);
+};
+
+
+
+
+
+
+if (Array.isArray(device.history) && device.history.length > 0) {
+
+
+
+
+app.get("/api/regions/trend/details/:region", async (req, res) => {
+    const region = req.params.region;
+
+    // Clear previous data before fetching new trends
+    allData = {};
+    loadExcelData();
+
+    const trendData = await fetchRegionTrendData(region);
+
+    if (!trendData) {
+        return res.status(404).json({ message: "No devices found for the specified region" });
+    }
+
+    res.json(trendData);
+});
