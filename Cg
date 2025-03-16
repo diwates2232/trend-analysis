@@ -1,22 +1,93 @@
-// API to fetch device history region-wise
-app.get("/api/region/:region/history", (req, res) => {
-    const region = req.params.region; // Region parameter from URL
-    const deviceLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
+API- http://localhost/api/regions/trend/details/apac
 
-    // Filter devices by the given region
-    const regionLogs = {};
+we can replace region name apac/emea/laca/namer
 
-    Object.keys(deviceLogs).forEach(ip => {
-        const device = deviceLogs[ip];
-        if (device.region === region) {
-            regionLogs[ip] = device;
-        }
-    });
+responce
 
-    // Check if there are any devices for the region
-    if (Object.keys(regionLogs).length === 0) {
-        return res.status(404).json({ message: `No device history found for region: ${region}` });
-    }
+"region": "apac",
+    "trends": [
+      {
+        "device_type": "Unknown",
+        "device_name": "Unknown",
+        "ip_address": "10.199.10.20",
+        "uptime": "11d 6h 50m",
+        "downtime": "0d 0h 0m",
+        "downtimeDuration": "0d 2h 0m"
+      },
+      {
+        "device_type": "Unknown",
+        "device_name": "Unknown",
+        "ip_address": "10.199.10.139",
+        "uptime": "11d 8h 50m",
+        "downtime": "0d 0h 0m",
+        "downtimeDuration": "0d 0h 0m"
+      },
+      {
+        "device_type": "Unknown",
+        "device_name": "Unknown",
+        "ip_address": "10.199.10.142",
+        "uptime": "11d 8h 50m",
+        "downtime": "0d 0h 0m",
+        "downtimeDuration": "0d 0h 0m"
+      },
+      {
+        "device_type": "Unknown",
+        "device_name": "Unknown",
+        "ip_address": "10.199.10.141",
+        "uptime": "11d 8h 50m",
+        "downtime": "0d 0h 0m",
+        "downtimeDuration": "0d 0h 0m"
+      },
 
-    res.json(regionLogs);
-});
+
+
+API for fetching history 
+
+http://localhost/api/devices/history
+
+responce
+
+{
+  "10.199.10.20": [
+    {
+      "status": "Online",
+      "timestamp": "2025-03-05T10:53:16.323Z"
+    },
+    {
+      "status": "Offline",
+      "timestamp": "2025-03-10T10:53:16.323Z"
+    },
+    {
+      "status": "Online",
+      "timestamp": "2025-03-10T12:53:16.323Z"
+    },
+    {
+      "status": "Online",
+      "timestamp": "2025-03-16T03:11:42.207+05:30"
+    },
+    {
+      "status": "Online",
+      "timestamp": "2025-03-16T03:35:02.314+05:30"
+    },
+    {
+      "status": "Online",
+      "timestamp": "2025-03-16T03:36:03.731+05:30"
+    },
+    {
+      "status": "Online",
+      "timestamp": "2025-03-16T03:37:05.256+05:30"
+    },
+    {
+      "status": "Online",
+      "timestamp": "2025-03-16T03:38:07.792+05:30"
+    },
+    {
+      "status": "Online",
+      "timestamp": "2025-03-16T03:39:09.471+05:30"
+    },
+    {
+      "status": "Online",
+      "timestamp": "2025-03-16T03:40:10.176+05:30"
+    },
+
+check responce for each APAI then make frontend using javaScript,html & css
