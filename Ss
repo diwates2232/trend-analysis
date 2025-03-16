@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Trend Analysis</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Back to Dashboard Button -->
+    <button onclick="window.location.href='index.html'">Back to Dashboard</button>
+
+    <div class="container">
+        <h1>Device Trend Report</h1>
+
+        <div class="region-select">
+            <label for="region">Select Region:</label>
+            <select id="region" onchange="fetchDeviceData()">
+                <option value="apac">APAC</option>
+                <option value="emea">EMEA</option>
+                <option value="laca">LACA</option>
+                <option value="namer">NAMER</option>
+            </select>
+        </div>
+
+        <table id="device-table">
+            <thead>
+                <tr>
+                    <th>Device IP</th>
+                    <th>Device Name</th>
+                    <th>Device Type</th>
+                    <th>Uptime Duration</th>
+                    <th>Downtime Count</th>
+                    <th>Downtime Duration</th>
+                    <th>Details</th>
+                    <th>Remark</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Device data rows will be populated here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Device History Modal -->
+    <div id="device-history-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeHistoryModal()">&times;</span>
+            <h2>Device History</h2>
+            <div id="device-history">
+                <!-- History data will be displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart Section -->
+    <div class="chart-container">
+        <canvas id="trendChart"></canvas>
+    </div>
+
+    <script src="trend.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    let region = 'apac'; // Default region
+
+    function fetchDeviceData() {
+        const selectedRegion = document.getElementById('region').value;
+        fetch(`http://localhost/api/regions/details/${selectedRegion}`)
+            .then(response => response.json())
+            .then(data => {
+                populateDeviceTable(data.details);
+                fetchTrendData(selectedRegion);
+            })
+            .catch(error => console.error('Error fetching device data:', error));
+    }
+
+    function populateDeviceTable(details) {
+        const tableBody = document.getElementById('device-table').getElementsByTagName('tbody')[0];
+        tableBody.innerHTML = ''; // Clear existing rows
+
+        if (details) {
+            ['cameras', 'archivers', 'controllers', 'servers'].forEach(deviceType => {
+                details[deviceType]?.forEach(device => {
+                    const downtimeCount = device.history.filter(entry => entry.status === "Offline").length;
+                    const downtimeDuration = calculateDowntimeDuration(device.history);
+                    const remark = (downtimeCount > 5 || downtimeDuration >= 5) ? "Device needs repair" : "Device working properly";
+
+                    const row = tableBody.insertRow();
+                    row.innerHTML = `
+                        <td>${device.ip_address}</td>
+                        <td>${device[deviceType.slice(0, -1) + 'name']}</td>
+                        <td>${deviceType.slice(0, -1).toUpperCase()}</td>
+                        <td>${calculateUptimeDuration(device.history)}</td>
+                        <td>${downtimeCount}</td>
+                        <td>${downtimeDuration}h</td>
+                        <td><button onclick="openDeviceHistory('${device.ip_address}')">View History</button></td>
+                        <td>${remark}</td>
+                    `;
+                });
+            });
+        } else {
+            console.error('No details found in the response');
+        }
+    }
+
+    function calculateUptimeDuration(history) {
+        let uptimeDuration = 0;
+        if (history) {
+            history.forEach(entry => {
+                if (entry.status === "Online") {
+                    uptimeDuration += 1; // Increment for each online instance
+                }
+            });
+        }
+        return `${uptimeDuration}h`;
+    }
+
+    function calculateDowntimeDuration(history) {
+        let downtimeDuration = 0;
+        if (history) {
+            for (let i = 1; i < history.length; i++) {
+                if (history[i].status === "Offline" && history[i - 1].status === "Online") {
+                    let diff = new Date(history[i].timestamp) - new Date(history[i - 1].timestamp);
+                    downtimeDuration += diff / (1000 * 60 * 60); // Convert to hours
+                }
+            }
+        }
+        return Math.floor(downtimeDuration);
+    }
+
+    function fetchTrendData(region) {
+        fetch(`http://localhost/api/regions/trend/details/${region}`)
+            .then(response => response.json())
+            .then(data => {
+                updateTrendChart(data.trends);
+            })
+            .catch(error => console.error('Error fetching trend data:', error));
+    }
+
+    function updateTrendChart(trends) {
+        const canvas = document.getElementById('trendChart');
+        if (!canvas) {
+            console.error("Chart element not found.");
+            return;
+        }
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            console.error("Failed to get canvas context.");
+            return;
+        }
+
+        if (window.trendChartInstance) {
+            window.trendChartInstance.destroy(); // Destroy existing chart before re-creating
+        }
+
+        window.trendChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: trends.map(trend => trend.device_name),
+                datasets: [{
+                    label: 'Uptime (Hours)',
+                    data: trends.map(trend => parseDuration(trend.uptime)),
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }, {
+                    label: 'Downtime (Hours)',
+                    data: trends.map(trend => parseDuration(trend.downtime)),
+                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    function parseDuration(duration) {
+        const regex = /(\d+)d (\d+)h (\d+)m/;
+        const matches = duration.match(regex);
+        return matches ? parseInt(matches[2]) + parseInt(matches[1]) * 24 : 0;
+    }
+
+    function openDeviceHistory(ip) {
+        alert(`Displaying history for device: ${ip}`);
+    }
+
+    document.getElementById('region').addEventListener('change', fetchDeviceData);
+
+    fetchDeviceData(); // Fetch initial data
+});
