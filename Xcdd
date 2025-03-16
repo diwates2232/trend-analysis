@@ -1,0 +1,122 @@
+// Fetch the correct device name based on the device IP address
+const fetchDeviceName = (device) => {
+    // Check if the device data has a proper name or type from loaded Excel data
+    if (!device.device_name) {
+        // Look for the device in the loaded data
+        let deviceType = '';
+        let devices = [];
+
+        if (allData.cameras.some(d => d.ip_address === device.ip_address)) {
+            devices = allData.cameras;
+            deviceType = 'Camera';
+        } else if (allData.archivers.some(d => d.ip_address === device.ip_address)) {
+            devices = allData.archivers;
+            deviceType = 'Archiver';
+        } else if (allData.servers.some(d => d.ip_address === device.ip_address)) {
+            devices = allData.servers;
+            deviceType = 'Server';
+        } else if (allData.controllers.some(d => d.ip_address === device.ip_address)) {
+            devices = allData.controllers;
+            deviceType = 'Controller';
+        }
+
+        const matchingDevice = devices.find(d => d.ip_address === device.ip_address);
+        if (matchingDevice) {
+            device.device_name = matchingDevice.device_name || matchingDevice.name || 'Unknown';
+        } else {
+            device.device_name = 'Unknown';
+        }
+        device.device_type = deviceType || 'Unknown';
+    }
+};
+
+
+
+
+
+
+
+
+const computeDeviceStats = (history) => {
+    let uptime = 0, downtime = 0, downtimeDuration = 0;
+    let lastStatus = history[0]?.status || "Offline";
+    let lastTimestamp = history[0] ? DateTime.fromISO(history[0].timestamp, { zone: 'Asia/Kolkata' }).toMillis() : DateTime.now().toMillis();
+
+    for (let i = 1; i < history.length; i++) {
+        let currentStatus = history[i].status;
+        let currentTime = DateTime.fromISO(history[i].timestamp, { zone: 'Asia/Kolkata' }).toMillis();
+        let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert to minutes
+
+        if (timeDiff > 0) {
+            if (lastStatus === "Online") {
+                uptime += timeDiff;
+            } else if (lastStatus === "Offline") {
+                downtime += timeDiff;
+            }
+
+            if (lastStatus === "Offline" && currentStatus === "Online") {
+                downtimeDuration += downtime;
+                downtime = 0;
+            }
+        }
+
+        lastStatus = currentStatus;
+        lastTimestamp = currentTime;
+    }
+
+    const formatTime = (minutes) => {
+        const days = Math.floor(minutes / 1440);
+        const hours = Math.floor((minutes % 1440) / 60);
+        const mins = Math.floor(minutes % 60);
+        return `${days}d ${hours}h ${mins}m`;
+    };
+
+    return {
+        uptime: formatTime(uptime),
+        downtime: formatTime(downtime),
+        downtimeDuration: formatTime(downtimeDuration),
+    };
+};
+
+
+
+
+
+
+
+
+const fetchRegionTrendData = async (region) => {
+    if (!allData || Object.keys(allData).length === 0) {
+        console.error("Error: Device data is not loaded.");
+        return null;
+    }
+
+    const regionDevices = {
+        cameras: filterByRegion(allData.cameras),
+        archivers: filterByRegion(allData.archivers),
+        controllers: filterByRegion(allData.controllers),
+        servers: filterByRegion(allData.servers),
+    };
+
+    if (!regionDevices.cameras.length && !regionDevices.archivers.length && !regionDevices.controllers.length && !regionDevices.servers.length) {
+        console.log(`No devices found for region: ${region}`);
+        return null;
+    }
+
+    await Promise.all([
+        ...regionDevices.cameras.map(device => fetchDeviceHistory(device)),
+        ...regionDevices.archivers.map(device => fetchDeviceHistory(device)),
+        ...regionDevices.controllers.map(device => fetchDeviceHistory(device)),
+        ...regionDevices.servers.map(device => fetchDeviceHistory(device)),
+    ]);
+
+    const trends = calculateDeviceTrends(regionDevices);
+
+    return { region, trends };
+};
+
+
+
+
+
+
