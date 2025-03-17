@@ -1,20 +1,34 @@
+Read below files and add one sidebar 
+in sidebar add button 
+back to dashboard 
+select region (dropdown)
+also add dropdown button i want to filter data in basis of Device type (Controller,archiver,camera, server)
+and want to filter data on basis of Remark.
+
+i want display Uptime & downtime duraion in hour/minutes/ format in View history display 
+History  day ,date , then status  like this kindly update my files as per my request and give me updated code 
+
+
+
+index.html
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device Trend Analysis</title>
     <link rel="stylesheet" href="styles.css">
+
 </head>
 <body>
-
+    <h1 style="display: flex;margin-bottom: 5%;align-self: center;margin-top: 0%;margin-bottom: 0%;">Device Trend Report </h1>
     <!-- Back to Dashboard Button -->
     <button onclick="window.location.href='index.html'">Back to Dashboard</button>
-
+    
     <div class="container">
-        <h1>Device Trend Report</h1>
-
-        <div class="region-select">
+        
+        
+        <div class="region-select" style="margin-top: 0%;">
             <label for="region">Select Region:</label>
             <select id="region" onchange="fetchDeviceData()">
                 <option value="apac">APAC</option>
@@ -34,6 +48,7 @@
                     <th>Downtime Count</th>
                     <th>Downtime Duration</th>
                     <th>Details</th>
+                    
                     <th>Remark</th>
                 </tr>
             </thead>
@@ -47,25 +62,37 @@
     <div id="device-history-modal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeHistoryModal()">&times;</span>
+            
             <h2>Device History</h2>
             <div id="device-history">
                 <!-- History data will be displayed here -->
             </div>
         </div>
     </div>
-
-    <!-- Chart Section -->
-    <div class="chart-container">
-        <canvas id="trendChart"></canvas>
-    </div>
-
     <script src="trend.js"></script>
+    
+</body>
+</html>
+
+
+
+    <!-- Footer -->
+    <footer class="footer">
+        <img src="images/FooterLogo.png" alt="Company Logo" class="footer-logo">
+        <p>&copy;2025 VisionWatch | Powered by <strong>Western Union Services India Pvt Ltd.</strong></p>
+        <p>Contact: 
+            <a href="mailto:gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com">gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com</a> | 
+            <a href="tel:+91 20 67632394">+91 2067632394</a>
+        </p>
+    </footer>
 </body>
 </html>
 
 
 
 
+
+trend.js
 
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -144,53 +171,6 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .catch(error => console.error('Error fetching trend data:', error));
     }
-
-    function updateTrendChart(trends) {
-        const canvas = document.getElementById('trendChart');
-        if (!canvas) {
-            console.error("Chart element not found.");
-            return;
-        }
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-            console.error("Failed to get canvas context.");
-            return;
-        }
-
-        if (window.trendChartInstance) {
-            window.trendChartInstance.destroy(); // Destroy existing chart before re-creating
-        }
-
-        window.trendChartInstance = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: trends.map(trend => trend.device_name),
-                datasets: [{
-                    label: 'Uptime (Hours)',
-                    data: trends.map(trend => parseDuration(trend.uptime)),
-                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    borderWidth: 1
-                }, {
-                    label: 'Downtime (Hours)',
-                    data: trends.map(trend => parseDuration(trend.downtime)),
-                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
-                    borderColor: 'rgba(255, 99, 132, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    }
-
     function parseDuration(duration) {
         const regex = /(\d+)d (\d+)h (\d+)m/;
         const matches = duration.match(regex);
@@ -205,3 +185,45 @@ document.addEventListener('DOMContentLoaded', function () {
 
     fetchDeviceData(); // Fetch initial data
 });
+
+
+
+
+// Function to open the device history modal and display details
+function openDeviceHistory(ipAddress) {
+    // Fetch device history data from API
+    fetch(`http://localhost/api/device/history/${ipAddress}`)
+        .then(response => response.json())
+        .then(data => {
+            displayDeviceHistory(data.history);
+        })
+        .catch(error => {
+            console.error('Error fetching device history:', error);
+        });
+
+    // Show the modal
+    document.getElementById('device-history-modal').style.display = 'block';
+}
+
+// Function to display device history inside the modal
+function displayDeviceHistory(history) {
+    const historyContainer = document.getElementById('device-history');
+    historyContainer.innerHTML = ''; // Clear previous data
+
+    if (history && history.length > 0) {
+        history.forEach(entry => {
+            const entryDiv = document.createElement('div');
+            entryDiv.innerHTML = `<p><strong>${new Date(entry.timestamp).toLocaleString()}</strong> - ${entry.status}</p>`;
+            historyContainer.appendChild(entryDiv);
+        });
+    } else {
+        historyContainer.innerHTML = '<p>No history available</p>';
+    }
+}
+
+// Function to close the modal
+function closeHistoryModal() {
+    document.getElementById('device-history-modal').style.display = 'none';
+}
+
+
