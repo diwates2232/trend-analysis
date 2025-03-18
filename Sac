@@ -1,0 +1,174 @@
+document.addEventListener('DOMContentLoaded', function () {
+    let deviceStatusMap = {}; // Stores uptime & downtime for each device
+    let deviceTypeMap = {}; // Stores device type for filtering
+
+    function fetchDeviceData() {
+        const selectedRegion = document.getElementById('region').value;
+        fetch(`http://localhost/api/regions/details/${selectedRegion}`)
+            .then(response => response.json())
+            .then(data => {
+                processDeviceData(data.details);
+            })
+            .catch(error => console.error('Error fetching device data:', error));
+    }
+
+    function processDeviceData(details) {
+        if (!details) {
+            console.error('No device details found');
+            return;
+        }
+
+        ['cameras', 'archivers', 'controllers', 'servers'].forEach(deviceType => {
+            details[deviceType]?.forEach(device => {
+                trackDeviceStatus(device, deviceType);
+            });
+        });
+
+        updateDeviceTable();
+    }
+
+    function trackDeviceStatus(device, deviceType) {
+        const ip = device.ip_address;
+        const history = device.history || [];
+        const lastEntry = history.length > 0 ? history[history.length - 1] : null;
+
+        if (!deviceStatusMap[ip]) {
+            deviceStatusMap[ip] = { uptime: 0, downtime: 0, lastStatus: lastEntry?.status || "Unknown" };
+        }
+        deviceTypeMap[ip] = deviceType.toUpperCase(); // Store device type for filtering
+
+        if (lastEntry) {
+            const lastStatus = deviceStatusMap[ip].lastStatus;
+            
+            if (lastEntry.status === "Online") {
+                if (lastStatus === "Offline") {
+                    // Reset downtime if the device comes online
+                    deviceStatusMap[ip].downtime = 0;
+                }
+                deviceStatusMap[ip].uptime += 1; // Increase uptime
+            } else if (lastEntry.status === "Offline") {
+                if (lastStatus === "Online") {
+                    // Reset uptime if the device goes offline
+                    deviceStatusMap[ip].uptime = 0;
+                }
+                deviceStatusMap[ip].downtime += 1; // Increase downtime
+            }
+
+            deviceStatusMap[ip].lastStatus = lastEntry.status;
+        }
+    }
+
+    function updateDeviceTable() {
+        const tableBody = document.getElementById('device-table').getElementsByTagName('tbody')[0];
+        tableBody.innerHTML = ''; // Clear existing rows
+
+        Object.keys(deviceStatusMap).forEach(ip => {
+            const { uptime, downtime } = deviceStatusMap[ip];
+            const uptimeFormatted = formatDuration(uptime);
+            const downtimeFormatted = formatDuration(downtime);
+            const remark = downtime >= 300 ? "Device needs repair" : "Device working properly";
+            const deviceType = deviceTypeMap[ip];
+
+            const row = tableBody.insertRow();
+            row.innerHTML = `
+                <td>${ip}</td>
+                <td>Device ${ip}</td>
+                <td>${deviceType}</td>
+                <td>${uptimeFormatted}</td>
+                <td>${downtimeFormatted}</td>
+                <td><button onclick="openDeviceHistory('${ip}')">View History</button></td>
+                <td>${remark}</td>
+            `;
+        });
+
+        filterData(); // Apply filters after updating the table
+    }
+
+    function formatDuration(seconds) {
+        let days = Math.floor(seconds / (24 * 3600));
+        seconds %= 24 * 3600;
+        let hours = Math.floor(seconds / 3600);
+        seconds %= 3600;
+        let minutes = Math.floor(seconds / 60);
+        let secs = seconds % 60;
+        return `${days}d ${hours}h ${minutes}m ${secs}s`;
+    }
+
+    // Refresh uptime and downtime every second
+    setInterval(() => {
+        Object.keys(deviceStatusMap).forEach(ip => {
+            trackDeviceStatus({ ip_address: ip, history: [{ status: deviceStatusMap[ip].lastStatus }] }, deviceTypeMap[ip]);
+        });
+        updateDeviceTable();
+    }, 1000);
+
+    fetchDeviceData();
+
+    // Function to fetch and display device history from main API
+    function openDeviceHistory(ipAddress) {
+        const selectedRegion = document.getElementById('region').value;
+        
+        fetch(`http://localhost/api/regions/details/${selectedRegion}`)
+            .then(response => response.json())
+            .then(data => {
+                let history = [];
+                
+                ['cameras', 'archivers', 'controllers', 'servers'].forEach(deviceType => {
+                    const devices = data.details[deviceType] || [];
+                    const device = devices.find(d => d.ip_address === ipAddress);
+                    if (device) history = device.history;
+                });
+
+                displayDeviceHistory(history);
+            })
+            .catch(error => console.error('Error fetching device history:', error));
+
+        document.getElementById('device-history-modal').style.display = 'block';
+    }
+
+    function displayDeviceHistory(history) {
+        const historyContainer = document.getElementById('device-history');
+        historyContainer.innerHTML = '';
+
+        if (history && history.length > 0) {
+            history.forEach(entry => {
+                const entryDiv = document.createElement('div');
+                const date = new Date(entry.timestamp);
+                const formattedDate = date.toDateString();
+                const day = date.toLocaleDateString(undefined, { weekday: 'long' });
+                entryDiv.innerHTML = `<p><strong>${day}, ${formattedDate}</strong> - ${entry.status}</p>`;
+                historyContainer.appendChild(entryDiv);
+            });
+        } else {
+            historyContainer.innerHTML = '<p>No history available</p>';
+        }
+    }
+
+    function closeHistoryModal() {
+        document.getElementById('device-history-modal').style.display = 'none';
+    }
+
+    function filterData() {
+        const selectedType = document.getElementById('deviceType').value;
+        const selectedRemark = document.getElementById('remarkFilter').value;
+        const table = document.getElementById('device-table');
+        const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+        for (let row of rows) {
+            const type = row.cells[2].textContent.trim();
+            const remark = row.cells[6].textContent.trim(); // Fix: Correct column index for remark
+
+            if ((selectedType === "all" || type === selectedType.toUpperCase()) &&
+                (selectedRemark === "all" || remark === selectedRemark)) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        }
+    }
+
+    // Attach event listeners
+    document.getElementById('region').addEventListener('change', fetchDeviceData);
+    document.getElementById('deviceType').addEventListener('change', filterData);
+    document.getElementById('remarkFilter').addEventListener('change', filterData);
+});
