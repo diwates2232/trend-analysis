@@ -1,3 +1,45 @@
+this is API-http://localhost/api/regions/details/apac
+We can replace region name apac /emea laca/ namer 
+API responce is -
+{
+  "details": {
+    "cameras": [
+      {
+        "cameraname": "PUNE Green Zone to yellow zone passage - 10.199.10.20 (FLIR CM-3102-11-I T71552107) - 350",
+        "ip_address": "10.199.10.20",
+        "location": "APAC",
+        "history": [
+          {
+            "status": "Online",
+            "timestamp": "2025-03-05T16:23:16.323+05:30"
+          }
+        ],
+        "status": "Online"
+      },
+  ],
+    "archivers": [
+      {
+        "archivername": "Archiver Manila",
+        "ip_address": "10.193.132.8",
+        "location": "APAC",
+        "history": [
+          {
+            "status": "Online",
+            "timestamp": "2025-03-19T00:52:30.526+05:30"
+          }
+        ],
+        "status": "Online"
+      },
+
+same for Controller and Server 
+
+In below code downtime count are not added you .
+and for History use above API dont use diffrent API.
+and When i refresh Ui time is automatically restart and start again from zero .so kindly update below code and give me correct code.
+
+
+
+
 document.addEventListener('DOMContentLoaded', function () {
     let deviceUptimeMap = {}; // Stores uptime for each device
     let deviceDowntimeMap = {}; // Stores downtime for each device
@@ -154,3 +196,6 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('deviceType').addEventListener('change', filterData);
     document.getElementById('remarkFilter').addEventListener('change', filterData);
 });
+
+
+
