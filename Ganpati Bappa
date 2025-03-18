@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', function () {
     function fetchDeviceData() {
         const selectedRegion = document.getElementById('region').value;
@@ -73,3 +72,20 @@ document.addEventListener('DOMContentLoaded', function () {
         const mins = Math.floor(minutes % 60);
         return `${hours}h ${mins}m`;
     }
+
+
+
+
+Read Above code carefully .
+
+I want modify device calculateUptimeduration calculate uptime "In device history device status is online then increase its Uptime in real time in Indian time zone .
+and display day/hour/minutes/seconds format.
+
+and calculateDowntimeduration " When device goes offline (device status is offline ) then start downtimeDuartion whenever device not change its status .
+
+for this check device history continusly
+and i want update device uptime downtime in real time .
+
+update my code as per request.
+
+
