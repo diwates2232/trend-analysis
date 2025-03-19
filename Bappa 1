@@ -52,3 +52,33 @@ function populateDeviceTable(details, historyData) {
         console.error('No details found in the response');
     }
 }
+
+
+
+
+
+
+
+function startUptime(deviceIp, history) {
+    clearInterval(deviceDowntimeTimers[deviceIp]);
+    let lastOnlineEntry = history.filter(entry => entry.status === "Online").pop();
+    
+    if (!lastOnlineEntry) return;
+    
+    let startTime = new Date(lastOnlineEntry.timestamp).getTime();
+    
+    function updateUptime() {
+        let uptimeElement = document.getElementById(`uptime-${deviceIp}`);
+        
+        if (uptimeElement) {  // Check if element exists before updating
+            let elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+            uptimeElement.innerText = formatDuration(elapsedTime);
+        } else {
+            console.warn(`Element uptime-${deviceIp} not found, retrying...`);
+            setTimeout(updateUptime, 500);  // Retry after 500ms
+        }
+    }
+
+    updateUptime(); // Start updating uptime
+}
+
