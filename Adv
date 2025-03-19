@@ -1,0 +1,160 @@
+let deviceUptimeTimers = {};
+let deviceDowntimeTimers = {};
+
+function fetchDeviceData() {
+    const selectedRegion = document.getElementById('region').value;
+    fetch(`http://localhost/api/regions/details/${selectedRegion}`)
+        .then(response => response.json())
+        .then(regionData => {
+            fetchDeviceHistory(regionData.details);
+        })
+        .catch(error => console.error('Error fetching device data:', error));
+}
+
+function fetchDeviceHistory(regionDetails) {
+    fetch(`http://localhost/api/devices/history`)
+        .then(response => response.json())
+        .then(historyData => {
+            populateDeviceTable(regionDetails, historyData);
+        })
+        .catch(error => console.error('Error fetching device history:', error));
+}
+
+function populateDeviceTable(details, historyData) {
+    const tableBody = document.getElementById('device-table').getElementsByTagName('tbody')[0];
+    tableBody.innerHTML = ''; // Clear existing rows
+
+    if (details) {
+        ['cameras', 'archivers', 'controllers', 'servers'].forEach(deviceType => {
+            details[deviceType]?.forEach(device => {
+                const deviceIp = device.ip_address;
+                const deviceName = device[deviceType.slice(0, -1) + 'name'];
+                const deviceCategory = deviceType.slice(0, -1).toUpperCase();
+                
+                const deviceHistory = historyData[deviceIp] || [];
+                const lastStatusEntry = deviceHistory.length > 0 ? deviceHistory[deviceHistory.length - 1] : null;
+                const currentStatus = lastStatusEntry ? lastStatusEntry.status : "Unknown";
+                
+                const row = tableBody.insertRow();
+                row.innerHTML = `
+                    <td>${deviceIp}</td>
+                    <td>${deviceName}</td>
+                    <td>${deviceCategory}</td>
+                    <td id="uptime-${deviceIp}">0h/0m/0s</td>
+                    <td id="downtime-count-${deviceIp}">0</td>
+                    <td id="downtime-${deviceIp}">0h/0m/0s</td>
+                    <td><button onclick="openDeviceHistory('${deviceIp}')">View History</button></td>
+                    <td id="remark-${deviceIp}">Device working properly</td>
+                `;
+
+                if (currentStatus === "Online") {
+                    startUptime(deviceIp, deviceHistory);
+                } else {
+                    startDowntime(deviceIp, deviceHistory);
+                }
+            });
+        });
+    } else {
+        console.error('No details found in the response');
+    }
+}
+
+function startUptime(deviceIp, history) {
+    clearInterval(deviceDowntimeTimers[deviceIp]);
+    let lastOnlineEntry = history.filter(entry => entry.status === "Online").pop();
+    
+    if (!lastOnlineEntry) return;
+    
+    let startTime = new Date(lastOnlineEntry.timestamp).getTime();
+    deviceUptimeTimers[deviceIp] = setInterval(() => {
+        let elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById(`uptime-${deviceIp}`).innerText = formatDuration(elapsedTime);
+    }, 1000);
+}
+
+function startDowntime(deviceIp, history) {
+    clearInterval(deviceUptimeTimers[deviceIp]);
+    let lastOfflineEntry = history.filter(entry => entry.status === "Offline").pop();
+
+    if (!lastOfflineEntry) return;
+    
+    let startTime = new Date(lastOfflineEntry.timestamp).getTime();
+    deviceDowntimeTimers[deviceIp] = setInterval(() => {
+        let elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById(`downtime-${deviceIp}`).innerText = formatDuration(elapsedTime);
+        updateDowntimeCount(deviceIp, history);
+    }, 1000);
+}
+
+function updateDowntimeCount(deviceIp, history) {
+    let downtimeCount = history.filter(entry => entry.status === "Offline").length;
+    document.getElementById(`downtime-count-${deviceIp}`).innerText = downtimeCount;
+    
+    if (downtimeCount > 3) {
+        document.getElementById(`remark-${deviceIp}`).innerText = "Device needs repair";
+    }
+}
+
+function formatDuration(seconds) {
+    let hours = Math.floor(seconds / 3600);
+    let minutes = Math.floor((seconds % 3600) / 60);
+    let secs = seconds % 60;
+    return `${hours}h/${minutes}m/${secs}s`;
+}
+
+function openDeviceHistory(ipAddress) {
+    fetch(`http://localhost/api/devices/history`)
+        .then(response => response.json())
+        .then(data => {
+            displayDeviceHistory(data[ipAddress] || []);
+        })
+        .catch(error => console.error('Error fetching device history:', error));
+
+    document.getElementById('device-history-modal').style.display = 'block';
+}
+
+function displayDeviceHistory(history) {
+    const historyContainer = document.getElementById('device-history');
+    historyContainer.innerHTML = '';
+
+    if (history.length > 0) {
+        history.forEach(entry => {
+            const entryDiv = document.createElement('div');
+            const date = new Date(entry.timestamp);
+            const formattedDate = date.toDateString();
+            const day = date.toLocaleDateString(undefined, { weekday: 'long' });
+            entryDiv.innerHTML = `<p><strong>${day}, ${formattedDate}</strong> - ${entry.status}</p>`;
+            historyContainer.appendChild(entryDiv);
+        });
+    } else {
+        historyContainer.innerHTML = '<p>No history available</p>';
+    }
+}
+
+function closeHistoryModal() {
+    document.getElementById('device-history-modal').style.display = 'none';
+}
+
+function filterData() {
+    const selectedType = document.getElementById('device-type').value;
+    const selectedRemark = document.getElementById('remark-filter').value;
+    const table = document.getElementById('device-table');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    for (let row of rows) {
+        const type = row.cells[2].textContent;
+        const remark = row.cells[7].textContent;
+
+        if ((selectedType === "all" || type === selectedType) &&
+            (selectedRemark === "all" || remark === selectedRemark)) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById('region').addEventListener('change', fetchDeviceData);
+    fetchDeviceData(); // Initial load
+});
