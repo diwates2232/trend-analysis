@@ -1,0 +1,260 @@
+i have Update above code in my trend.js file
+
+then filter by Device Type and Filter by remark button is not Working 
+also in my console there is error Occured check this error 
+
+23trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212Understand this errorAI
+trend.html:1 Uncaught ReferenceError: openDeviceHistory is not defined
+    at HTMLButtonElement.onclick (trend.html:1:1)
+onclick @ trend.html:1Understand this errorAI
+23trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212Understand this errorAI
+trend.js:225 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:225:71
+(anonymous) @ trend.js:225Understand this errorAI
+5trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212Understand this errorAI
+28trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212
+setInterval
+startUptime @ trend.js:210
+(anonymous) @ trend.js:192
+(anonymous) @ trend.js:170
+populateDeviceTable @ trend.js:169
+(anonymous) @ trend.js:159
+Promise.then
+fetchDeviceHistory @ trend.js:158
+(anonymous) @ trend.js:150
+Promise.then
+fetchDeviceData @ trend.js:149
+handleMouseUp_ @ unknownUnderstand this errorAI
+23trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212Understand this errorAI
+trend.js:225 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:225:71
+(anonymous) @ trend.js:225Understand this errorAI
+79trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212Understand this errorAI
+trend.js:225 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:225:71
+(anonymous) @ trend.js:225Understand this errorAI
+5trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212Understand this errorAI
+28trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212
+setInterval
+startUptime @ trend.js:210
+(anonymous) @ trend.js:192
+(anonymous) @ trend.js:170
+populateDeviceTable @ trend.js:169
+(anonymous) @ trend.js:159
+Promise.then
+fetchDeviceHistory @ trend.js:158
+(anonymous) @ trend.js:150
+Promise.then
+fetchDeviceData @ trend.js:149
+handleMouseUp_ @ unknownUnderstand this errorAI
+23trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212Understand this errorAI
+trend.js:225 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:225:71
+(anonymous) @ trend.js:225Understand this errorAI
+79trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212Understand this errorAI
+trend.js:225 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:225:71
+(anonymous) @ trend.js:225Understand this errorAI
+5trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212Understand this errorAI
+28trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212
+setInterval
+startUptime @ trend.js:210
+(anonymous) @ trend.js:192
+(anonymous) @ trend.js:170
+populateDeviceTable @ trend.js:169
+(anonymous) @ trend.js:159
+Promise.then
+fetchDeviceHistory @ trend.js:158
+(anonymous) @ trend.js:150
+Promise.then
+fetchDeviceData @ trend.js:149
+handleMouseUp_ @ unknownUnderstand this errorAI
+23trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212Understand this errorAI
+trend.js:225 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:225:71
+(anonymous) @ trend.js:225Understand this errorAI
+79trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212Understand this errorAI
+trend.js:225 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:225:71
+(anonymous) @ trend.js:225Understand this errorAI
+5trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212Understand this errorAI
+28trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212
+setInterval
+startUptime @ trend.js:210
+(anonymous) @ trend.js:192
+(anonymous) @ trend.js:170
+populateDeviceTable @ trend.js:169
+(anonymous) @ trend.js:159
+Promise.then
+fetchDeviceHistory @ trend.js:158
+(anonymous) @ trend.js:150
+Promise.then
+fetchDeviceData @ trend.js:149
+handleMouseUp_ @ unknownUnderstand this errorAI
+23trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212Understand this errorAI
+trend.js:225 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:225:71
+(anonymous) @ trend.js:225Understand this errorAI
+79trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212Understand this errorAI
+trend.js:225 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:225:71
+(anonymous) @ trend.js:225Understand this errorAI
+5trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212Understand this errorAI
+28trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212
+setInterval
+startUptime @ trend.js:210
+(anonymous) @ trend.js:192
+(anonymous) @ trend.js:170
+populateDeviceTable @ trend.js:169
+(anonymous) @ trend.js:159
+Promise.then
+fetchDeviceHistory @ trend.js:158
+(anonymous) @ trend.js:150
+Promise.then
+fetchDeviceData @ trend.js:149
+handleMouseUp_ @ unknownUnderstand this errorAI
+trend.html:12 Uncaught ReferenceError: toggleSidebar is not defined
+    at HTMLDivElement.onclick (trend.html:12:57)
+onclick @ trend.html:12Understand this errorAI
+23trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212Understand this errorAI
+trend.js:225 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:225:71
+(anonymous) @ trend.js:225Understand this errorAI
+56trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+(anonymous) @ trend.js:212Understand this errorAI
+trend.html:17 Uncaught ReferenceError: fetchDeviceData is not defined
+    at HTMLSelectElement.onchange (trend.html:17:62)
+onchange @ trend.html:17Understand this errorAI
+trend.html:12 Uncaught ReferenceError: toggleSidebar is not defined
+    at HTMLDivElement.onclick (trend.html:12:57)
+onclick @ trend.html:12Understand this errorAI
+23trend.js:212 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at trend.js:212:69
+
+
+
+
+
+    For more information 
+
+    kindly check my 
+
+    trend.html file
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div id="sidebar>
+        <button id="menu-btn" onclick="toggleSidebar()">☰</button>
+        <div id="sidebar-content">
+            <button onclick="window.location.href='index.html'">Back to Dashboard</button>
+
+            <label for="region">Select Region:</label>
+            <select id="region" onchange="fetchDeviceData()">
+                <option value="apac">APAC</option>
+                <option value="emea">EMEA</option>
+                <option value="laca">LACA</option>
+                <option value="namer">NAMER</option>
+            </select>
+
+            <label for="device-type">Filter by Device Type:</label>
+            <select id="device-type" onchange="filterData()">
+                <option value="all">All</option>
+                <option value="Controller">Controller</option>
+                <option value="Archiver">Archiver</option>
+                <option value="Camera">Camera</option>
+                <option value="Server">Server</option>
+            </select>
+
+            <label for="remark-filter">Filter by Remark:</label>
+            <select id="remark-filter" onchange="filterData()">
+                <option value="all">All</option>
+                <option value="Device needs repair">Device needs repair</option>
+                <option value="Device working properly">Device working properly</option>
+            </select>
+        </div>
+    </div>
+
+    <h1>Device Trend Report</h1>
+
+    <div class="container">
+        <table id="device-table">
+            <thead>
+                <tr>
+                    <th>Device IP</th>
+                    <th>Device Name</th>
+                    <th>Device Type</th>
+                    <th>Uptime Duration</th>
+                    <th>Downtime Count</th>
+                    <th>Downtime Duration</th>
+                    <th>Details</th>
+                    <th>Remark</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Device History Modal -->
+    <div id="device-history-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeHistoryModal()">&times;</span>
+            <h2>Device History</h2>
+            <div id="device-history"></div>
+        </div>
+    </div>
+
+    <script src="trend.js"></script>
+</body>
+</html>
+    
