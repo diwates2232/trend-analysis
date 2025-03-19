@@ -1,0 +1,16 @@
+function toggleSidebar() {
+    let sidebar = document.getElementById("sidebar");
+    if (sidebar) sidebar.classList.toggle("active");
+}
+function fetchDeviceData() {
+    console.log("Fetching device data..."); 
+}
+function filterData() {
+    console.log("Filtering data...");
+}
+function openDeviceHistory() {
+    console.log("Opening device history...");
+}
+function closeHistoryModal() {
+    console.log("Closing modal...");
+}
