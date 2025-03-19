@@ -1,16 +1,10 @@
-function toggleSidebar() {
-    let sidebar = document.getElementById("sidebar");
-    if (sidebar) sidebar.classList.toggle("active");
-}
-function fetchDeviceData() {
-    console.log("Fetching device data..."); 
-}
-function filterData() {
-    console.log("Filtering data...");
-}
-function openDeviceHistory() {
-    console.log("Opening device history...");
-}
-function closeHistoryModal() {
-    console.log("Closing modal...");
-}
+trend.html:72 Uncaught ReferenceError: fetchDeviceData is not defined
+    at HTMLDocument.<anonymous> (trend.html:72:9)
+
+trend.html:25 Uncaught ReferenceError: filterData is not defined
+    at HTMLSelectElement.onchange (trend.html:25:62)
+trend.html:34 Uncaught ReferenceError: filterData is not defined
+    at HTMLSelectElement.onchange (trend.html:34:64)
+trend.html:1 Uncaught ReferenceError: openDeviceHistory is not defined
+    at HTMLButtonElement.onclick (trend.html:1:1)
+﻿
