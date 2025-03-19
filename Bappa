@@ -1,3 +1,24 @@
+Once Check my both file nad solve Below Error 
+and give correct Files .
+
+[ContentService] document.readyState: loading
+ContentMain.js:5 [ContentService.SetContentInitData] target: { TabId: 1454073216, FrameId: 0}
+trend.html:72 Uncaught ReferenceError: fetchDeviceData is not defined
+    at HTMLDocument.<anonymous> (trend.html:72:9)
+(anonymous) @ trend.html:72Understand this errorAI
+trend.html:25 Uncaught ReferenceError: filterData is not defined
+    at HTMLSelectElement.onchange (trend.html:25:62)
+onchange @ trend.html:25Understand this errorAI
+trend.html:34 Uncaught ReferenceError: filterData is not defined
+    at HTMLSelectElement.onchange (trend.html:34:64)
+onchange @ trend.html:34Understand this errorAI
+trend.html:1 Uncaught ReferenceError: openDeviceHistory is not defined
+    at HTMLButtonElement.onclick (trend.html:1:1)
+
+
+
+trend.js
+
 document.addEventListener('DOMContentLoaded', function () {
     let deviceUptimeTimers = {};
     let deviceDowntimeTimers = {};
@@ -60,6 +81,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+
+
     function startUptime(deviceIp, history) {
         clearInterval(deviceDowntimeTimers[deviceIp]);
         let lastOnlineEntry = history.filter(entry => entry.status === "Online").pop();
@@ -68,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function () {
         
         let startTime = new Date(lastOnlineEntry.timestamp).getTime();
         deviceUptimeTimers[deviceIp] = setInterval(() => {
-            let elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+         let elapsedTime = Math.floor((Date.now() - startTime) / 1000);
             document.getElementById(`uptime-${deviceIp}`).innerText = formatDuration(elapsedTime);
         }, 1000);
     }
@@ -103,6 +126,31 @@ document.addEventListener('DOMContentLoaded', function () {
         return `${hours}h/${minutes}m/${secs}s`;
     }
 
+
+
+
+
+    function toggleSidebar() {
+        let sidebar = document.getElementById("sidebar");
+        if (sidebar) sidebar.classList.toggle("active");
+    }
+    
+    function filterData() {
+        console.log("Filtering data...");
+    }
+    function openDeviceHistory() {
+        console.log("Opening device history...");
+    }
+    function closeHistoryModal() {
+        console.log("Closing modal...");
+    }
+
+
+
+
+
+
+
     function openDeviceHistory(ipAddress) {
         fetch(`http://localhost/api/devices/history`)
             .then(response => response.json())
@@ -136,6 +184,9 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('device-history-modal').style.display = 'none';
     }
 
+
+
+
     function filterData() {
         const selectedType = document.getElementById('deviceType').value;
         const selectedRemark = document.getElementById('remarkFilter').value;
@@ -155,6 +206,106 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+
+
     document.getElementById('region').addEventListener('change', fetchDeviceData);
     fetchDeviceData(); // Initial load
 });
+
+
+
+
+trend.html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <button id="menu-btn" onclick="toggleSidebar()">☰</button>
+        <div id="sidebar-content">
+            <button onclick="window.location.href='index.html'">Back to Dashboard</button>
+
+            <label for="region">Select Region:</label>
+            <select id="region" onchange="fetchDeviceData()">
+                <option value="apac">APAC</option>
+                <option value="emea">EMEA</option>
+                <option value="laca">LACA</option>
+                <option value="namer">NAMER</option>
+            </select>
+
+            <label for="device-type">Filter by Device Type:</label>
+            <select id="device-type" onchange="filterData()">
+                <option value="all">All</option>
+                <option value="Controller">Controller</option>
+                <option value="Archiver">Archiver</option>
+                <option value="Camera">Camera</option>
+                <option value="Server">Server</option>
+            </select>
+
+            <label for="remark-filter">Filter by Remark:</label>
+            <select id="remark-filter" onchange="filterData()">
+                <option value="all">All</option>
+                <option value="Device needs repair">Device needs repair</option>
+                <option value="Device working properly">Device working properly</option>
+            </select>
+        </div>
+    </div>
+
+    <h1>Device Trend Report</h1>
+
+    <div class="container">
+        <table id="device-table">
+            <thead>
+                <tr>
+                    <th>Device IP</th>
+                    <th>Device Name</th>
+                    <th>Device Type</th>
+                    <th>Uptime Duration</th>
+                    <th>Downtime Count</th>
+                    <th>Downtime Duration</th>
+                    <th>Details</th>
+                    <th>Remark</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Device History Modal -->
+    <div id="device-history-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeHistoryModal()">&times;</span>
+            <h2>Device History</h2>
+            <div id="device-history"></div>
+        </div>
+    </div>
+<script>
+    document.addEventListener("DOMContentLoaded" , function (){
+        fetchDeviceData();
+    });
+</script>
+    <script src="trend.js"></script>
+</body>
+</html>
+
+   <!-- Footer -->
+   <footer class="footer">
+    <img src="images/FooterLogo.png" alt="Company Logo" class="footer-logo">
+    <p>&copy;2025 VisionWatch | Powered by <strong>Western Union Services India Pvt Ltd.</strong></p>
+    <p>Contact: 
+        <a href="mailto:gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com">gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com</a> | 
+        <a href="tel:+91 20 67632394">+91 2067632394</a>
+    </p>
+</footer>
+</body>
+</html>
+
+
+
