@@ -1,0 +1,50 @@
+function startUptime(deviceIp, history) {
+    clearInterval(deviceDowntimeTimers[deviceIp]);
+    let lastOnlineEntry = history.filter(entry => entry.status === "Online").pop();
+    
+    if (!lastOnlineEntry) return;
+    
+    let startTime = new Date(lastOnlineEntry.timestamp).getTime();
+    
+    function updateUptime() {
+        let uptimeElement = document.getElementById(`uptime-${deviceIp}`);
+        
+        if (uptimeElement) {  // Check if element exists before updating
+            let elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+            uptimeElement.innerText = formatDuration(elapsedTime);
+        } else {
+            console.warn(`Element uptime-${deviceIp} not found, retrying...`);
+            setTimeout(updateUptime, 500);  // Retry after 500ms
+        }
+    }
+
+    updateUptime(); // Start updating uptime
+}
+
+
+
+
+
+
+function populateDeviceTable(data) {
+    let tableBody = document.getElementById("device-table-body");
+    tableBody.innerHTML = ""; // Clear old data
+    
+    data.forEach(device => {
+        let row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${device.name}</td>
+            <td id="uptime-${device.ip}">Loading...</td>
+        `;
+        tableBody.appendChild(row);
+    });
+
+    // Ensure table is populated before calling startUptime()
+    setTimeout(() => {
+        data.forEach(device => startUptime(device.ip, device.history));
+    }, 1000);
+}
+
+
+
+
