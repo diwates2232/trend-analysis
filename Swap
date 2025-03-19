@@ -1,26 +1,51 @@
-function startUptime(deviceIp, history) {
-    clearInterval(deviceDowntimeTimers[deviceIp]);
-    let lastOnlineEntry = history.filter(entry => entry.status === "Online").pop();
-    
-    if (!lastOnlineEntry) return;
-    
-    let startTime = new Date(lastOnlineEntry.timestamp).getTime();
-    
-    function updateUptime() {
-        let uptimeElement = document.getElementById(`uptime-${deviceIp}`);
-        
-        if (uptimeElement) {  // Check if element exists before updating
-            let elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-            uptimeElement.innerText = formatDuration(elapsedTime);
-        } else {
-            console.warn(`Element uptime-${deviceIp} not found, retrying...`);
-            setTimeout(updateUptime, 500);  // Retry after 500ms
-        }
-    }
 
-    updateUptime(); // Start updating uptime
+function populateDeviceTable(details, historyData) {
+    const tableBody = document.getElementById('device-table').getElementsByTagName('tbody')[0];
+    tableBody.innerHTML = ''; // Clear existing rows
+
+    if (details) {
+        ['cameras', 'archivers', 'controllers', 'servers'].forEach(deviceType => {
+            details[deviceType]?.forEach(device => {
+                const deviceIp = device.ip_address;
+                const deviceName = device[deviceType.slice(0, -1) + 'name'];
+                const deviceCategory = deviceType.slice(0, -1).toUpperCase();
+                
+                const deviceHistory = historyData[deviceIp] || [];
+                const lastStatusEntry = deviceHistory.length > 0 ? deviceHistory[deviceHistory.length - 1] : null;
+                const currentStatus = lastStatusEntry ? lastStatusEntry.status : "Unknown";
+                
+                const row = tableBody.insertRow();
+                row.innerHTML = `
+                    <td>${deviceIp}</td>
+                    <td>${deviceName}</td>
+                    <td>${deviceCategory}</td>
+                    <td id="uptime-${deviceIp}">0h/0m/0s</td>
+                    <td id="downtime-count-${deviceIp}">0</td>
+                    <td id="downtime-${deviceIp}">0h/0m/0s</td>
+                    <td><button onclick="openDeviceHistory('${deviceIp}')">View History</button></td>
+                    <td id="remark-${deviceIp}">Device working properly</td>
+                `;
+
+                if (currentStatus === "Online") {
+                    startUptime(deviceIp, deviceHistory);
+                } else {
+                    startDowntime(deviceIp, deviceHistory);
+                }
+            });
+        });
+    } else {
+        console.error('No details found in the response');
+    }
 }
 
+
+
+
+Above is my previos function for populateDeviceTable
+
+and recntly you suggest me below 
+
+Adjust code and give me Updated function
 
 
 
