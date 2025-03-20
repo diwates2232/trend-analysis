@@ -1,0 +1,54 @@
+function pingAllDevices(details) {
+    let totalOnlineDevices = 0;
+    let totalOfflineDevices = 0;
+
+    let updatedSummary = {
+        totalDevices: 0,
+        totalOnlineDevices: 0,
+        totalOfflineDevices: 0,
+        cameras: { total: 0, online: 0, offline: 0 },
+        archivers: { total: 0, online: 0, offline: 0 },
+        controllers: { total: 0, online: 0, offline: 0 },
+        servers: { total: 0, online: 0, offline: 0 }
+    };
+
+    for (const [key, devices] of Object.entries(details.details)) {
+        if (!Array.isArray(devices) || devices.length === 0) continue;
+
+        updatedSummary[key].total = devices.length;
+        updatedSummary.totalDevices += devices.length;
+
+        devices.forEach((device) => {
+            const ip = device.ip_address || "N/A";
+            const card = document.querySelector(`[data-ip="${ip}"]`);
+
+            if (!card) return; // If device is not found in UI, skip
+
+            fetch(`${baseUrl}/ping/${ip}`)
+                .then(response => response.json())
+                .then(statusData => {
+                    const newStatus = statusData.status.toLowerCase(); // Get live status
+                    const statusDot = card.querySelector(".status-dot");
+                    const statusText = card.querySelector(".device-status");
+
+                    if (newStatus === "online") {
+                        statusDot.style.backgroundColor = "green";
+                        statusText.textContent = "Online";
+                        card.dataset.status = "online";
+                        updatedSummary[key].online++;
+                        updatedSummary.totalOnlineDevices++;
+                    } else {
+                        statusDot.style.backgroundColor = "red";
+                        statusText.textContent = "Offline";
+                        card.dataset.status = "offline";
+                        updatedSummary[key].offline++;
+                        updatedSummary.totalOfflineDevices++;
+                    }
+
+                    // Update summary dynamically after all status checks
+                    updateSummary(updatedSummary);
+                })
+                .catch(error => console.error(`Ping failed for ${ip}:`, error));
+        });
+    }
+}
