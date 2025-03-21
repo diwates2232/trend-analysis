@@ -1,8 +1,8 @@
-Check Below Files and Update 
-UptimeDuration - Day/hour/minute/second
-format
 
 
+
+
+ADD Above code in my Below File and give me Updated File.
 
 
 let deviceUptimeTimers = {};
@@ -44,7 +44,7 @@ function populateDeviceTable(details, historyData) {
 
                 // Create table row with borders for all cells
                 const row = tableBody.insertRow();
-                row.style.border = "5px solid black"; // Add border to row
+                row.style.border = "1px solid black"; // Add border to row
 
                 row.innerHTML = `
                     <td>${deviceIp}</td>
@@ -129,10 +129,18 @@ function updateRemarks(deviceIp, history) {
 }
 
 function formatDuration(seconds) {
-    let hours = Math.floor(seconds / 3600);
+    let days = Math.floor(seconds / 86400); // 1 day = 86400 seconds
+    let hours = Math.floor((seconds % 86400) / 3600);
     let minutes = Math.floor((seconds % 3600) / 60);
     let secs = seconds % 60;
-    return `${hours}h/${minutes}m/${secs}s`;
+
+    let result = [];
+    if (days > 0) result.push(`${days}d`);
+    if (hours > 0 || days > 0) result.push(`${hours}h`);
+    if (minutes > 0 || hours > 0 || days > 0) result.push(`${minutes}m`);
+    result.push(`${secs}s`); // Always show seconds
+
+    return result.join('/');
 }
 
 function openDeviceHistory(ipAddress) {
