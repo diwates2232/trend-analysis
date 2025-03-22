@@ -1,0 +1,97 @@
+// Fix for updateRemarks function to prioritize current status and handle downtime properly
+function updateRemarks(deviceIp, history, deviceType) {
+    let downtimeEntries = history.filter(entry => entry.status === "Offline");
+
+    // Filter downtimes that lasted more than 5 minutes (except for servers)
+    let filteredDowntimeEntries = downtimeEntries.filter((entry, index, arr) => {
+        if (deviceType === "SERVER") return true; // Always count downtime for servers
+        if (index === 0) return true; // Always keep the first entry
+
+        let previousEntry = arr[index - 1];
+        let duration = (new Date(entry.timestamp) - new Date(previousEntry.timestamp)) / 1000;
+        return duration >= 300; // 300 seconds = 5 minutes
+    });
+
+    let downtimeCount = filteredDowntimeEntries.length;
+    let totalDowntimeDuration = filteredDowntimeEntries.reduce((total, entry) => total + (new Date() - new Date(entry.timestamp)), 0) / 1000;
+    totalDowntimeDuration = Math.floor(totalDowntimeDuration / 86400); // Convert to days
+
+    const remarkElement = document.getElementById(`remark-${deviceIp}`);
+    let lastStatus = history.length > 0 ? history[history.length - 1].status : "Unknown";
+
+    // **Fix: Ensure the remark reflects the correct current status**
+    if (lastStatus === "Offline") {
+        // Fix to show "Offline" as the current status over any previous occurrence
+        if (downtimeCount >= 3 || totalDowntimeDuration > 2) {
+            remarkElement.innerText = `Device is Offline, needs repair.`;
+        } else {
+            remarkElement.innerText = `Device is Offline.`;
+        }
+    } else if (lastStatus === "Online") {
+        // Ensure that remarks reflect the device is Online and its downtime history
+        if (downtimeCount >= 3 || totalDowntimeDuration > 2) {
+            remarkElement.innerText = `Device is Online, needs repair.`;
+        } else if (downtimeCount > 0) {
+            remarkElement.innerText = `Device is Online, but it had ${downtimeCount} offline occurrences.`;
+        } else {
+            remarkElement.innerText = `Device is Online.`;
+        }
+    } else {
+        remarkElement.innerText = `Device status unknown.`;
+    }
+
+    // **Fix: Ensure downtime count is properly updated**
+    let downtimeElement = document.getElementById(`downtime-count-${deviceIp}`);
+    if (downtimeElement) {
+        downtimeElement.innerText = downtimeCount;
+    }
+}
+
+// **Fix Downtime Count and Remarks Update (with proper filtering)**
+function updateDowntimeCount(deviceIp, history) {
+    let downtimeEntries = history.filter(entry => entry.status === "Offline");
+
+    // Only count downtimes that last more than 5 minutes, except for servers
+    let filteredDowntimeEntries = downtimeEntries.filter((entry, index, arr) => {
+        if (deviceType === "SERVER") return true; // Always count downtime for servers
+        if (index === 0) return true; // Always keep the first entry
+
+        let previousEntry = arr[index - 1];
+        let duration = (new Date(entry.timestamp) - new Date(previousEntry.timestamp)) / 1000;
+        return duration >= 300; // 300 seconds = 5 minutes
+    });
+
+    let downtimeCount = filteredDowntimeEntries.length;
+    
+    let downtimeElement = document.getElementById(`downtime-count-${deviceIp}`);
+    if (downtimeElement) {
+        downtimeElement.innerText = downtimeCount;
+    }
+
+    // Update remarks based on downtime count and total downtime
+    let remarkElement = document.getElementById(`remark-${deviceIp}`);
+    if (remarkElement) {
+        if (downtimeCount === 0) {
+            remarkElement.innerText = "Device is Online.";
+        } else if (downtimeCount >= 3) {
+            remarkElement.innerText = `Device is Online, but it had ${downtimeCount} offline occurrences. Needs repair!`;
+        } else {
+            remarkElement.innerText = `Device is Online, but it had ${downtimeCount} offline occurrences.`;
+        }
+    }
+}
+
+// **Updated startDowntime function to fix current offline detection**
+function startDowntime(deviceIp, history) {
+    clearInterval(deviceUptimeTimers[deviceIp]);
+    let lastOfflineEntry = history.filter(entry => entry.status === "Offline").pop();
+
+    if (!lastOfflineEntry) return;
+    
+    let startTime = new Date(lastOfflineEntry.timestamp).getTime();
+    deviceDowntimeTimers[deviceIp] = setInterval(() => {
+        let elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById(`downtime-${deviceIp}`).innerText = formatDuration(elapsedTime);
+        updateDowntimeCount(deviceIp, history);
+    }, 1000);
+}
