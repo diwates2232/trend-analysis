@@ -1,5 +1,6 @@
 Check my trend.js file carefully.
 i Want in in displayDevice history calculate device downtime.and display in history .
+also display downtime duration in red colour
 
 let deviceUptimeTimers = {};
 let deviceDowntimeTimers = {};
