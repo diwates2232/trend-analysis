@@ -1,0 +1,200 @@
+const baseUrl = "http://localhost:80/api/regions";
+
+document.addEventListener("DOMContentLoaded", () => {
+    let regionName = "global"; // Default region
+
+    // Fetch initial data
+    fetchSummary(regionName);
+    fetchDetails(regionName);
+
+    // Add event listeners to region buttons
+    document.querySelectorAll(".region-button").forEach((button) => {
+        button.addEventListener("click", () => {
+            const region = button.getAttribute("data-region");
+            document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
+            fetchSummary(region);
+            fetchDetails(region);
+        });
+    });
+
+    // Close modal on button click
+    document.getElementById("close-modal").addEventListener("click", () => {
+        document.getElementById("modal").style.display = "none";
+    });
+
+    // Start auto-refresh
+    startAutoRefresh(regionName);
+});
+
+let refreshInterval = 300000; // 5 minutes
+let countdownTime = refreshInterval / 1000;
+let countdownDisplay = document.getElementById("countdown");
+
+// Function to fetch and update data
+function fetchData(regionName) {
+    const summaryUrl = `${baseUrl}/summary/${regionName}`;
+    const detailsUrl = `${baseUrl}/details/${regionName}`;
+
+    Promise.all([
+        fetch(summaryUrl).then(res => res.json()),
+        fetch(detailsUrl).then(res => res.json())
+    ])
+    .then(([summary, details]) => {
+        console.log("Summary Data:", summary);
+        console.log("Details Data:", details);
+        updateSummary(summary);
+        updateDetails(details);
+        pingAllDevices(details); // Ensure pinging updates summary dynamically
+    })
+    .catch(error => {
+        console.error("Error fetching data:", error);
+    });
+}
+
+// Start auto-refresh and countdown
+function startAutoRefresh(regionName) {
+    fetchData(regionName);
+
+    function updateCountdown() {
+        countdownDisplay.innerText = `Refreshing in ${countdownTime} seconds`;
+        countdownTime--;
+        if (countdownTime < 0) countdownTime = refreshInterval / 1000;
+    }
+
+    setInterval(updateCountdown, 1000);
+    setInterval(() => {
+        fetchData(regionName);
+        countdownTime = refreshInterval / 1000;
+    }, refreshInterval);
+}
+
+// Fetch summary data
+function fetchSummary(regionName) {
+    fetch(`${baseUrl}/summary/${regionName}`)
+        .then(response => response.json())
+        .then(summary => updateSummary(summary))
+        .catch(error => console.error("Error fetching summary:", error));
+}
+
+// Fetch details data
+function fetchDetails(regionName) {
+    fetch(`${baseUrl}/details/${regionName}`)
+        .then(response => response.json())
+        .then(details => {
+            updateDetails(details);
+            pingAllDevices(details);
+        })
+        .catch(error => console.error("Error fetching details:", error));
+}
+
+// Live device pinging
+function pingAllDevices(details) {
+    let updatedSummary = {
+        totalDevices: 0,
+        totalOnlineDevices: 0,
+        totalOfflineDevices: 0,
+        cameras: { total: 0, online: 0, offline: 0 },
+        archivers: { total: 0, online: 0, offline: 0 },
+        controllers: { total: 0, online: 0, offline: 0 },
+        servers: { total: 0, online: 0, offline: 0 }
+    };
+
+    let updateNeeded = false;
+
+    for (const [key, devices] of Object.entries(details.details)) {
+        if (!Array.isArray(devices) || devices.length === 0) continue;
+
+        updatedSummary[key].total = devices.length;
+        updatedSummary.totalDevices += devices.length;
+
+        devices.forEach(device => {
+            const ip = device.ip_address || "N/A";
+            const card = document.querySelector(`[data-ip="${ip}"]`);
+
+            if (!card) return;
+
+            fetch(`${baseUrl}/ping/${ip}`)
+                .then(response => response.json())
+                .then(statusData => {
+                    const newStatus = statusData.status.toLowerCase();
+                    const statusDot = card.querySelector(".status-dot");
+                    const statusText = card.querySelector(".device-status");
+
+                    if (newStatus === "online") {
+                        statusDot.style.backgroundColor = "green";
+                        statusText.textContent = "Online";
+                        updatedSummary[key].online++;
+                        updatedSummary.totalOnlineDevices++;
+                    } else {
+                        statusDot.style.backgroundColor = "red";
+                        statusText.textContent = "Offline";
+                        updatedSummary[key].offline++;
+                        updatedSummary.totalOfflineDevices++;
+                        updateNeeded = true;
+                    }
+
+                    if (updateNeeded) updateSummary(updatedSummary);
+                })
+                .catch(error => console.error(`Ping failed for ${ip}:`, error));
+        });
+    }
+}
+
+// Update summary UI
+function updateSummary(data) {
+    document.getElementById("total-devices").textContent = data.totalDevices || "N/A";
+    document.getElementById("online-devices").textContent = data.totalOnlineDevices || "N/A";
+    document.getElementById("offline-devices").textContent = data.totalOfflineDevices || "N/A";
+
+    ["cameras", "archivers", "controllers", "servers"].forEach(type => {
+        document.getElementById(`${type}-total`).textContent = data[type]?.total || "N/A";
+        document.getElementById(`${type}-online`).textContent = data[type]?.online || "N/A";
+        document.getElementById(`${type}-offline`).textContent = data[type]?.offline || "N/A";
+    });
+}
+
+// Update device details UI
+function updateDetails(data) {
+    const detailsContainer = document.getElementById("device-details");
+    detailsContainer.innerHTML = "";
+
+    for (const [key, devices] of Object.entries(data.details)) {
+        if (!Array.isArray(devices) || devices.length === 0) continue;
+
+        devices.forEach(device => {
+            const deviceIP = device.ip_address || "N/A";
+            const card = document.createElement("div");
+            card.className = "device-card";
+            card.dataset.ip = deviceIP;
+            card.dataset.type = key.toLowerCase();
+            card.dataset.status = device.status.toLowerCase();
+
+            const statusDot = document.createElement("span");
+            statusDot.className = "status-dot";
+            statusDot.style.backgroundColor = device.status === "Online" ? "green" : "red";
+
+            card.innerHTML = `
+                <h3>${device.cameraname || device.controllername || device.archivername || device.servername || "Unknown Device"}</h3>
+                <p>Type: ${key.toUpperCase()}</p>
+                <p>IP: ${deviceIP}</p>
+                <p>Location: ${device.location || "N/A"}</p>
+                <p>Status: ${device.status} ${statusDot.outerHTML}</p>
+                <button class="details-button" onclick="showModal('${device.cameraname || device.controllername || device.archivername || device.servername}', '${deviceIP}', '${device.location}', '${device.status}')">Details</button>
+            `;
+
+            detailsContainer.appendChild(card);
+        });
+    }
+}
+
+// Show modal with device details
+function showModal(name, ip, location, status) {
+    document.getElementById("modal-title").textContent = `Details for ${name}`;
+    document.getElementById("modal-body").innerHTML = `
+        <li><strong>Name:</strong> ${name}</li>
+        <li><strong>IP:</strong> ${ip}</li>
+        <li><strong>Location:</strong> ${location}</li>
+        <li><strong>Status:</strong> ${status}</li>
+    `;
+    document.getElementById("modal").style.display = "block";
+}
