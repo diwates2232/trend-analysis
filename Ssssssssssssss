@@ -1,0 +1,33 @@
+function displayDeviceHistory(history) {
+    const historyContainer = document.getElementById('device-history');
+    historyContainer.innerHTML = '';
+
+    if (history.length > 0) {
+        for (let i = 0; i < history.length; i++) {
+            const entry = history[i];
+            const date = new Date(entry.timestamp);
+            const formattedDate = date.toDateString(); // Example: "Wed Mar 19 2025"
+            const day = date.toLocaleDateString(undefined, { weekday: 'long' }); // Example: "Wednesday"
+            const time = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' }); // Example: "12:53:16 AM"
+            
+            let durationText = '';
+
+            // Calculate duration from the previous entry
+            if (i > 0) {
+                const prevEntry = history[i - 1];
+                const prevTime = new Date(prevEntry.timestamp);
+                const duration = Math.floor((date - prevTime) / 1000); // Duration in seconds
+
+                durationText = `<span style="color: red;"> (Duration: ${formatDuration(duration)})</span>`;
+            }
+
+            // Create entry div
+            const entryDiv = document.createElement('div');
+            entryDiv.innerHTML = `<p><strong>${day}, ${formattedDate}, ${time}</strong> - ${entry.status} ${durationText}</p>`;
+
+            historyContainer.appendChild(entryDiv);
+        }
+    } else {
+        historyContainer.innerHTML = '<p>No history available</p>';
+    }
+}
