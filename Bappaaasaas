@@ -1,0 +1,180 @@
+const baseUrl = "http://localhost:80/api/regions";
+let cache = { summary: null, details: null };
+let refreshInterval = 300000; // 5 minutes (300,000 ms)
+let countdownTime = refreshInterval / 1000; // Convert to seconds
+
+document.addEventListener("DOMContentLoaded", () => {
+    fetchData("global"); // Load global data initially
+    startAutoRefresh("global");
+
+    // Region button event listeners
+    document.querySelectorAll(".region-button").forEach((button) => {
+        button.addEventListener("click", () => {
+            const region = button.getAttribute("data-region");
+            document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
+            fetchData(region);
+        });
+    });
+
+    // Close modal event
+    document.getElementById("close-modal").addEventListener("click", () => {
+        document.getElementById("modal").style.display = "none";
+    });
+});
+
+// Fetch both summary & details
+function fetchData(regionName) {
+    const summaryUrl = `${baseUrl}/summary/${regionName}`;
+    const detailsUrl = `${baseUrl}/details/${regionName}`;
+
+    Promise.all([
+        fetch(summaryUrl).then((res) => res.json()),
+        fetch(detailsUrl).then((res) => res.json())
+    ])
+    .then(([summary, details]) => {
+        console.log("Summary Data:", summary);
+        console.log("Details Data:", details);
+
+        updateCache("summary", summary);
+        updateCache("details", details);
+        updateSummary(summary);
+        updateDetails(details);
+    })
+    .catch((error) => {
+        console.error("Error fetching data:", error);
+    });
+}
+
+// Update cache & refresh UI
+function updateCache(type, data) {
+    cache[type] = data;
+}
+
+// Auto-refresh with countdown
+function startAutoRefresh(regionName) {
+    fetchData(regionName); // Initial fetch
+
+    const countdownDisplay = document.getElementById("countdown");
+
+    function updateCountdown() {
+        countdownDisplay.innerText = `Refreshing in ${countdownTime} seconds`;
+        countdownTime--;
+        if (countdownTime < 0) countdownTime = refreshInterval / 1000;
+    }
+    
+    setInterval(updateCountdown, 1000);
+    
+    setInterval(() => {
+        fetchData(regionName);
+        countdownTime = refreshInterval / 1000; // Reset countdown
+    }, refreshInterval);
+}
+
+// Update summary section using cache
+function updateSummary(data) {
+    if (!data || !data.summary) return;
+
+    document.getElementById("total-devices").textContent = data.summary?.totalDevices || "N/A";
+    document.getElementById("online-devices").textContent = data.summary?.totalOnlineDevices || "N/A";
+    document.getElementById("offline-devices").textContent = data.summary?.totalOfflineDevices || "N/A";
+
+    document.getElementById("camera-total").textContent = data.summary?.cameras?.total || "N/A";
+    document.getElementById("camera-online").textContent = data.summary?.cameras?.online || "N/A";
+    document.getElementById("camera-offline").textContent = data.summary?.cameras?.offline || "N/A";
+
+    document.getElementById("archiver-total").textContent = data.summary?.archivers?.total || "N/A";
+    document.getElementById("archiver-online").textContent = data.summary?.archivers?.online || "N/A";
+    document.getElementById("archiver-offline").textContent = data.summary?.archivers?.offline || "N/A";
+
+    document.getElementById("controller-total").textContent = data.summary?.controllers?.total || "N/A";
+    document.getElementById("controller-online").textContent = data.summary?.controllers?.online || "N/A";
+    document.getElementById("controller-offline").textContent = data.summary?.controllers?.offline || "N/A";
+
+    document.getElementById("server-total").textContent = data.summary?.servers?.total || "N/A";
+    document.getElementById("server-online").textContent = data.summary?.servers?.online || "N/A";
+    document.getElementById("server-offline").textContent = data.summary?.servers?.offline || "N/A";
+}
+
+// Update details section
+function updateDetails(data) {
+    const detailsContainer = document.getElementById("device-details");
+    detailsContainer.innerHTML = "";
+
+    if (!data.details) return;
+
+    Object.entries(data.details).forEach(([type, devices]) => {
+        devices.forEach(device => {
+            const ip = device.ip_address || "N/A";
+            const status = device.status.toLowerCase();
+
+            const card = document.createElement("div");
+            card.className = "device-card";
+            card.dataset.status = status;
+            card.dataset.ip = ip;
+
+            const statusDot = document.createElement("span");
+            statusDot.className = "status-dot";
+            statusDot.style.backgroundColor = status === "online" ? "green" : "red";
+
+            card.innerHTML = `
+                <h3>${device.name || "Unknown Device"}</h3>
+                <p>IP: ${ip}</p>
+                <p>Status: <span class="device-status">${status}</span> ${statusDot.outerHTML}</p>
+                <button class="details-button" onclick="showModal('${device.name}', '${ip}', '${device.location || "N/A"}', '${status}')">Details</button>
+            `;
+
+            detailsContainer.appendChild(card);
+        });
+    });
+
+    // Start real-time status updates
+    setInterval(() => pingAllDevices(data), 10000);
+}
+
+// Ping devices and update UI
+function pingAllDevices(data) {
+    if (!data.details) return;
+
+    Object.entries(data.details).forEach(([_, devices]) => {
+        devices.forEach(device => {
+            const ip = device.ip_address || "N/A";
+            const card = document.querySelector(`[data-ip="${ip}"]`);
+
+            if (!card) return;
+
+            fetch(`${baseUrl}/ping/${ip}`)
+                .then(response => response.json())
+                .then(statusData => {
+                    const newStatus = statusData.status.toLowerCase();
+                    const statusDot = card.querySelector(".status-dot");
+                    const statusText = card.querySelector(".device-status");
+
+                    if (newStatus === "online") {
+                        statusDot.style.backgroundColor = "green";
+                        statusText.textContent = "Online";
+                        card.dataset.status = "online";
+                    } else {
+                        statusDot.style.backgroundColor = "red";
+                        statusText.textContent = "Offline";
+                        card.dataset.status = "offline";
+                    }
+
+                    updateCache("details", cache.details); // Refresh cache
+                    updateSummary(cache.summary); // Update summary dynamically
+                })
+                .catch(error => console.error(`Ping failed for ${ip}:`, error));
+        });
+    });
+}
+
+// Show device details modal
+function showModal(name, ip, location, status) {
+    document.getElementById("modal-title").textContent = `Details for ${name}`;
+    document.getElementById("modal-body").innerHTML = `
+        <li><strong>Name:</strong> ${name}</li>
+        <li><strong>IP:</strong> ${ip}</li>
+        <li><strong>Location:</strong> ${location}</li>
+        <li><strong>Status:</strong> ${status}</li>
+    `;
+    document.getElementById("modal").style.display = "block";
+}
