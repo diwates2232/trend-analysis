@@ -6,6 +6,46 @@ Kindly check my Code carefully and solve this issue.
 
 
 
+// function pingAllDevices(details) {
+//     for (const [key, devices] of Object.entries(details.details)) {
+//         if (!Array.isArray(devices) || devices.length === 0) continue;
+
+//         devices.forEach((device) => {
+//             const ip = device.ip_address || "N/A";
+//             const card = document.querySelector(`[data-ip="${ip}"]`);
+
+//             if (!card) return; // If device is not found in UI, skip
+
+//             // Ping the device API
+//             fetch(`${baseUrl}/ping/${ip}`)
+//                 .then(response => response.json())
+//                 .then(statusData => {
+//                     const newStatus = statusData.status.toLowerCase(); // Get live status
+
+//                     // Update the UI instantly
+//                     const statusDot = card.querySelector(".status-dot");
+//                     const statusText = card.querySelector(".device-status");
+
+//                     if (newStatus === "online") {
+//                         statusDot.style.backgroundColor = "green";
+//                         statusText.textContent = "Online";
+//                         card.dataset.status = "online";
+//                     } else {
+//                         statusDot.style.backgroundColor = "red";
+//                         statusText.textContent = "Offline";
+//                         card.dataset.status = "offline";
+//                     }
+//                 })
+//                 .catch(error => console.error(`Ping failed for ${ip}:`, error));
+//         });
+//     }
+// }
+
+
+
+
+
+
 
 const baseUrl = "http://localhost:80/api/regions";
 
