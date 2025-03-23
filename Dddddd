@@ -1,0 +1,72 @@
+function filterData() {
+    const selectedType = document.getElementById('device-type').value.toUpperCase();
+    const selectedRemark = document.getElementById('remark-filter').value;
+
+    const table = document.getElementById('device-table');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    for (let row of rows) {
+        const type = row.cells[2].textContent.toUpperCase();
+        const remark = row.cells[7].textContent.trim();
+
+        const matchesType = selectedType === "ALL" || type === selectedType;
+        const matchesRemark = selectedRemark === "ALL" || remark.includes(selectedRemark);
+
+        row.style.display = matchesType && matchesRemark ? "" : "none";
+    }
+}
+
+function updateRemarks(deviceIp, history, deviceType) {
+    let downtimeEntries = history.filter(entry => entry.status === "Offline");
+
+    let filteredDowntimeEntries = downtimeEntries.filter((entry, index, arr) => {
+        if (deviceType === "SERVER") return true;
+        if (index === 0) return true;
+
+        let previousEntry = arr[index - 1];
+        let duration = (new Date(entry.timestamp) - new Date(previousEntry.timestamp)) / 1000;
+        return duration >= 300;
+    });
+
+    let downtimeCount = filteredDowntimeEntries.length;
+    let totalDowntimeDuration = filteredDowntimeEntries.reduce((total, entry) => total + (new Date() - new Date(entry.timestamp)), 0) / 1000;
+    totalDowntimeDuration = Math.floor(totalDowntimeDuration / 86400);
+
+    const remarkElement = document.getElementById(`remark-${deviceIp}`);
+    let lastStatus = history.length > 0 ? history[history.length - 1].status : "Unknown";
+
+    let newRemark = "Device status unknown.";
+    if (lastStatus === "Offline") {
+        newRemark = downtimeCount >= 3 || totalDowntimeDuration > 2 ? "Device needs repair" : "Device is Offline.";
+    } else if (lastStatus === "Online") {
+        if (downtimeCount >= 3 || totalDowntimeDuration > 2) {
+            newRemark = "Device needs repair";
+        } else if (downtimeCount > 0) {
+            newRemark = `Device is Online, but had ${downtimeCount} offline occurrences.`;
+        } else {
+            newRemark = "Device is Online.";
+        }
+    }
+
+    remarkElement.innerText = newRemark;
+    remarkElement.setAttribute("data-remark", newRemark); // Store for filtering
+
+    let downtimeElement = document.getElementById(`downtime-count-${deviceIp}`);
+    if (downtimeElement) {
+        downtimeElement.innerText = downtimeCount;
+    }
+}
+
+
+
+
+
+
+
+<label for="remark-filter">Filter by Remark:</label>
+<select id="remark-filter" onchange="filterData()">
+    <option value="ALL">All</option>
+    <option value="Device needs repair">Device needs repair</option>
+    <option value="Device is Online">Device is Online</option>
+    <option value="Device is Offline">Device is Offline</option>
+</select>
