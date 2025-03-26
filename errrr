@@ -1,1 +1,36 @@
-
+[ContentMain]
+ContentMain.js:18 [ContentService] document.readyState: loading
+summary.html:61 Live reload enabled.
+script.js:20 Uncaught TypeError: Cannot read properties of null (reading 'addEventListener')
+    at HTMLDocument.<anonymous> (script.js:20:43)Understand this errorAI
+ContentMain.js:5 [ContentService.SetContentInitData] target: { TabId: 1454074203, FrameId: 0}
+4script.js:55 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at updateCountdown (script.js:55:36)Understand this errorAI
+11script.js:55 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at updateCountdown (script.js:55:36)
+updateCountdown @ script.js:55Understand this errorAI
+script.js:93 Summary Data: {summary: {…}}
+script.js:97 Error fetching summary: TypeError: Cannot set properties of null (setting 'textContent')
+    at updateSummary (script.js:247:58)
+    at script.js:94:13
+(anonymous) @ script.js:97Understand this errorAI
+script.js:55 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at updateCountdown (script.js:55:36)
+updateCountdown @ script.js:55Understand this errorAI
+script.js:113 Details Data: {details: {…}}
+script.js:120 Error fetching details: TypeError: Cannot set properties of null (setting 'innerHTML')
+    at updateDetails (script.js:278:32)
+    at script.js:114:13
+(anonymous) @ script.js:120Understand this errorAI
+script.js:38 Summary Data: {summary: {…}}
+script.js:39 Details Data: {details: {…}}
+script.js:44 Error fetching data: TypeError: Cannot set properties of null (setting 'textContent')
+    at updateSummary (script.js:247:58)
+    at script.js:40:9
+(anonymous) @ script.js:44Understand this errorAI
+script.js:121 Uncaught (in promise) TypeError: Cannot set properties of null (setting 'innerHTML')
+    at script.js:121:65
+(anonymous) @ script.js:121Understand this errorAI
+28script.js:55 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at updateCountdown (script.js:55:36)
+updateCountdown @ script.js:55Understand this errorAI
