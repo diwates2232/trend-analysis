@@ -1,3 +1,137 @@
+
+
+document.addEventListener("DOMContentLoaded", function () {
+    const regionFilter = document.getElementById("regionFilter");
+    const summaryElement = document.getElementById("summary");
+    const deviceList = document.getElementById("device-list");
+
+    // Check if elements are loaded before using them
+    if (!summaryElement || !deviceList || !regionFilter) {
+        console.error("One or more required elements are missing in the DOM.");
+        return;
+    }
+
+    async function fetchSummary(region = "global") {
+        try {
+            const response = await fetch(`http://localhost/api/regions/details/${region}`);
+            if (!response.ok) throw new Error("Failed to fetch data");
+
+            const data = await response.json();
+            console.log("Summary Data:", data);
+
+            updateSummary(data);
+        } catch (error) {
+            console.error("Error fetching summary:", error);
+            if (summaryElement) summaryElement.textContent = "Error loading summary.";
+        }
+    }
+
+    function updateSummary(data) {
+        if (!summaryElement || !deviceList) {
+            console.error("Missing UI elements.");
+            return;
+        }
+
+        let offlineDevices = [];
+        let categorizedDevices = {
+            Low: [],
+            Medium: [],
+            High: []
+        };
+
+        // Iterate through devices and classify their status correctly
+        ["cameras", "archivers", "controllers", "servers"].forEach(type => {
+            if (data.details[type]) {
+                data.details[type].forEach(device => {
+                    // Check the current status of the device and mark accordingly
+                    let status = device.status;  // Assuming `status` is the field containing "Online" or "Offline"
+                    if (status === "Offline" || device.history.length > 1) {
+                        offlineDevices.push(device);
+                        categorizeDevice(device, categorizedDevices);
+                    }
+                });
+            }
+        });
+
+        summaryElement.innerHTML = `
+            <strong>Total Offline Devices:</strong> ${offlineDevices.length} <br>
+            <strong>Low Risk:</strong> ${categorizedDevices.Low.length} <br>
+            <strong>Medium Risk:</strong> ${categorizedDevices.Medium.length} <br>
+            <strong>High Risk:</strong> ${categorizedDevices.High.length}
+        `;
+
+        updateDeviceList(offlineDevices);
+    }
+
+    function categorizeDevice(device, categorizedDevices) {
+        let offlineCount = device.history.filter(entry => entry.status === "Offline").length;
+        let recentOfflineDuration = calculateDowntime(device.history);
+
+        if (offlineCount > 3 || recentOfflineDuration > 120) {
+            categorizedDevices.Low.push(device);
+        }
+
+        if (offlineCount >= 5 || recentOfflineDuration > 240) {
+            categorizedDevices.Medium.push(device);
+        }
+
+        if (offlineCount > 7 || recentOfflineDuration > 600) {
+            categorizedDevices.High.push(device);
+        }
+    }
+
+    function calculateDowntime(history) {
+        let totalDowntime = 0;
+        for (let i = 0; i < history.length - 1; i++) {
+            if (history[i].status === "Offline" && history[i + 1].status === "Online") {
+                let offlineTime = new Date(history[i].timestamp);
+                let onlineTime = new Date(history[i + 1].timestamp);
+                totalDowntime += (onlineTime - offlineTime) / (1000 * 60); // Convert to minutes
+            }
+        }
+        return totalDowntime;
+    }
+
+    function updateDeviceList(devices) {
+        if (!deviceList) return;
+
+        deviceList.innerHTML = "";
+        if (devices.length === 0) {
+            deviceList.innerHTML = "<li>No offline devices currently.</li>";
+            return;
+        }
+
+        devices.forEach(device => {
+            const li = document.createElement("li");
+            let status = device.status === "Online" ? "Online" : "Offline"; // Make sure status is properly set
+            li.innerHTML = `
+                <strong>${device.archivername || device.cameraname || device.controllername || device.servername}</strong> <br>
+                IP: ${device.ip_address} <br>
+                Status: <span style="color:${status === 'Online' ? 'green' : 'red'};">${status}</span>
+            `;
+            deviceList.appendChild(li);
+        });
+    }
+
+    regionFilter.addEventListener("change", function () {
+        fetchSummary(regionFilter.value);
+    });
+
+    fetchSummary();
+    setInterval(() => fetchSummary(regionFilter.value), 60000); // Auto-refresh every 60 seconds
+});
+
+
+
+
+
+
+
+
+
+
+
+
 document.addEventListener("DOMContentLoaded", function () {
     const regionFilter = document.getElementById("regionFilter");
     const summaryElement = document.getElementById("summary");
