@@ -1,3 +1,76 @@
+async function fetchDevices(region = "global") {
+    try {
+        const response = await fetch(`http://localhost/api/regions/details/${region}`);
+        if (!response.ok) throw new Error("Failed to fetch data");
+
+        const data = await response.json();
+        console.log("📌 Full API Response:", JSON.stringify(data, null, 2));
+
+        // Check if 'details' exists and 'devices' is an array
+        if (data && data.details && Array.isArray(data.details.devices)) {
+            console.log("✅ Data structure is correct.");
+            updateDeviceList(data.details.devices);
+        } else {
+            console.error("❌ Invalid devices data structure:", data);
+        }
+    } catch (error) {
+        console.error("❌ Error fetching devices:", error);
+    }
+}
+
+
+
+
+function updateDeviceList(devices) {
+    if (!deviceList) {
+        console.error("❌ Missing device list element.");
+        return;
+    }
+
+    if (!Array.isArray(devices)) {
+        console.error("❌ Expected 'devices' to be an array, but got:", devices);
+        return;
+    }
+
+    deviceList.innerHTML = "";
+
+    if (devices.length === 0) {
+        deviceList.innerHTML = "<tr><td colspan='6'>No devices available.</td></tr>";
+        return;
+    }
+
+    devices.forEach((device, index) => {
+        const tr = document.createElement("tr");
+
+        let status = device.status || device["Status "] || "Unknown";  // Handle incorrect casing
+        let category = "Low";
+        const offlineCount = device.history ? device.history.filter(entry => entry.status === "Offline").length : 0;
+        const downtime = device.history ? calculateDowntime(device.history) : 0;
+
+        if (offlineCount > 3 || downtime > 120) category = "Medium";
+        if (offlineCount >= 5 || downtime > 240) category = "High";
+
+        tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${device.ip_address}</td>
+            <td>${device.name}</td>
+            <td style="color:${status.toLowerCase() === 'online' ? 'green' : 'red'}">${status}</td>
+            <td><button onclick="viewDeviceHistory('${device.ip_address}')">View History</button></td>
+            <td>${category}</td>
+        `;
+        deviceList.appendChild(tr);
+    });
+}
+
+
+
+
+
+
+
+
+
+
 
 async function fetchDevices(region = "global") {
     try {
