@@ -1,3 +1,60 @@
+function updateDeviceList(devices) {
+    if (!deviceList) {
+        console.error("❌ Missing device list element.");
+        return;
+    }
+
+    if (!Array.isArray(devices)) {
+        console.error("❌ Expected 'devices' to be an array, but got:", devices);
+        return;
+    }
+
+    let filteredDevices = filterDevices(devices);
+
+    // Clear the existing list
+    deviceList.innerHTML = "";
+
+    if (filteredDevices.length === 0) {
+        deviceList.innerHTML = "<tr><td colspan='6'>No devices match the filter criteria.</td></tr>";
+        return;
+    }
+
+    filteredDevices.forEach((device, index) => {
+        const tr = document.createElement("tr");
+
+        // Determine device category based on conditions
+        let category = "Low";
+        const offlineCount = device.history ? device.history.filter(entry => entry.status === "Offline").length : 0;
+        const downtime = device.history ? calculateDowntime(device.history) : 0;
+        if (offlineCount > 3 || downtime > 120) {
+            category = "Medium";
+        }
+        if (offlineCount >= 5 || downtime > 240) {
+            category = "High";
+        }
+
+        // Create table row for each device
+        tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${device.ip_address}</td>
+            <td>${device.name}</td>
+            <td style="color:${device.status === 'Online' ? 'green' : 'red'}">${device.status}</td>
+            <td><button onclick="viewDeviceHistory(${device.id})">View History</button></td>
+            <td>${category}</td>
+        `;
+        deviceList.appendChild(tr);
+    });
+}
+
+
+
+
+
+
+
+
+
+
 async function fetchDevices(region = "global") {
     try {
         const response = await fetch(`http://localhost/api/regions/details/${region}`);
