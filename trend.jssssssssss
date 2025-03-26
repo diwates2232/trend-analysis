@@ -1,3 +1,53 @@
+function updateRemarks(deviceIp, history, deviceType) {
+    let downtimeEntries = history.filter(entry => entry.status === "Offline");
+
+    // Filter downtimes that lasted more than 5 minutes (except for servers)
+    let filteredDowntimeEntries = downtimeEntries.filter((entry, index, arr) => {
+        if (deviceType === "SERVER") return true; // Always count downtime for servers
+        if (index === 0) return true; // Always keep the first entry
+
+        let previousEntry = arr[index - 1];
+        let duration = (new Date(entry.timestamp) - new Date(previousEntry.timestamp)) / 1000;
+        return duration >= 300; // 300 seconds = 5 minutes
+    });
+
+    let downtimeCount = filteredDowntimeEntries.length;
+
+    const remarkElement = document.getElementById(`remark-${deviceIp}`);
+    let lastStatus = history.length > 0 ? history[history.length - 1].status : "Unknown";
+
+    // **Fix: Ensure correct remark based on conditions**
+    if (lastStatus === "Offline") {
+        remarkElement.innerText = `Device is Offline.`;
+    } else if (lastStatus === "Online") {
+        if (downtimeCount >= 10) {
+            remarkElement.innerText = `Device is Online, needs repair.`;
+        } else if (downtimeCount === 1) {
+            remarkElement.innerText = `Device is Online, it had a 1 downtime occurrence.`;
+        } else if (downtimeCount > 1) {
+            remarkElement.innerText = `Device is Online, but it had ${downtimeCount} downtime occurrences.`;
+        } else {
+            remarkElement.innerText = `Device is Online.`;
+        }
+    } else {
+        remarkElement.innerText = `Device status unknown.`;
+    }
+
+    // **Ensure downtime count is properly updated**
+    let downtimeElement = document.getElementById(`downtime-count-${deviceIp}`);
+    if (downtimeElement) {
+        downtimeElement.innerText = downtimeCount;
+    }
+}
+
+
+
+
+
+
+
+
+
 Read below trend .js file carefully.
 There is issue regarding remarks...
 IN-PNQ-PF -Yellow Zone Workstations to Podium Lobby Exit 10.199.9.145	CAMERA	Uptime- 4d/23h/6m/34s	 downtime count - 1 downtimeduration - 	27 seconds  
