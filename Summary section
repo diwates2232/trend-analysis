@@ -1,3 +1,126 @@
+document.addEventListener("DOMContentLoaded", function () {
+    const regionFilter = document.getElementById("regionFilter");
+    const summaryElement = document.getElementById("summary");
+    const deviceList = document.getElementById("device-list");
+
+    // Check if elements are loaded before using them
+    if (!summaryElement || !deviceList || !regionFilter) {
+        console.error("One or more required elements are missing in the DOM.");
+        return;
+    }
+
+    // Fetch and update the device status and summary data
+    async function fetchLiveDeviceStatus(region = "global") {
+        try {
+            const response = await fetch(`http://localhost/api/devices/status/${region}`);
+            if (!response.ok) throw new Error("Failed to fetch device status");
+
+            const data = await response.json();
+            console.log("Live Device Status Data:", data);
+
+            updateDeviceList(data);
+            updateSummary(data);
+        } catch (error) {
+            console.error("Error fetching live device status:", error);
+            if (summaryElement) summaryElement.textContent = "Error loading device status.";
+        }
+    }
+
+    // Update device list on the frontend
+    function updateDeviceList(devices) {
+        if (!deviceList) return;
+
+        deviceList.innerHTML = "";
+
+        if (devices.length === 0) {
+            deviceList.innerHTML = "<li>No devices available.</li>";
+            return;
+        }
+
+        devices.forEach(device => {
+            const li = document.createElement("li");
+            li.innerHTML = `
+                <strong>${device.name}</strong> <br>
+                IP: ${device.ip} <br>
+                Status: <span style="color:${device.status === 'Offline' ? 'red' : 'green'};">${device.status}</span>
+            `;
+            deviceList.appendChild(li);
+        });
+    }
+
+    // Update summary data
+    function updateSummary(data) {
+        if (!summaryElement) return;
+
+        let offlineDevices = 0;
+        let categorizedDevices = {
+            Low: [],
+            Medium: [],
+            High: []
+        };
+
+        devices.forEach(device => {
+            if (device.status === "Offline") {
+                offlineDevices++;
+                categorizeDevice(device, categorizedDevices);
+            }
+        });
+
+        summaryElement.innerHTML = `
+            <strong>Total Offline Devices:</strong> ${offlineDevices} <br>
+            <strong>Low Risk:</strong> ${categorizedDevices.Low.length} <br>
+            <strong>Medium Risk:</strong> ${categorizedDevices.Medium.length} <br>
+            <strong>High Risk:</strong> ${categorizedDevices.High.length}
+        `;
+    }
+
+    // Categorize devices based on status duration or other criteria
+    function categorizeDevice(device, categorizedDevices) {
+        let offlineCount = device.history.filter(entry => entry.status === "Offline").length;
+        let recentOfflineDuration = calculateDowntime(device.history);
+
+        if (offlineCount > 3 || recentOfflineDuration > 120) {
+            categorizedDevices.Low.push(device);
+        }
+
+        if (offlineCount >= 5 || recentOfflineDuration > 240) {
+            categorizedDevices.Medium.push(device);
+        }
+
+        if (offlineCount > 7 || recentOfflineDuration > 600) {
+            categorizedDevices.High.push(device);
+        }
+    }
+
+    // Calculate total downtime in minutes
+    function calculateDowntime(history) {
+        let totalDowntime = 0;
+        for (let i = 0; i < history.length - 1; i++) {
+            if (history[i].status === "Offline" && history[i + 1].status === "Online") {
+                let offlineTime = new Date(history[i].timestamp);
+                let onlineTime = new Date(history[i + 1].timestamp);
+                totalDowntime += (onlineTime - offlineTime) / (1000 * 60); // Convert to minutes
+            }
+        }
+        return totalDowntime;
+    }
+
+    // Event listener for region filter change
+    regionFilter.addEventListener("change", function () {
+        fetchLiveDeviceStatus(regionFilter.value);
+    });
+
+    // Initial fetch and auto-refresh every 60 seconds
+    fetchLiveDeviceStatus();
+    setInterval(() => fetchLiveDeviceStatus(regionFilter.value), 60000); // Auto-refresh every 60 seconds
+});
+
+
+
+
+
+
+
 
 
 document.addEventListener("DOMContentLoaded", function () {
