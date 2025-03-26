@@ -1,36 +1,77 @@
-[ContentMain]
+Error-ontentMain]
 ContentMain.js:18 [ContentService] document.readyState: loading
 summary.html:61 Live reload enabled.
-script.js:20 Uncaught TypeError: Cannot read properties of null (reading 'addEventListener')
-    at HTMLDocument.<anonymous> (script.js:20:43)Understand this errorAI
-ContentMain.js:5 [ContentService.SetContentInitData] target: { TabId: 1454074203, FrameId: 0}
-4script.js:55 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
-    at updateCountdown (script.js:55:36)Understand this errorAI
-11script.js:55 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
-    at updateCountdown (script.js:55:36)
-updateCountdown @ script.js:55Understand this errorAI
-script.js:93 Summary Data: {summary: {…}}
-script.js:97 Error fetching summary: TypeError: Cannot set properties of null (setting 'textContent')
-    at updateSummary (script.js:247:58)
-    at script.js:94:13
-(anonymous) @ script.js:97Understand this errorAI
-script.js:55 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
-    at updateCountdown (script.js:55:36)
-updateCountdown @ script.js:55Understand this errorAI
-script.js:113 Details Data: {details: {…}}
-script.js:120 Error fetching details: TypeError: Cannot set properties of null (setting 'innerHTML')
-    at updateDetails (script.js:278:32)
-    at script.js:114:13
-(anonymous) @ script.js:120Understand this errorAI
-script.js:38 Summary Data: {summary: {…}}
-script.js:39 Details Data: {details: {…}}
-script.js:44 Error fetching data: TypeError: Cannot set properties of null (setting 'textContent')
-    at updateSummary (script.js:247:58)
-    at script.js:40:9
-(anonymous) @ script.js:44Understand this errorAI
-script.js:121 Uncaught (in promise) TypeError: Cannot set properties of null (setting 'innerHTML')
-    at script.js:121:65
-(anonymous) @ script.js:121Understand this errorAI
-28script.js:55 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
-    at updateCountdown (script.js:55:36)
-updateCountdown @ script.js:55Understand this errorAI
+ContentMain.js:5 [ContentService.SetContentInitData] target: { TabId: 1454074207, FrameId: 0}
+global:1 
+            
+            
+           Failed to load resource: the server responded with a status of 404 (Not Found)Understand this errorAI
+summary.js:24 Error fetching live device status: Error: Failed to fetch device status
+    at fetchLiveDeviceStatus (summary.js:16:37)
+fetchLiveDeviceStatus @ summary.js:24Understand this errorAI
+summary.js:15 
+            
+            
+           GET http://localhost/api/devices/status/global 404 (Not Found)
+fetchLiveDeviceStatus @ summary.js:15
+(anonymous) @ summary.js:115Understand this errorAI
+summary.js:24 Error fetching live device status: Error: Failed to fetch device status
+    at fetchLiveDeviceStatus (summary.js:16:37)
+fetchLiveDeviceStatus @ summary.js:24
+await in fetchLiveDeviceStatus
+(anonymous) @ summary.js:115Understand this errorAI
+summary.js:15 
+            
+            
+           GET http://localhost/api/devices/status/global 404 (Not Found)
+fetchLiveDeviceStatus @ summary.js:15
+(anonymous) @ summary.js:115Understand this errorAI
+summary.js:24 Error fetching live device status: Error: Failed to fetch device status
+    at fetchLiveDeviceStatus (summary.js:16:37)
+fetchLiveDeviceStatus @ summary.js:24
+await in fetchLiveDeviceStatus
+(anonymous) @ summary.js:115Understand this errorAI
+
+
+
+API Responce is-
+
+ {
+        "cameraname": "IN-PNQ-TOWER B-ST6 (CAM2)- 10.199.16.34 (axis-accc8e593c73) - 73",
+        "ip_address": "10.199.16.34",
+        "location": "APAC",
+        "history": [
+          {
+            "status": "Online",
+            "timestamp": "2025-03-20T05:37:33.130+05:30"
+          }
+        ],
+        "status": "Online"   // this is device current status
+      },
+],
+    "archivers": [
+      {
+        "archivername": "Archiver Manila",
+        "ip_address": "10.193.132.8",
+        "location": "APAC",
+        "history": [
+          {
+            "status": "Online",
+            "timestamp": "2025-03-19T06:41:16.222+05:30"
+          },
+          {
+            "status": "Offline",
+            "timestamp": "2025-03-22T18:33:41.447+05:30"
+          },
+          {
+            "status": "Online",
+            "timestamp": "2025-03-22T18:34:36.505+05:30"
+          }
+        ],
+        "status": "Online"  // this device current status.
+      },
+
+
+
+
+
