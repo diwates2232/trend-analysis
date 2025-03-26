@@ -1,7 +1,16 @@
 [ContentMain]
 ContentMain.js:18 [ContentService] document.readyState: loading
 ContentMain.js:5 [ContentService.SetContentInitData] target: { TabId: 1454074211, FrameId: 0}
-summary.js:21 Live Device Status Data: {details: {…}}details: {archivers: Array(20), controllers: Array(71), cameras: Array(708), servers: Array(5)}[[Prototype]]: Object
-summary.js:26 Error fetching live device status: TypeError: data.cameras is not iterable
-    at updateDeviceList (summary.js:37:34)
-    at fetchLiveDeviceStatus (summary.js:23:13)
+summary.js:20 Devices Data: {details: {…}}
+summary.js:24 Error fetching devices: TypeError: devices.filter is not a function
+    at filterDevices (summary.js:76:24)
+    at updateDeviceList (summary.js:34:31)
+    at fetchDevices (summary.js:22:13)
+fetchDevices @ summary.js:24
+await in fetchDevices
+(anonymous) @ summary.js:134Understand this errorAI
+
+
+
+
+check this error also TABLE IS NOT DISPLAY GOOD
