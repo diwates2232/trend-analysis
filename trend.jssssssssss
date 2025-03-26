@@ -12,6 +12,80 @@ function updateRemarks(deviceIp, history, deviceType) {
     });
 
     let downtimeCount = filteredDowntimeEntries.length;
+    let lastStatus = history.length > 0 ? history[history.length - 1].status : "Unknown";
+    let remarkElement = document.getElementById(`remark-${deviceIp}`);
+    
+    // Calculate total offline duration
+    let totalOfflineTime = 0;
+    let lastOfflineTime = null;
+
+    history.forEach(entry => {
+        if (entry.status === "Offline") {
+            if (!lastOfflineTime) lastOfflineTime = new Date(entry.timestamp);
+        } else if (entry.status === "Online" && lastOfflineTime) {
+            totalOfflineTime += (new Date(entry.timestamp) - lastOfflineTime) / 1000;
+            lastOfflineTime = null;
+        }
+    });
+
+    if (lastOfflineTime) {
+        totalOfflineTime += (new Date() - lastOfflineTime) / 1000;
+    }
+
+    let totalOfflineDays = Math.floor(totalOfflineTime / 86400); // Convert seconds to days
+
+    // **Condition: Device needs repair if any of the following is true**
+    let needsRepair = downtimeCount >= 10 || totalOfflineDays >= 1;
+
+    // **Setting the Correct Remark**
+    if (lastStatus === "Offline") {
+        if (needsRepair) {
+            remarkElement.innerText = "Device is Offline, needs repair.";
+        } else {
+            remarkElement.innerText = "Device is Offline.";
+        }
+    } else if (lastStatus === "Online") {
+        if (needsRepair) {
+            remarkElement.innerText = "Device is Online, needs repair.";
+        } else if (downtimeCount > 0) {
+            remarkElement.innerText = `Device is Online, it had ${downtimeCount} downtime occurrences.`;
+        } else {
+            remarkElement.innerText = "Device is Online.";
+        }
+    } else {
+        remarkElement.innerText = "Device status unknown.";
+    }
+
+    // **Update Downtime Count in UI**
+    let downtimeElement = document.getElementById(`downtime-count-${deviceIp}`);
+    if (downtimeElement) {
+        downtimeElement.innerText = downtimeCount;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+function updateRemarks(deviceIp, history, deviceType) {
+    let downtimeEntries = history.filter(entry => entry.status === "Offline");
+
+    // Filter downtimes that lasted more than 5 minutes (except for servers)
+    let filteredDowntimeEntries = downtimeEntries.filter((entry, index, arr) => {
+        if (deviceType === "SERVER") return true; // Always count downtime for servers
+        if (index === 0) return true; // Always keep the first entry
+
+        let previousEntry = arr[index - 1];
+        let duration = (new Date(entry.timestamp) - new Date(previousEntry.timestamp)) / 1000;
+        return duration >= 300; // 300 seconds = 5 minutes
+    });
+
+    let downtimeCount = filteredDowntimeEntries.length;
 
     const remarkElement = document.getElementById(`remark-${deviceIp}`);
     let lastStatus = history.length > 0 ? history[history.length - 1].status : "Unknown";
