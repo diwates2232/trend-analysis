@@ -1,0 +1,58 @@
+[ContentMain]
+ContentMain.js:18 [ContentService] document.readyState: loading
+ContentMain.js:5 [ContentService.SetContentInitData] target: { TabId: 1454074196, FrameId: 0}
+script.js:20 Uncaught TypeError: Cannot read properties of null (reading 'addEventListener')
+    at HTMLDocument.<anonymous> (script.js:20:43)
+(anonymous) @ script.js:20Understand this errorAI
+19script.js:55 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at updateCountdown (script.js:55:36)
+updateCountdown @ script.js:55
+setInterval
+startAutoRefresh @ script.js:61
+(anonymous) @ script.js:78Understand this errorAI
+script.js:93 Summary Data: {summary: {…}}
+script.js:97 Error fetching summary: TypeError: Cannot set properties of null (setting 'textContent')
+    at updateSummary (script.js:247:58)
+    at script.js:94:13
+(anonymous) @ script.js:97
+Promise.catch
+fetchSummary @ script.js:96
+(anonymous) @ script.js:5Understand this errorAI
+script.js:55 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at updateCountdown (script.js:55:36)
+updateCountdown @ script.js:55
+setInterval
+startAutoRefresh @ script.js:61
+(anonymous) @ script.js:78Understand this errorAI
+script.js:113 Details Data: {details: {…}}
+script.js:120 Error fetching details: TypeError: Cannot set properties of null (setting 'innerHTML')
+    at updateDetails (script.js:278:32)
+    at script.js:114:13
+(anonymous) @ script.js:120
+Promise.catch
+fetchDetails @ script.js:119
+(anonymous) @ script.js:6Understand this errorAI
+script.js:121 Uncaught (in promise) TypeError: Cannot set properties of null (setting 'innerHTML')
+    at script.js:121:65
+(anonymous) @ script.js:121
+Promise.catch
+fetchDetails @ script.js:119
+(anonymous) @ script.js:6Understand this errorAI
+script.js:55 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at updateCountdown (script.js:55:36)
+updateCountdown @ script.js:55
+setInterval
+startAutoRefresh @ script.js:61
+(anonymous) @ script.js:78Understand this errorAI
+script.js:38 Summary Data: {summary: {…}}
+script.js:39 Details Data: {details: {…}}
+script.js:44 Error fetching data: TypeError: Cannot set properties of null (setting 'textContent')
+    at updateSummary (script.js:247:58)
+    at script.js:40:9
+(anonymous) @ script.js:44
+Promise.catch
+fetchData @ script.js:43
+startAutoRefresh @ script.js:50
+(anonymous) @ script.js:78Understand this errorAI
+11script.js:55 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
+    at updateCountdown (script.js:55:36)
