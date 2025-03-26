@@ -1,3 +1,29 @@
+async function fetchDevices(region = "global") {
+    try {
+        const response = await fetch(`http://localhost/api/regions/details/${region}`);
+        if (!response.ok) throw new Error("Failed to fetch data");
+
+        const data = await response.json();
+        console.log("Devices Data Received:", JSON.stringify(data, null, 2));  // 👀 Check API Response
+
+        // Validate structure before accessing 'devices'
+        if (data && data.details && Array.isArray(data.details.devices)) {
+            updateDeviceList(data.details.devices);
+        } else {
+            console.error("❌ Invalid devices data structure:", data);
+        }
+    } catch (error) {
+        console.error("❌ Error fetching devices:", error);
+    }
+}
+
+
+
+
+
+
+
+
 function updateDeviceList(devices) {
     if (!deviceList) {
         console.error("❌ Missing device list element.");
