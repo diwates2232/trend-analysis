@@ -1,4 +1,89 @@
-async function fetchDevices(region = "global") {
+summary.html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Status Dashboard</title>
+    <link rel="stylesheet" href="summary.css">
+</head>
+<body>
+    <h1>Device Status Dashboard</h1>
+
+    <!-- Filters -->
+    <div>
+        <label for="regionFilter">Filter by Region:</label>
+        <select id="regionFilter">
+            <option value="global">Global</option>
+            <option value="apac">APAC</option>
+            <option value="laca">LACA</option>
+            <option value="emea">EMEA</option>
+            <option value="namer">NAMER</option>
+        </select>
+
+        <label for="categoryFilter">Filter by Category:</label>
+        <select id="categoryFilter">
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+        </select>
+
+        <label for="deviceTypeFilter">Filter by Device Type:</label>
+        <select id="deviceTypeFilter">
+            <option value="All">All</option>
+            <option value="Camera">Camera</option>
+            <option value="Archiver">Archiver</option>
+            <option value="Controller">Controller</option>
+            <option value="Server">Server</option>
+        </select>
+    </div>
+
+    <!-- Device Table -->
+    <table id="deviceTable">
+        <thead>
+            <tr>
+                <th>Sr. No.</th>
+                <th>Device IP</th>
+                <th>Device Name</th>
+                <th>Device Current Status</th>
+                <th>Device History</th>
+                <th>Device Category</th>
+            </tr>
+        </thead>
+        <tbody id="device-list">
+            <!-- Device list will be populated here -->
+        </tbody>
+    </table>
+
+    <script src="summary.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+summary.js
+
+
+
+document.addEventListener("DOMContentLoaded", function () {
+    const regionFilter = document.getElementById("regionFilter");
+    const categoryFilter = document.getElementById("categoryFilter");
+    const deviceTypeFilter = document.getElementById("deviceTypeFilter");
+    const deviceList = document.getElementById("device-list");
+
+    // Check if elements are loaded before using them
+    if (!deviceList || !regionFilter || !categoryFilter || !deviceTypeFilter) {
+        console.error("One or more required elements are missing in the DOM.");
+        return;
+    }
+
+    async function fetchDevices(region = "global") {
     try {
         const response = await fetch(`http://localhost/api/regions/details/${region}`);
         if (!response.ok) throw new Error("Failed to fetch data");
@@ -18,8 +103,8 @@ async function fetchDevices(region = "global") {
     }
 }
 
-
-
+    
+    
 
 
 function updateDeviceList(cameras) {
@@ -63,50 +148,92 @@ function updateDeviceList(cameras) {
     });
 }
 
+    
+        
+    function filterDevices(devices) {
+    const region = regionFilter.value;
+    const category = categoryFilter.value;
+    const deviceType = deviceTypeFilter.value;
+
+    return devices.filter(device => {
+        // Filter by region
+        if (region !== "global" && device.region !== region) {
+            return false;
+        }
+
+        // Determine device category
+        let calculatedCategory = "Low";
+        const offlineCount = device.history ? device.history.filter(entry => entry.status === "Offline").length : 0;
+        const downtime = device.history ? calculateDowntime(device.history) : 0;
+        if (offlineCount > 3 || downtime > 120) {
+            calculatedCategory = "Medium";
+        }
+        if (offlineCount >= 5 || downtime > 240) {
+            calculatedCategory = "High";
+        }
+
+        // Filter by category
+        if (category !== "All" && calculatedCategory !== category) {
+            return false;
+        }
+
+        // Filter by device type
+        if (deviceType !== "All" && device.type !== deviceType) {
+            return false;
+        }
+
+        return true;
+    });
+}
+    function calculateDowntime(history) {
+        let totalDowntime = 0;
+        for (let i = 0; i < history.length - 1; i++) {
+            if (history[i].status === "Offline" && history[i + 1].status === "Online") {
+                let offlineTime = new Date(history[i].timestamp);
+                let onlineTime = new Date(history[i + 1].timestamp);
+                totalDowntime += (onlineTime - offlineTime) / (1000 * 60); // Convert to minutes
+            }
+        }
+        return totalDowntime;
+    }
+
+    function viewDeviceHistory(deviceIP) {
+        // Display device history (daily, weekly, monthly)
+        const historyData = getDeviceHistory(deviceIP);
+        const historyContainer = document.createElement("div");
+
+        historyContainer.innerHTML = `
+            <h3>Device History</h3>
+            <button onclick="showDeviceHistory('daily')">Daily</button>
+            <button onclick="showDeviceHistory('weekly')">Weekly</button>
+            <button onclick="showDeviceHistory('monthly')">Monthly</button>
+            <div id="deviceHistoryContent"></div>
+        `;
+
+        document.body.appendChild(historyContainer);
+        showDeviceHistory('daily', historyData);
+    }
+
+    function showDeviceHistory(timeFrame) {
+        const historyContent = document.getElementById("deviceHistoryContent");
+
+        // Logic to display history based on timeframe
+        historyContent.innerHTML = `Showing ${timeFrame} data for the device.`;
+
+        // Fetch or filter data according to daily, weekly, or monthly
+    }
+
+    fetchDevices();
+});
 
 
 
 
+check this error
 
+Uncaught ReferenceError: viewDeviceHistory is not defined
+    at HTMLButtonElement.onclick (summary.html:1:1)
+onclick @ summary.html:1Understand this errorAI
 
+alos filter button are not working as well summary part is not displaying 
 
-
-
-{
-  "details": {
-    "cameras": [
-      {
-        "cameraname": "Green Zone to yellow zone passage - 10.199.10.20 (FLIR CM-3102-11-I T71552107) - 350",
-        "ip_address": "10.199.10.20",
-        "location": "APAC",
-        "history": [
-          {
-            "status": "Online",
-            "timestamp": "2025-03-19T06:23:16.323+05:30"
-          }
-        ],
-        "status": "Online"
-      },
-      {
-        "cameraname": "IN-PNQ-PF - Green Zone Exit Passage 10.199.10.139",
-        "ip_address": "10.199.10.139",
-        "location": "APAC",
-        "history": [
-          {
-            "status": "Online",
-            "timestamp": "2025-03-19T06:41:57.063+05:30"
-          }
-        ],
-        "status": "Online"
-      },
-      {
-        "cameraname": "IN-PNQ-PF - Green Zone IDF (01) Room 10.199.10.142",
-        "ip_address": "10.199.10.142",
-        "location": "APAC",
-        "history": [
-          {
-            "status": "Online",
-            "timestamp": "2025-03-19T06:41:57.315+05:30"
-          }
-        ],
-        "status": "Online"
