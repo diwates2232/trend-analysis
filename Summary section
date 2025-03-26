@@ -1,1 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Monitoring Summary</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <h1>Device Monitoring Summary</h1>
+
+    <label for="regionFilter">Filter by Region:</label>
+    <select id="regionFilter">
+        <option value="global">Global</option>
+        <option value="APAC">APAC</option>
+        <option value="EMEA">EMEA</option>
+        <option value="LACA">LACA</option>
+        <option value="NAMER">NAMER</option>
+    </select>
+
+    <div id="summary-container">
+        <h2>Device Summary</h2>
+        <p id="summary">Loading summary...</p>
+    </div>
+
+    <div id="details-container">
+        <h2>Device Details</h2>
+        <ul id="device-list"></ul>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: #f4f4f4;
+}
+
+h1, h2 {
+    color: #333;
+}
+
+#summary-container, #details-container {
+    background: white;
+    padding: 15px;
+    margin: 20px auto;
+    border-radius: 8px;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+    width: 80%;
+}
+
+#device-list {
+    list-style: none;
+    padding: 0;
+}
+
+#device-list li {
+    background: #fff;
+    margin: 8px;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.1);
+}
+
+select {
+    padding: 8px;
+    margin: 10px;
+    font-size: 16px;
+}
+
+
+
+
+
+
+
+
+document.addEventListener("DOMContentLoaded", function () {
+    const regionFilter = document.getElementById("regionFilter");
+    const summaryElement = document.getElementById("summary");
+    const deviceList = document.getElementById("device-list");
+
+    async function fetchSummary(region = "global") {
+        try {
+            const response = await fetch(`http://localhost/api/regions/details/${region}`);
+            if (!response.ok) throw new Error("Failed to fetch data");
+
+            const data = await response.json();
+            console.log("Summary Data:", data);
+
+            updateSummary(data);
+        } catch (error) {
+            console.error("Error fetching summary:", error);
+            summaryElement.textContent = "Error loading summary.";
+        }
+    }
+
+    function updateSummary(data) {
+        if (!summaryElement || !deviceList) {
+            console.error("Missing UI elements.");
+            return;
+        }
+
+        let offlineDevices = [];
+        let categorizedDevices = {
+            Low: [],
+            Medium: [],
+            High: []
+        };
+
+        ["cameras", "archivers", "controllers", "servers"].forEach(type => {
+            if (data.details[type]) {
+                data.details[type].forEach(device => {
+                    if (device.status === "Offline" || device.history.length > 1) {
+                        offlineDevices.push(device);
+                        categorizeDevice(device, categorizedDevices);
+                    }
+                });
+            }
+        });
+
+        summaryElement.innerHTML = `
+            <strong>Total Offline Devices:</strong> ${offlineDevices.length} <br>
+            <strong>Low Risk:</strong> ${categorizedDevices.Low.length} <br>
+            <strong>Medium Risk:</strong> ${categorizedDevices.Medium.length} <br>
+            <strong>High Risk:</strong> ${categorizedDevices.High.length}
+        `;
+
+        updateDeviceList(offlineDevices);
+    }
+
+    function categorizeDevice(device, categorizedDevices) {
+        let offlineCount = device.history.filter(entry => entry.status === "Offline").length;
+        let recentOfflineDuration = calculateDowntime(device.history);
+
+        if (offlineCount > 3 || recentOfflineDuration > 120) {
+            categorizedDevices.Low.push(device);
+        }
+
+        if (offlineCount >= 5 || recentOfflineDuration > 240) {
+            categorizedDevices.Medium.push(device);
+        }
+
+        if (offlineCount > 7 || recentOfflineDuration > 600) {
+            categorizedDevices.High.push(device);
+        }
+    }
+
+    function calculateDowntime(history) {
+        let totalDowntime = 0;
+        for (let i = 0; i < history.length - 1; i++) {
+            if (history[i].status === "Offline" && history[i + 1].status === "Online") {
+                let offlineTime = new Date(history[i].timestamp);
+                let onlineTime = new Date(history[i + 1].timestamp);
+                totalDowntime += (onlineTime - offlineTime) / (1000 * 60); // Convert to minutes
+            }
+        }
+        return totalDowntime;
+    }
+
+    function updateDeviceList(devices) {
+        deviceList.innerHTML = "";
+        if (devices.length === 0) {
+            deviceList.innerHTML = "<li>No offline devices currently.</li>";
+            return;
+        }
+
+        devices.forEach(device => {
+            const li = document.createElement("li");
+            li.innerHTML = `
+                <strong>${device.archivername || device.cameraname || device.controllername || device.servername}</strong> <br>
+                IP: ${device.ip_address} <br>
+                Status: <span style="color:red;">Offline</span>
+            `;
+            deviceList.appendChild(li);
+        });
+    }
+
+    regionFilter.addEventListener("change", function () {
+        fetchSummary(regionFilter.value);
+    });
+
+    fetchSummary();
+    setInterval(() => fetchSummary(regionFilter.value), 60000); // Auto-refresh every 60 seconds
+});
 
