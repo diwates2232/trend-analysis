@@ -1,3 +1,71 @@
+function displayDeviceHistory(deviceIp, deviceName, history) {
+    const modalHeader = document.getElementById('device-history-header');
+    const historyContainer = document.getElementById('device-history');
+
+    modalHeader.innerHTML = `
+        <h3>Device History</h3>
+        <p><strong>Device Name:</strong> ${deviceName}</p>
+        <p><strong>Device IP:</strong> ${deviceIp}</p>
+        <button onclick="closeHistoryModal()" style="float:right; padding: 5px 10px; background-color: red; color: white; border: none; cursor: pointer;">Close</button>
+        <hr>
+    `;
+
+    historyContainer.innerHTML = '';
+
+    if (history.length === 0) {
+        historyContainer.innerHTML = `<p>No history available for this device.</p>`;
+        return;
+    }
+
+    let tableHTML = `
+        <table border="1" style="width:100%; text-align:center; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Day</th>
+                    <th>Status</th>
+                    <th>Downtime Duration</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    history.forEach(entry => {
+        let entryDate = new Date(entry.timestamp);
+        let formattedDate = entryDate.toLocaleDateString(); // e.g., "3/27/2025"
+        let formattedTime = entryDate.toLocaleTimeString(); // e.g., "14:30:15"
+        let formattedDay = entryDate.toLocaleString('en-US', { weekday: 'long' }); // e.g., "Thursday"
+        let downtimeDuration = entry.status === "Offline" ? calculateDowntimeDuration(entry.timestamp, history) : "-";
+
+        tableHTML += `
+            <tr>
+                <td>${formattedDate}</td>
+                <td>${formattedTime}</td>
+                <td>${formattedDay}</td>
+                <td style="color: ${entry.status === "Online" ? 'green' : 'red'};">${entry.status}</td>
+                <td>${downtimeDuration}</td>
+            </tr>
+        `;
+    });
+
+    tableHTML += `</tbody></table>`;
+    historyContainer.innerHTML = tableHTML;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function calculateDowntimeDuration(timestamp, history) {
     let downtimeStart = new Date(timestamp).getTime();
     
