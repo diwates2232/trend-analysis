@@ -1,3 +1,9 @@
+Check below Trend.js file
+I i want display devices on top which has downtime count.
+
+
+
+
 Trend.js
 
 let deviceUptimeTimers = {};
