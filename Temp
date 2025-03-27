@@ -1,3 +1,126 @@
+function displayDeviceHistory(deviceIp, deviceName, history) {
+    const modalHeader = document.getElementById('device-history-header');
+    const historyContainer = document.getElementById('device-history');
+
+    modalHeader.innerHTML = `
+        <h3>Device History</h3>
+        <p><strong>Device Name:</strong> ${deviceName}</p>
+        <p><strong>Device IP:</strong> ${deviceIp}</p>
+        <hr>
+    `;
+
+    historyContainer.innerHTML = '';
+
+    if (history.length === 0) {
+        historyContainer.innerHTML = `<p>No history available for this device.</p>`;
+        return;
+    }
+
+    let tableHTML = `
+        <table border="1" style="width:100%; text-align:center; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Day</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>Downtime Duration</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    let lastOfflineTimestamp = null;
+    let lastStatus = null;
+    let ongoingDowntimeDuration = null;
+
+    history.forEach((entry, index) => {
+        let entryDate = new Date(entry.timestamp);
+        let formattedDate = entryDate.toLocaleDateString();
+        let formattedTime = entryDate.toLocaleTimeString();
+        let formattedDay = entryDate.toLocaleString('en-US', { weekday: 'long' });
+
+        let downtimeDuration = "-";
+
+        if (entry.status === "Offline") {
+            lastOfflineTimestamp = entry.timestamp; // Store the last offline time
+            ongoingDowntimeDuration = calculateDowntimeDuration(entry.timestamp, history);
+            downtimeDuration = ongoingDowntimeDuration;
+        }
+
+        if (entry.status === "Online" && lastOfflineTimestamp) {
+            downtimeDuration = calculateDowntimeDuration(lastOfflineTimestamp, history);
+            lastOfflineTimestamp = null; // Reset offline timestamp after finding online entry
+        }
+
+        lastStatus = entry.status;
+
+        tableHTML += `
+            <tr>
+                <td>${formattedDate}</td>
+                <td>${formattedDay}</td>
+                <td>${formattedTime}</td>
+                <td style="color: ${entry.status === "Online" ? 'green' : 'red'};">${entry.status}</td>
+                <td>${downtimeDuration}</td>
+            </tr>
+        `;
+    });
+
+    // **If the last status is Online throughout, show "No downtime"**
+    if (lastStatus === "Online" && !history.some(entry => entry.status === "Offline")) {
+        tableHTML += `
+            <tr>
+                <td colspan="5" style="text-align: center; color: green;">Device has no downtime</td>
+            </tr>
+        `;
+    }
+
+    tableHTML += `</tbody></table>`;
+    historyContainer.innerHTML = tableHTML;
+}
+
+function calculateDowntimeDuration(timestamp, history) {
+    let downtimeStart = new Date(timestamp).getTime();
+    
+    // Find the next Online entry after the current Offline timestamp
+    let nextOnlineEntry = history.find(entry => 
+        entry.status === "Online" && new Date(entry.timestamp).getTime() > downtimeStart
+    );
+
+    if (nextOnlineEntry) {
+        let downtimeEnd = new Date(nextOnlineEntry.timestamp).getTime();
+        let durationInSeconds = (downtimeEnd - downtimeStart) / 1000;
+        return formatDuration(durationInSeconds);
+    }
+
+    // If device is still offline, calculate downtime until now
+    let durationInSeconds = (Date.now() - downtimeStart) / 1000;
+    return formatDuration(durationInSeconds);
+}
+
+function formatDuration(seconds) {
+    let days = Math.floor(seconds / 86400);
+    let hours = Math.floor((seconds % 86400) / 3600);
+    let minutes = Math.floor((seconds % 3600) / 60);
+    let secs = seconds % 60;
+
+    let result = [];
+    if (days > 0) result.push(`${days}d`);
+    if (hours > 0 || days > 0) result.push(`${hours}h`);
+    if (minutes > 0 || hours > 0 || days > 0) result.push(`${minutes}m`);
+    result.push(`${secs}s`);
+
+    return result.join('/');
+}
+
+
+
+
+
+
+
+
+
 Read carefully my trend.js file 
 and 
 
