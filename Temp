@@ -1,3 +1,86 @@
+function openDeviceHistory(deviceIp, deviceName) {
+    if (!window.deviceHistoryData) {
+        console.error("Device history data not loaded.");
+        return;
+    }
+    const history = window.deviceHistoryData[deviceIp] || [];
+    displayDeviceHistory(deviceIp, deviceName, history);
+    document.getElementById('device-history-modal').style.display = 'block';
+}
+
+
+
+function displayDeviceHistory(deviceIp, deviceName, history) {
+    const modalHeader = document.getElementById('device-history-header');
+    const historyContainer = document.getElementById('device-history');
+
+    // Set the device name and IP in the header
+    modalHeader.innerHTML = `
+        <h3>Device History</h3>
+        <p><strong>Device Name:</strong> ${deviceName}</p>
+        <p><strong>Device IP:</strong> ${deviceIp}</p>
+        <button onclick="closeHistoryModal()" style="float:right; padding: 5px 10px; background-color: red; color: white; border: none; cursor: pointer;">Close</button>
+        <hr>
+    `;
+
+    historyContainer.innerHTML = ''; // Clear previous history data
+
+    if (history.length > 0) {
+        let lastOfflineTime = null;
+
+        for (let i = 0; i < history.length; i++) {
+            const entry = history[i];
+            const date = new Date(entry.timestamp);
+            const formattedDate = date.toDateString();
+            const day = date.toLocaleDateString(undefined, { weekday: 'long' });
+            const time = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            let downtimeText = '';
+
+            if (lastOfflineTime && entry.status === "Online") {
+                const downtimeSeconds = Math.floor((date - lastOfflineTime) / 1000);
+                downtimeText = `<span style="color: red;"> (Downtime: ${formatDuration(downtimeSeconds)})</span>`;
+                lastOfflineTime = null;
+            }
+
+            if (entry.status === "Offline") {
+                lastOfflineTime = date;
+            }
+
+            const entryDiv = document.createElement('div');
+            entryDiv.innerHTML = `<p><strong>${day}, ${formattedDate}, ${time}</strong> - ${entry.status} ${downtimeText}</p>`;
+
+            historyContainer.appendChild(entryDiv);
+        }
+    } else {
+        historyContainer.innerHTML = '<p>No history available</p>';
+    }
+}
+
+
+
+<td><button onclick="openDeviceHistory('${deviceIp}', '${deviceName}')">View History</button></td>
+
+
+
+
+
+<div id="device-history-modal" style="display:none; position:fixed; top:20%; left:30%; width:40%; background:white; padding:20px; box-shadow: 0 0 10px rgba(0,0,0,0.5);">
+    <div id="device-history-header"></div> <!-- Header for Device Name and IP -->
+    <div id="device-history"></div> <!-- Device history details -->
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
 function displayDeviceHistory(history) {
     const historyContainer = document.getElementById('device-history');
     historyContainer.innerHTML = ''; // Clear existing content
