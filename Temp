@@ -1,3 +1,32 @@
+Read carefully Trend.js file
+
+i want to Display device history in table format.
+update my file as per my requirnment.
+
+let deviceUptimeTimers = {};
+let deviceDowntimeTimers = {};
+
+function fetchDeviceData() {
+    const selectedRegion = document.getElementById('region').value;
+    fetch(`http://localhost/api/regions/details/${selectedRegion}`)
+        .then(response => response.json())
+        .then(regionData => {
+            fetchDeviceHistory(regionData.details);
+        })
+        .catch(error => console.error('Error fetching device data:', error));
+}
+
+function fetchDeviceHistory(regionDetails) {
+    fetch(`http://localhost/api/devices/history`)
+        .then(response => response.json())
+        .then(historyData => {
+            populateDeviceTable(regionDetails, historyData);
+            window.deviceHistoryData = historyData; // Store history for reuse
+        })
+        .catch(error => console.error('Error fetching device history:', error));
+}
+
+
 function populateDeviceTable(details, historyData) {
     const tableBody = document.getElementById('device-table').getElementsByTagName('tbody')[0];
     tableBody.innerHTML = ''; // Clear existing rows
@@ -68,98 +97,6 @@ function populateDeviceTable(details, historyData) {
 
 
 
-
-
-
-
-
-
-
-
-Check below Trend.js file
-I want to update file so Display devices On top which has a downtime count
-
-kindly check my code and update as per requirnment.
-
-
-
-Trend.js
-
-let deviceUptimeTimers = {};
-let deviceDowntimeTimers = {};
-
-function fetchDeviceData() {
-    const selectedRegion = document.getElementById('region').value;
-    fetch(`http://localhost/api/regions/details/${selectedRegion}`)
-        .then(response => response.json())
-        .then(regionData => {
-            fetchDeviceHistory(regionData.details);
-        })
-        .catch(error => console.error('Error fetching device data:', error));
-}
-
-
-
-function fetchDeviceHistory(regionDetails) {
-    fetch(`http://localhost/api/devices/history`)
-        .then(response => response.json())
-        .then(historyData => {
-            populateDeviceTable(regionDetails, historyData);
-            window.deviceHistoryData = historyData; // Store history for reuse
-        })
-        .catch(error => console.error('Error fetching device history:', error));
-}
-
-
-function populateDeviceTable(details, historyData) {
-    const tableBody = document.getElementById('device-table').getElementsByTagName('tbody')[0];
-    tableBody.innerHTML = ''; // Clear existing rows
-
-    if (details) {
-        ['cameras', 'archivers', 'controllers', 'servers'].forEach(deviceType => {
-            details[deviceType]?.forEach(device => {
-                const deviceIp = device.ip_address;
-                const deviceName = device[deviceType.slice(0, -1) + 'name'];
-                const deviceCategory = deviceType.slice(0, -1).toUpperCase();
-                
-                const deviceHistory = historyData[deviceIp] || [];
-                const lastStatusEntry = deviceHistory.length > 0 ? deviceHistory[deviceHistory.length - 1] : null;
-                const currentStatus = lastStatusEntry ? lastStatusEntry.status : "Unknown";
-
-                // Create table row with borders for all cells
-                const row = tableBody.insertRow();
-                row.style.border = "1px solid black"; // Add border to row
-
-                row.innerHTML = `
-                    <td>${deviceIp}</td>
-                    <td>${deviceName}</td>
-                    <td>${deviceCategory}</td>
-                    <td id="uptime-${deviceIp}">0h/0m/0s</td>
-                    <td id="downtime-count-${deviceIp}">0</td>
-                    <td id="downtime-${deviceIp}">0h/0m/0s</td>
-                    <td><button onclick="openDeviceHistory('${deviceIp}')">View History</button></td>
-                    <td id="remark-${deviceIp}">Device working properly</td>
-                `;
-
-                // Set text color based on status (Online = Green, Offline = Red)
-                const color = currentStatus === "Online" ? "green" : "red";
-                row.style.color = color; // Change text color to green (online) or red (offline)
-
-                if (currentStatus === "Online") {
-                    startUptime(deviceIp, deviceHistory);
-                } else {
-                    startDowntime(deviceIp, deviceHistory);
-                }
-
-                // Update remarks based on device status and conditions
-                updateRemarks(deviceIp, deviceHistory);
-            });
-        });
-    } else {
-        console.error('No details found in the response');
-    }
-}
-
 function startUptime(deviceIp, history) {
     clearInterval(deviceDowntimeTimers[deviceIp]);
     let lastOnlineEntry = history.filter(entry => entry.status === "Online").pop();
@@ -222,6 +159,7 @@ function updateDowntimeCount(deviceIp, history) {
         }
     }
 }
+
 
 
 // Fix for updateRemarks function to prioritize current status and handle downtime properly
@@ -291,6 +229,7 @@ function updateRemarks(deviceIp, history, deviceType) {
 }
 
 
+
 function formatDuration(seconds) {
     let days = Math.floor(seconds / 86400); // 1 day = 86400 seconds
     let hours = Math.floor((seconds % 86400) / 3600);
@@ -305,6 +244,7 @@ function formatDuration(seconds) {
 
     return result.join('/');
 }
+
 
 
 function openDeviceHistory(deviceIp) {
@@ -361,6 +301,7 @@ function displayDeviceHistory(history) {
 function closeHistoryModal() {
     document.getElementById('device-history-modal').style.display = 'none';
 }
+
 
 function filterData() {
     const selectedType = document.getElementById('device-type').value.toUpperCase();
