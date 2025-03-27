@@ -1,3 +1,25 @@
+downtime duration displaying twise
+
+and for seconds dont display 12.492999999999995s like this display only 12
+
+3/21/2025	Friday	9:55:54 PM	Offline	1m/12.492999999999995s
+3/21/2025	Friday	9:57:07 PM	Online	1m/12.492999999999995s
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function displayDeviceHistory(deviceIp, deviceName, history) {
     const modalHeader = document.getElementById('device-history-header');
     const historyContainer = document.getElementById('device-history');
