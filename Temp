@@ -1,3 +1,39 @@
+// Function to format the duration (in milliseconds)
+function formatDuration(ms) {
+    const seconds = Math.floor(ms / 1000); // Convert to seconds and round down
+    const minutes = Math.floor(seconds / 60); // Get minutes
+    const remainingSeconds = seconds % 60; // Get remaining seconds
+
+    let formattedTime = `${minutes}m`;
+    if (remainingSeconds > 0) {
+        formattedTime += `/${remainingSeconds}s`; // Append seconds
+    }
+
+    return formattedTime;
+}
+
+// Example usage for downtime and uptime tracking
+const downtimeDuration = 74292; // Example downtime duration in milliseconds
+const uptimeDuration = 74292; // Example uptime duration in milliseconds
+
+const formattedDowntime = formatDuration(downtimeDuration);
+const formattedUptime = formatDuration(uptimeDuration);
+
+console.log(formattedDowntime); // "1m/12s"
+console.log(formattedUptime); // "1m/12s"
+
+
+
+
+
+
+
+
+
+
+
+
+
 downtime duration displaying twise
 
 and for seconds dont display 12.492999999999995s like this display only 12
