@@ -1,3 +1,83 @@
+function closeHistoryModal() {
+    document.getElementById('device-history-modal').style.display = 'none';
+}
+
+
+<button onclick="closeHistoryModal()" style="float:right; padding: 5px 10px; background-color: red; color: white; border: none; cursor: pointer;">Close</button>
+
+
+
+
+function displayDeviceHistory(deviceIp, deviceName, history) {
+    const modalHeader = document.getElementById('device-history-header');
+    const historyContainer = document.getElementById('device-history');
+
+    // Set header
+    modalHeader.innerHTML = `
+        <h3>Device History</h3>
+        <p><strong>Device Name:</strong> ${deviceName}</p>
+        <p><strong>Device IP:</strong> ${deviceIp}</p>
+        <hr>
+    `;
+
+    // Clear old content
+    historyContainer.innerHTML = '';
+
+    if (history.length === 0) {
+        historyContainer.innerHTML = '<p>No history available.</p>';
+        return;
+    }
+
+    // Create history table
+    let historyTable = `
+        <table border="1" style="width:100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    history.forEach(entry => {
+        historyTable += `
+            <tr>
+                <td>${new Date(entry.timestamp).toLocaleString()}</td>
+                <td>${entry.status}</td>
+            </tr>
+        `;
+    });
+
+    historyTable += '</tbody></table>';
+    
+    historyContainer.innerHTML = historyTable;
+}
+
+
+
+
+
+<span class="close" onclick="closeHistoryModal()">&times;</span>
+<h2>Device History</h2>
+<div id="device-history"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Check below Files 
 
 issue is there 
