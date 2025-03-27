@@ -1,3 +1,78 @@
+function displayDeviceHistory(history) {
+    const historyContainer = document.getElementById('device-history');
+    historyContainer.innerHTML = ''; // Clear existing content
+
+    if (history.length === 0) {
+        historyContainer.innerHTML = '<p>No history available</p>';
+        return;
+    }
+
+    // Create table
+    const table = document.createElement('table');
+    table.style.width = '100%';
+    table.style.borderCollapse = 'collapse';
+
+    // Create table headers
+    const headerRow = table.insertRow();
+    ['Date', 'Day', 'Time', 'Status', 'Downtime Duration'].forEach(headerText => {
+        const th = document.createElement('th');
+        th.innerText = headerText;
+        th.style.border = '1px solid black';
+        th.style.padding = '5px';
+        th.style.backgroundColor = '#f2f2f2';
+        table.appendChild(headerRow);
+        headerRow.appendChild(th);
+    });
+
+    let lastOfflineTime = null; // Track the last offline timestamp
+
+    history.forEach(entry => {
+        const date = new Date(entry.timestamp);
+        const formattedDate = date.toLocaleDateString();
+        const day = date.toLocaleDateString(undefined, { weekday: 'long' });
+        const time = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        let downtimeText = '-'; // Default for online entries
+
+        // Calculate downtime when transitioning from Offline → Online
+        if (lastOfflineTime && entry.status === "Online") {
+            const downtimeSeconds = Math.floor((date - lastOfflineTime) / 1000);
+            downtimeText = formatDuration(downtimeSeconds);
+            lastOfflineTime = null; // Reset
+        }
+
+        if (entry.status === "Offline") {
+            lastOfflineTime = date;
+        }
+
+        // Create row
+        const row = table.insertRow();
+        [formattedDate, day, time, entry.status, downtimeText].forEach((text, index) => {
+            const cell = row.insertCell(index);
+            cell.innerText = text;
+            cell.style.border = '1px solid black';
+            cell.style.padding = '5px';
+            if (index === 3) cell.style.color = entry.status === "Offline" ? 'red' : 'green';
+        });
+
+    });
+
+    historyContainer.appendChild(table);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Read carefully Trend.js file
 
 i want to Display device history in table format.
