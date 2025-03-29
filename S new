@@ -17,6 +17,8 @@ caught TypeError: Cannot set properties of null (setting 'innerText')
 Read below file and solve this error
 
 
+
+
 let deviceUptimeTimers = {};
 let deviceDowntimeTimers = {};
 
@@ -460,14 +462,3 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById('region').addEventListener('change', fetchDeviceData);
     fetchDeviceData(); // Initial load
 });
-
-
-
-
-
-
-
-
-
-
-
