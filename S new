@@ -1,3 +1,172 @@
+function fetchSummaryData() {
+    fetch("http://localhost/api/devices/history")
+        .then(response => response.json())
+        .then(historyData => {
+            fetch("http://localhost/api/regions/details/all")
+                .then(response => response.json())
+                .then(regionData => {
+                    populateSummaryTable(regionData, historyData);
+                })
+                .catch(error => console.error("Error fetching region data:", error));
+        })
+        .catch(error => console.error("Error fetching device history:", error));
+}
+
+function populateSummaryTable(regionDetails, historyData) {
+    const tableBody = document.getElementById("summary-table");
+    tableBody.innerHTML = "";
+
+    let regionSummary = { APAC: [], EMEA: [], LACA: [], NAMER: [], Global: [] };
+
+    ["cameras", "archivers", "controllers", "servers"].forEach(deviceType => {
+        regionDetails[deviceType]?.forEach(device => {
+            const deviceIp = device.ip_address;
+            const deviceName = device[deviceType.slice(0, -1) + "name"];
+            const deviceCategory = deviceType.slice(0, -1).toUpperCase();
+            const region = device.region || "Unknown";
+
+            const deviceHistory = historyData[deviceIp] || [];
+            const lastStatusEntry = deviceHistory.length > 0 ? deviceHistory[deviceHistory.length - 1] : null;
+            const currentStatus = lastStatusEntry ? lastStatusEntry.status : "Unknown";
+
+            let downtimeCount = deviceHistory.filter(entry => entry.status === "Offline").length;
+
+            let deviceInfo = {
+                deviceIp,
+                deviceName,
+                deviceCategory,
+                currentStatus,
+                deviceHistory,
+                downtimeCount
+            };
+
+            // Categorize by region
+            if (regionSummary[region]) {
+                regionSummary[region].push(deviceInfo);
+            }
+            regionSummary["Global"].push(deviceInfo);
+        });
+    });
+
+    // Populate device rows
+    Object.keys(regionSummary).forEach(region => {
+        regionSummary[region].forEach(({ deviceIp, deviceName, deviceCategory, currentStatus, deviceHistory, downtimeCount }) => {
+            const row = tableBody.insertRow();
+
+            row.innerHTML = `
+                <td>${deviceIp}</td>
+                <td>${deviceName}</td>
+                <td>${deviceCategory}</td>
+                <td id="uptime-${deviceIp}">0h/0m/0s</td>
+                <td>${downtimeCount}</td>
+                <td id="downtime-${deviceIp}">0h/0m/0s</td>
+                <td id="remark-${deviceIp}">${currentStatus === "Offline" ? "Device is Offline" : "Device needs attention"}</td>
+                <td><button onclick="viewHistory('${deviceIp}')">View History</button></td>
+            `;
+
+            if (currentStatus === "Online") {
+                startUptime(deviceIp, deviceHistory);
+            } else {
+                startDowntime(deviceIp, deviceHistory);
+            }
+        });
+
+        // Add summary row for each region
+        const summaryRow = tableBody.insertRow();
+        summaryRow.innerHTML = `
+            <td colspan="2"><strong>${region} Summary</strong></td>
+            <td colspan="5"><strong>${regionSummary[region].length} Devices</strong></td>
+        `;
+    });
+}
+
+function viewHistory(deviceIp) {
+    alert(`Displaying history for device: ${deviceIp}`);
+}
+
+function display() {
+    console.log("Display function executed.");
+}
+
+document.addEventListener("DOMContentLoaded", fetchSummaryData);
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Summary</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        button {
+            margin: 10px;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Device Summary</h2>
+    <button onclick="goBack()">Back to Device Trend</button>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Device IP</th>
+                <th>Device Name</th>
+                <th>Category</th>
+                <th>Uptime</th>
+                <th>Downtime Count</th>
+                <th>Downtime</th>
+                <th>Remarks</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody id="summary-table">
+        </tbody>
+    </table>
+
+    <script src="summary.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Read carefully both file and update as per my requirnment
 add two more rows
 Region Name  (APAC,EMEA,LACA, NAMER) (Global= APAC + EMEA + LACA + NAMER)
