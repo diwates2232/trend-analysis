@@ -1,3 +1,124 @@
+function populateDeviceTable(details, historyData, selectedRegion = 'Global') {
+    const tableBody = document.getElementById('device-table').getElementsByTagName('tbody')[0];
+    tableBody.innerHTML = ''; // Clear existing rows
+
+    let deviceList = [];
+
+    if (details) {
+        ['cameras', 'archivers', 'controllers', 'servers'].forEach(deviceType => {
+            details[deviceType]?.forEach(device => {
+                const deviceIp = device.ip_address;
+                const deviceName = device[deviceType.slice(0, -1) + 'name'] || 'Unknown';
+                const deviceCategory = deviceType.slice(0, -1).toUpperCase();
+                const deviceRegion = device.region || "Unknown"; // Ensure region data exists
+
+                const deviceHistory = historyData[deviceIp] || [];
+                const lastStatusEntry = deviceHistory.length > 0 ? deviceHistory[deviceHistory.length - 1] : null;
+                const currentStatus = lastStatusEntry ? lastStatusEntry.status : "Unknown";
+
+                // Calculate downtime count
+                let downtimeCount = deviceHistory.filter(entry => entry.status === "Offline").length;
+
+                // **Filter by region if a specific region is selected**
+                if (selectedRegion !== 'Global' && deviceRegion !== selectedRegion) {
+                    return;
+                }
+
+                // **Filter devices: Only show those currently offline OR with downtime count > 10**
+                if (currentStatus === "Offline" || downtimeCount > 10) {
+                    deviceList.push({
+                        deviceIp,
+                        deviceName,
+                        deviceCategory,
+                        currentStatus,
+                        deviceRegion,
+                        deviceHistory,
+                        downtimeCount
+                    });
+                }
+            });
+        });
+
+        // **Sort devices by downtime count (descending order)**
+        deviceList.sort((a, b) => b.downtimeCount - a.downtimeCount);
+
+        // **Display "No devices found" if the filtered list is empty**
+        if (deviceList.length === 0) {
+            const row = tableBody.insertRow();
+            const cell = row.insertCell(0);
+            cell.colSpan = 9; // Span across all columns
+            cell.textContent = "No devices found";
+            cell.style.textAlign = "center";
+            cell.style.fontWeight = "bold";
+            return;
+        }
+
+        // **Render filtered and sorted devices**
+        deviceList.forEach(({ deviceIp, deviceName, deviceCategory, currentStatus, deviceRegion, deviceHistory, downtimeCount }) => {
+            const row = tableBody.insertRow();
+            row.style.border = "1px solid black"; // Add border to row
+
+            row.innerHTML = `
+                <td>${deviceIp || 'Unknown'}</td>
+                <td>${deviceName || 'Unknown'}</td>
+                <td>${deviceCategory || 'Unknown'}</td>
+                <td>${deviceRegion || 'Unknown'}</td>
+                <td id="uptime-${deviceIp}">0h/0m/0s</td>
+                <td id="downtime-count-${deviceIp}">${downtimeCount}</td>
+                <td id="downtime-${deviceIp}">0h/0m/0s</td>
+                <td><button onclick="openDeviceHistory('${deviceIp}', '${deviceName}')">View History</button></td>
+                <td id="remark-${deviceIp}">Device working properly</td>
+            `;
+
+            // Set text color based on status
+            const color = currentStatus === "Online" ? "green" : "red";
+            row.style.color = color;
+
+            if (currentStatus === "Online") {
+                startUptime(deviceIp, deviceHistory);
+            } else {
+                startDowntime(deviceIp, deviceHistory);
+            }
+
+            updateRemarks(deviceIp, deviceHistory, deviceCategory);
+        });
+    } else {
+        console.error('No details found in the response');
+    }
+}
+
+
+
+
+
+<select id="region-filter" onchange="filterByRegion()">
+    <option value="Global">Global</option>
+    <option value="APAC">APAC</option>
+    <option value="EMEA">EMEA</option>
+    <option value="LACA">LACA</option>
+    <option value="NAMER">NAMER</option>
+</select>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function populateDeviceTable(details, historyData) {
     const tableBody = document.getElementById('device-table').getElementsByTagName('tbody')[0];
     tableBody.innerHTML = ''; // Clear existing rows
