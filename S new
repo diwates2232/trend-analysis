@@ -1,93 +1,8 @@
-function startUptime(deviceIp, history) {
-    clearInterval(deviceDowntimeTimers[deviceIp]);
-    let lastOnlineEntry = history.filter(entry => entry.status === "Online").pop();
-    
-    if (!lastOnlineEntry) return;
-    
-    let startTime = new Date(lastOnlineEntry.timestamp).getTime();
-    deviceUptimeTimers[deviceIp] = setInterval(() => {
-        let elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-        const uptimeElement = document.getElementById(`uptime-${deviceIp}`);
-        if (uptimeElement) {
-            uptimeElement.innerText = formatDuration(elapsedTime);
-        }
-    }, 1000);
-}
-
-function startDowntime(deviceIp, history) {
-    clearInterval(deviceUptimeTimers[deviceIp]);
-    let lastOfflineEntry = history.filter(entry => entry.status === "Offline").pop();
-
-    if (!lastOfflineEntry) return;
-    
-    let startTime = new Date(lastOfflineEntry.timestamp).getTime();
-    deviceDowntimeTimers[deviceIp] = setInterval(() => {
-        let elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-        const downtimeElement = document.getElementById(`downtime-${deviceIp}`);
-        if (downtimeElement) {
-            downtimeElement.innerText = formatDuration(elapsedTime);
-        }
-        updateDowntimeCount(deviceIp, history);
-    }, 1000);
-}
-
-function updateDowntimeCount(deviceIp, history, deviceType) {
-    let downtimeEntries = history.filter(entry => entry.status === "Offline");
-
-    // Only count downtimes that last more than 5 minutes, except for servers
-    let filteredDowntimeEntries = downtimeEntries.filter((entry, index, arr) => {
-        if (deviceType === "SERVER") return true; // Always count downtime for servers
-        if (index === 0) return true; // Always keep the first entry
-
-        let previousEntry = arr[index - 1];
-        let duration = (new Date(entry.timestamp) - new Date(previousEntry.timestamp)) / 1000;
-        return duration >= 300; // 300 seconds = 5 minutes
-    });
-
-    let downtimeCount = filteredDowntimeEntries.length;
-    
-    const downtimeElement = document.getElementById(`downtime-count-${deviceIp}`);
-    if (downtimeElement) {
-        downtimeElement.innerText = downtimeCount;
-    }
-
-    // Update remarks based on downtime count and total downtime
-    const remarkElement = document.getElementById(`remark-${deviceIp}`);
-    if (remarkElement) {
-        if (downtimeCount === 0) {
-            remarkElement.innerText = "Device is Online.";
-        } else if (downtimeCount >= 3) {
-            remarkElement.innerText = `Device is Online, but it had ${downtimeCount} offline occurrences. Needs repair!`;
-        } else {
-            remarkElement.innerText = `Device is Online, but it had ${downtimeCount} offline occurrences.`;
-        }
-    }
-}
+Read below trend .js file 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-ncaught TypeError: Cannot set properties of null (setting 'innerText')
-    at summary.js:249:67Understand this errorAI
-33448summary.js:249 Uncaught TypeError: Cannot set properties of null (setting 'innerText')
-    at summary.js:249:67
-(anonymous) @ summary.js:249
-
-
-
-Reab below file and solve above error.
-
+Device Region is not display correctly.
+Select region DropDown add all button .which is need to working proper.
 
 
 let deviceUptimeTimers = {};
@@ -178,7 +93,7 @@ function populateDeviceTable(details, historyData, selectedRegion = 'Global') {
             row.innerHTML = `
                 <td>${deviceIp || 'Unknown'}</td>
                 <td>${deviceName || 'Unknown'}</td>
-                <td>${deviceCategory || 'Unknown'}</td>
+                <td>${deviceCategory || 'Unknown'}</td>x
                 <td>${deviceRegion || 'Unknown'}</td>
                 <td id="uptime-${deviceIp}">0h/0m/0s</td>
                 <td id="downtime-count-${deviceIp}">${downtimeCount}</td>
@@ -204,8 +119,6 @@ function populateDeviceTable(details, historyData, selectedRegion = 'Global') {
     }
 }
 
-
-
 function startUptime(deviceIp, history) {
     clearInterval(deviceDowntimeTimers[deviceIp]);
     let lastOnlineEntry = history.filter(entry => entry.status === "Online").pop();
@@ -215,11 +128,13 @@ function startUptime(deviceIp, history) {
     let startTime = new Date(lastOnlineEntry.timestamp).getTime();
     deviceUptimeTimers[deviceIp] = setInterval(() => {
         let elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-        document.getElementById(`uptime-${deviceIp}`).innerText = formatDuration(elapsedTime);
+        const uptimeElement = document.getElementById(`uptime-${deviceIp}`);
+        if (uptimeElement) {
+            uptimeElement.innerText = formatDuration(elapsedTime);
+        }
     }, 1000);
 }
 
-// **Updated startDowntime function to fix current offline detection**
 function startDowntime(deviceIp, history) {
     clearInterval(deviceUptimeTimers[deviceIp]);
     let lastOfflineEntry = history.filter(entry => entry.status === "Offline").pop();
@@ -229,13 +144,16 @@ function startDowntime(deviceIp, history) {
     let startTime = new Date(lastOfflineEntry.timestamp).getTime();
     deviceDowntimeTimers[deviceIp] = setInterval(() => {
         let elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-        document.getElementById(`downtime-${deviceIp}`).innerText = formatDuration(elapsedTime);
+        const downtimeElement = document.getElementById(`downtime-${deviceIp}`);
+        if (downtimeElement) {
+            downtimeElement.innerText = formatDuration(elapsedTime);
+        }
         updateDowntimeCount(deviceIp, history);
     }, 1000);
 }
 
 
-// **Fix Downtime Count and Remarks Update (with proper filtering)**
+
 // In updateDowntimeCount function:
 function updateDowntimeCount(deviceIp, history, deviceType) {
     let downtimeEntries = history.filter(entry => entry.status === "Offline");
@@ -252,13 +170,13 @@ function updateDowntimeCount(deviceIp, history, deviceType) {
 
     let downtimeCount = filteredDowntimeEntries.length;
     
-    let downtimeElement = document.getElementById(`downtime-count-${deviceIp}`);
+    const downtimeElement = document.getElementById(`downtime-count-${deviceIp}`);
     if (downtimeElement) {
         downtimeElement.innerText = downtimeCount;
     }
 
     // Update remarks based on downtime count and total downtime
-    let remarkElement = document.getElementById(`remark-${deviceIp}`);
+    const remarkElement = document.getElementById(`remark-${deviceIp}`);
     if (remarkElement) {
         if (downtimeCount === 0) {
             remarkElement.innerText = "Device is Online.";
