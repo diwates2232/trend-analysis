@@ -11,239 +11,7 @@ summary.js:550 Uncaught TypeError: Cannot read properties of null (reading 'addE
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function populateDeviceTable(details, historyData) {
-    const tableBody = document.getElementById('device-table').getElementsByTagName('tbody')[0];
-    tableBody.innerHTML = ''; // Clear existing rows
-
-    let deviceList = [];
-
-    if (details) {
-        ['cameras', 'archivers', 'controllers', 'servers'].forEach(deviceType => {
-            details[deviceType]?.forEach(device => {
-                const deviceIp = device.ip_address;
-                const deviceName = device[deviceType.slice(0, -1) + 'name'];
-                const deviceCategory = deviceType.slice(0, -1).toUpperCase();
-
-                const deviceHistory = historyData[deviceIp] || [];
-                const lastStatusEntry = deviceHistory.length > 0 ? deviceHistory[deviceHistory.length - 1] : null;
-                const currentStatus = lastStatusEntry ? lastStatusEntry.status : "Unknown";
-
-                // Calculate downtime count
-                let downtimeCount = deviceHistory.filter(entry => entry.status === "Offline").length;
-
-                // **Filter devices: Only show those currently offline OR with downtime count > 10**
-                if (currentStatus === "Offline" || downtimeCount > 10) {
-                    deviceList.push({
-                        deviceIp,
-                        deviceName,
-                        deviceCategory,
-                        currentStatus,
-                        deviceHistory,
-                        downtimeCount
-                    });
-                }
-            });
-        });
-
-        // **Sort devices by downtime count (descending order)**
-        deviceList.sort((a, b) => b.downtimeCount - a.downtimeCount);
-
-        // **Render filtered and sorted devices**
-        deviceList.forEach(({ deviceIp, deviceName, deviceCategory, currentStatus, deviceHistory, downtimeCount }) => {
-            const row = tableBody.insertRow();
-            row.style.border = "1px solid black"; // Add border to row
-
-            row.innerHTML = `
-                <td>${deviceIp}</td>
-                <td>${deviceName}</td>
-                <td>${deviceCategory}</td>
-                <td id="uptime-${deviceIp}">0h/0m/0s</td>
-                <td id="downtime-count-${deviceIp}">${downtimeCount}</td>
-                <td id="downtime-${deviceIp}">0h/0m/0s</td>
-                <td><button onclick="openDeviceHistory('${deviceIp}', '${deviceName}')">View History</button></td>
-                <td id="remark-${deviceIp}">Device working properly</td>
-            `;
-
-            // Set text color based on status
-            const color = currentStatus === "Online" ? "green" : "red";
-            row.style.color = color;
-
-            if (currentStatus === "Online") {
-                startUptime(deviceIp, deviceHistory);
-            } else {
-                startDowntime(deviceIp, deviceHistory);
-            }
-
-            updateRemarks(deviceIp, deviceHistory, deviceCategory);
-        });
-    } else {
-        console.error('No details found in the response');
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Read carefully below files .
-i want display only those device Which having downtime count or Device current status is offline. 
-
-so update my files as per my requirnment
-
-
-
-summary.html
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-<div id="sidebar-content">
-            <button onclick="window.location.href='index.html'">Back to Dashboard</button>
-        
-
-           
-            <label for="region">Select Region:</label>
-            <select id="region" onchange="fetchDeviceData()">
-                <option value="apac">APAC</option>
-                <option value="emea">EMEA</option>
-                <option value="laca">LACA</option>
-                <option value="namer">NAMER</option>
-            </select>
-
-            <label for="device-type">Filter by Device Type:</label>
-            <select id="device-type" onchange="filterData()">
-                <option value="ALL">All</option>
-                <option value="CONTROLLER">Controller</option>
-
-                <option value="ARCHIVER">Archiver</option>
-
-                <option value="CAMERA">Camera</option>
-
-                <option value="SERVER">Server</option>
-                
-            </select>
-
-             <label for="remark-filter">Filter by Remark:</label>
-             <select id="remark-filter" onchange="filterData()">
-                 <option value="ALL">All</option>
-                 <option value="Device needs repair">Device needs repair</option>
-                 <option value="Device is Online">Device is Online</option>
-                 <option value="Device is Offline">Device is Offline</option>
-             </select>
-
-        </div>
-    </div>
-
-
-    <h1>Devices Summary</h1>
-
-    <div class="container">
-        <table id="device-table">
-            <thead>
-                <tr>
-                    <th>Device IP</th>
-                    <th>Device Name</th>
-                    <th>Device Type</th>
-                    <th>Uptime Duration</th>
-                    <th>Downtime Count</th>
-                    <th>Downtime Duration</th>
-                    <th>Details</th>
-                    <th>Remark</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-
-    <!-- Device History Modal -->
-    <div id="device-history-modal" class="modal">
-
-        <div class="modal-content">
-
-
-            <div id="device-history-header"></div> <!-- Header for Device Name and IP -->
-          
-            <div id="device-history"></div>
-            <!-- <<span class="close" onclick="closeHistoryModal()">&times;</span> -->
-
-            <span class="close" onclick="closeHistoryModal()">&times;</span>
-            <div id="device-history"></div>
-
-            
-        </div>
-    </div>
-    
-<script>
-    document.addEventListener("DOMContentLoaded" , function (){
-        fetchDeviceData();
-    });
-</script>
-    <script src="summary.js"></script>
-
-
-   <!-- Footer -->
-   <footer class="footer">
-    <img src="images/FooterLogo.png" alt="Company Logo" class="footer-logo">
-    <p>&copy;2025 VisionWatch | Powered by <strong>Western Union Services India Pvt Ltd.</strong></p>
-    <p>Contact: 
-        <a href="mailto:gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com">gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com</a> | 
-        <a href="tel:+91 20 67632394">+91 2067632394</a>
-    </p>
-</footer>
-
-</body>
-</html>
-
-</body>
-</html>
-
-
-
-
-
-Summary.js
-
+Read below file and solve this error
 
 
 let deviceUptimeTimers = {};
@@ -270,9 +38,7 @@ function fetchDeviceHistory(regionDetails) {
 }
 
 
-
-
-function populateDeviceTable(details, historyData) {
+function populateDeviceTable(details, historyData, selectedRegion = 'Global') {
     const tableBody = document.getElementById('device-table').getElementsByTagName('tbody')[0];
     tableBody.innerHTML = ''; // Clear existing rows
 
@@ -282,8 +48,9 @@ function populateDeviceTable(details, historyData) {
         ['cameras', 'archivers', 'controllers', 'servers'].forEach(deviceType => {
             details[deviceType]?.forEach(device => {
                 const deviceIp = device.ip_address;
-                const deviceName = device[deviceType.slice(0, -1) + 'name'];
+                const deviceName = device[deviceType.slice(0, -1) + 'name'] || 'Unknown';
                 const deviceCategory = deviceType.slice(0, -1).toUpperCase();
+                const deviceRegion = device.region || "Unknown"; // Ensure region data exists
 
                 const deviceHistory = historyData[deviceIp] || [];
                 const lastStatusEntry = deviceHistory.length > 0 ? deviceHistory[deviceHistory.length - 1] : null;
@@ -292,36 +59,54 @@ function populateDeviceTable(details, historyData) {
                 // Calculate downtime count
                 let downtimeCount = deviceHistory.filter(entry => entry.status === "Offline").length;
 
-                // Store device info in an array before rendering
-                deviceList.push({
-                    deviceIp,
-                    deviceName,
-                    deviceCategory,
-                    currentStatus,
-                    deviceHistory,
-                    downtimeCount
-                });
+                // **Filter by region if a specific region is selected**
+                if (selectedRegion !== 'Global' && deviceRegion !== selectedRegion) {
+                    return;
+                }
+
+                // **Filter devices: Only show those currently offline OR with downtime count > 10**
+                if (currentStatus === "Offline" || downtimeCount > 10) {
+                    deviceList.push({
+                        deviceIp,
+                        deviceName,
+                        deviceCategory,
+                        currentStatus,
+                        deviceRegion,
+                        deviceHistory,
+                        downtimeCount
+                    });
+                }
             });
         });
 
         // **Sort devices by downtime count (descending order)**
         deviceList.sort((a, b) => b.downtimeCount - a.downtimeCount);
 
-        // **Render sorted devices**
-        deviceList.forEach(({ deviceIp, deviceName, deviceCategory, currentStatus, deviceHistory, downtimeCount }) => {
+        // **Display "No devices found" if the filtered list is empty**
+        if (deviceList.length === 0) {
+            const row = tableBody.insertRow();
+            const cell = row.insertCell(0);
+            cell.colSpan = 9; // Span across all columns
+            cell.textContent = "No devices found";
+            cell.style.textAlign = "center";
+            cell.style.fontWeight = "bold";
+            return;
+        }
+
+        // **Render filtered and sorted devices**
+        deviceList.forEach(({ deviceIp, deviceName, deviceCategory, currentStatus, deviceRegion, deviceHistory, downtimeCount }) => {
             const row = tableBody.insertRow();
             row.style.border = "1px solid black"; // Add border to row
 
             row.innerHTML = `
-                <td>${deviceIp}</td>
-                <td>${deviceName}</td>
-
-
-                <td>${deviceCategory}</td>
+                <td>${deviceIp || 'Unknown'}</td>
+                <td>${deviceName || 'Unknown'}</td>
+                <td>${deviceCategory || 'Unknown'}</td>
+                <td>${deviceRegion || 'Unknown'}</td>
                 <td id="uptime-${deviceIp}">0h/0m/0s</td>
                 <td id="downtime-count-${deviceIp}">${downtimeCount}</td>
                 <td id="downtime-${deviceIp}">0h/0m/0s</td>
-                 <td><button onclick="openDeviceHistory('${deviceIp}', '${deviceName}')">View History</button></td>
+                <td><button onclick="openDeviceHistory('${deviceIp}', '${deviceName}')">View History</button></td>
                 <td id="remark-${deviceIp}">Device working properly</td>
             `;
 
@@ -341,6 +126,7 @@ function populateDeviceTable(details, historyData) {
         console.error('No details found in the response');
     }
 }
+
 
 
 function startUptime(deviceIp, history) {
@@ -671,3 +457,14 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById('region').addEventListener('change', fetchDeviceData);
     fetchDeviceData(); // Initial load
 });
+
+
+
+
+
+
+
+
+
+
+
