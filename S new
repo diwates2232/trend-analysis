@@ -1,3 +1,14 @@
+Read carefully both file and update as per my requirnment
+add two more rows
+Region Name  (APAC,EMEA,LACA, NAMER) (Global= APAC + EMEA + LACA + NAMER)
+aslo add Details Section. for Veiw history
+
+In a Summary.js there is no display function kindly add display function 
+
+
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -58,6 +69,9 @@
 
 
 
+
+
+summary.js
 
 function fetchSummaryData() {
     fetch("http://localhost/api/devices/history")
@@ -175,6 +189,3 @@ function goBack() {
 document.addEventListener("DOMContentLoaded", fetchSummaryData);
 
 
-
-
-<button onclick="window.location.href='summary.html'">View Summary</button>
