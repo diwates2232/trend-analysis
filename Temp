@@ -1,3 +1,116 @@
+
+function displayDeviceHistory(deviceIp, deviceName, history) {
+    const modalHeader = document.getElementById('device-history-header');
+    const historyContainer = document.getElementById('device-history');
+
+    modalHeader.innerHTML = `
+        <h3>Device History</h3>
+        <p><strong>Device Name:</strong> ${deviceName}</p>
+        <p><strong>Device IP:</strong> ${deviceIp}</p>
+        <hr>
+    `;
+
+    historyContainer.innerHTML = '';
+
+    if (history.length === 0) {
+        historyContainer.innerHTML = `<p>No history available for this device.</p>`;
+        return;
+    }
+
+    let tableHTML = `
+        <table border="1" style="width:100%; text-align:center; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Day</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>Downtime Duration</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    let lastOfflineTimestamp = null;
+    let lastStatus = null;
+
+    history.forEach((entry, index) => {
+        let entryDate = new Date(entry.timestamp);
+        let formattedDate = entryDate.toLocaleDateString();
+        let formattedTime = entryDate.toLocaleTimeString();
+        let formattedDay = entryDate.toLocaleString('en-US', { weekday: 'long' });
+
+        let downtimeDuration = "-"; // Default, only set for Offline entries
+
+        if (entry.status === "Offline") {
+            lastOfflineTimestamp = entry.timestamp; // Store last offline time
+        } else if (entry.status === "Online" && lastOfflineTimestamp) {
+            // Only calculate duration when switching from Offline → Online
+            downtimeDuration = calculateDowntimeDuration(lastOfflineTimestamp, history);
+            lastOfflineTimestamp = null; // Reset after use
+        }
+
+        lastStatus = entry.status;
+
+        tableHTML += `
+            <tr>
+                <td>${formattedDate}</td>
+                <td>${formattedDay}</td>
+                <td>${formattedTime}</td>
+                <td style="color: ${entry.status === "Online" ? 'green' : 'red'};">${entry.status}</td>
+                <td>${downtimeDuration}</td>
+            </tr>
+        `;
+    });
+
+    tableHTML += `</tbody></table>`;
+    historyContainer.innerHTML = tableHTML;
+}
+
+// **Updated function to format duration properly**
+function formatDuration(seconds) {
+    let minutes = Math.floor(seconds / 60);
+    let secs = Math.round(seconds % 60); // Round to remove decimal issues
+
+    let result = [];
+    if (minutes > 0) result.push(`${minutes}m`);
+    result.push(`${secs}s`); // Always show seconds
+
+    return result.join('/');
+}
+
+function calculateDowntimeDuration(timestamp, history) {
+    let downtimeStart = new Date(timestamp).getTime();
+
+    // Find the next Online entry after the current Offline timestamp
+    let nextOnlineEntry = history.find(entry => 
+        entry.status === "Online" && new Date(entry.timestamp).getTime() > downtimeStart
+    );
+
+    if (nextOnlineEntry) {
+        let downtimeEnd = new Date(nextOnlineEntry.timestamp).getTime();
+        let durationInSeconds = (downtimeEnd - downtimeStart) / 1000;
+        return formatDuration(durationInSeconds);
+    }
+
+    // If the device is still offline, calculate downtime until now
+    let durationInSeconds = (Date.now() - downtimeStart) / 1000;
+    return formatDuration(durationInSeconds);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Read carefully below Trend.js file 
 
 Issue is in history Device Downtime duration shows 2 times .i want show in 1 time
