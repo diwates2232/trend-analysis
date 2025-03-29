@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Summary</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        button {
+            margin: 10px;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Device Summary</h2>
+    <button onclick="goBack()">Back to Device Trend</button>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Device IP</th>
+                <th>Device Name</th>
+                <th>Category</th>
+                <th>Uptime</th>
+                <th>Downtime Count</th>
+                <th>Downtime</th>
+                <th>Remarks</th>
+            </tr>
+        </thead>
+        <tbody id="summary-table">
+        </tbody>
+    </table>
+
+    <script src="summary.js"></script>
+</body>
+</html>
+
+
+
+
+
+function fetchSummaryData() {
+    fetch("http://localhost/api/devices/history")
+        .then(response => response.json())
+        .then(historyData => {
+            fetch("http://localhost/api/regions/details/all")
+                .then(response => response.json())
+                .then(regionData => {
+                    populateSummaryTable(regionData, historyData);
+                })
+                .catch(error => console.error("Error fetching region data:", error));
+        })
+        .catch(error => console.error("Error fetching device history:", error));
+}
+
+function populateSummaryTable(regionDetails, historyData) {
+    const tableBody = document.getElementById("summary-table");
+    tableBody.innerHTML = "";
+
+    let deviceList = [];
+
+    if (regionDetails) {
+        ["cameras", "archivers", "controllers", "servers"].forEach(deviceType => {
+            regionDetails[deviceType]?.forEach(device => {
+                const deviceIp = device.ip_address;
+                const deviceName = device[deviceType.slice(0, -1) + "name"];
+                const deviceCategory = deviceType.slice(0, -1).toUpperCase();
+
+                const deviceHistory = historyData[deviceIp] || [];
+                const lastStatusEntry = deviceHistory.length > 0 ? deviceHistory[deviceHistory.length - 1] : null;
+                const currentStatus = lastStatusEntry ? lastStatusEntry.status : "Unknown";
+
+                let downtimeCount = deviceHistory.filter(entry => entry.status === "Offline").length;
+
+                if (downtimeCount > 15 || currentStatus === "Offline") {
+                    deviceList.push({
+                        deviceIp,
+                        deviceName,
+                        deviceCategory,
+                        currentStatus,
+                        deviceHistory,
+                        downtimeCount
+                    });
+                }
+            });
+        });
+
+        deviceList.forEach(({ deviceIp, deviceName, deviceCategory, currentStatus, deviceHistory, downtimeCount }) => {
+            const row = tableBody.insertRow();
+            row.style.border = "1px solid black";
+
+            row.innerHTML = `
+                <td>${deviceIp}</td>
+                <td>${deviceName}</td>
+                <td>${deviceCategory}</td>
+                <td id="uptime-${deviceIp}">0h/0m/0s</td>
+                <td>${downtimeCount}</td>
+                <td id="downtime-${deviceIp}">0h/0m/0s</td>
+                <td id="remark-${deviceIp}">${currentStatus === "Offline" ? "Device is Offline" : "Device needs attention"}</td>
+            `;
+
+            if (currentStatus === "Online") {
+                startUptime(deviceIp, deviceHistory);
+            } else {
+                startDowntime(deviceIp, deviceHistory);
+            }
+        });
+    } else {
+        console.error("No details found in the response");
+    }
+}
+
+function startUptime(deviceIp, history) {
+    let lastOnlineEntry = history.filter(entry => entry.status === "Online").pop();
+    if (!lastOnlineEntry) return;
+
+    let startTime = new Date(lastOnlineEntry.timestamp).getTime();
+    setInterval(() => {
+        let elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById(`uptime-${deviceIp}`).innerText = formatDuration(elapsedTime);
+    }, 1000);
+}
+
+function startDowntime(deviceIp, history) {
+    let lastOfflineEntry = history.filter(entry => entry.status === "Offline").pop();
+    if (!lastOfflineEntry) return;
+
+    let startTime = new Date(lastOfflineEntry.timestamp).getTime();
+    setInterval(() => {
+        let elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById(`downtime-${deviceIp}`).innerText = formatDuration(elapsedTime);
+    }, 1000);
+}
+
+function formatDuration(seconds) {
+    let days = Math.floor(seconds / 86400);
+    let hours = Math.floor((seconds % 86400) / 3600);
+    let minutes = Math.floor((seconds % 3600) / 60);
+    let secs = seconds % 60;
+
+    let result = [];
+    if (days > 0) result.push(`${days}d`);
+    if (hours > 0 || days > 0) result.push(`${hours}h`);
+    if (minutes > 0 || hours > 0 || days > 0) result.push(`${minutes}m`);
+    result.push(`${secs}s`);
+
+    return result.join('/');
+}
+
+function goBack() {
+    window.location.href = "trend.html";
+}
+
+// Fetch data on page load
+document.addEventListener("DOMContentLoaded", fetchSummaryData);
+
+
+
+
+<button onclick="window.location.href='summary.html'">View Summary</button>
