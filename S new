@@ -1,12 +1,15 @@
-ontentService] document.readyState: loading
-ContentMain.js:5 [ContentService.SetContentInitData] target: { TabId: 1454074480, FrameId: 0}
-summary.js:114 Uncaught TypeError: Cannot read properties of null (reading 'value')
-    at fetchDeviceData (summary.js:114:61)
-    at HTMLDocument.<anonymous> (summary.html:94:9)
-fetchDeviceData @ summary.js:114
-(anonymous) @ summary.html:94Understand this errorAI
-summary.js:550 Uncaught TypeError: Cannot read properties of null (reading 'addEventListener')
-    at HTMLDocument.<anonymous> (summary.js:550:38)
+Uncaught ReferenceError: deviceType is not defined
+    at summary.js:260:9
+    at Array.filter (<anonymous>)
+    at updateDowntimeCount (summary.js:259:51)
+    at summary.js:249:9
+
+caught TypeError: Cannot set properties of null (setting 'innerText')
+    at summary.js:248:67
+
+
+
+
 
 
 
