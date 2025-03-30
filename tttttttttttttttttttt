@@ -1,31 +1,24 @@
-ContentMain]
-ContentMain.js:18 [ContentService] document.readyState: loading
-ContentMain.js:5 [ContentService.SetContentInitData] target: { TabId: 1454074587, FrameId: 0}
-7summary.js:328 Uncaught ReferenceError: deviceType is not defined
-    at summary.js:328:9
+Read above file and solve this error.
+
+summary.js:320 Uncaught ReferenceError: deviceType is not defined
+    at summary.js:320:9
     at Array.filter (<anonymous>)
-    at updateDowntimeCount (summary.js:327:51)
-    at summary.js:313:9
-(anonymous) @ summary.js:328
-updateDowntimeCount @ summary.js:327
-(anonymous) @ summary.js:313
-setInterval
-startDowntime @ summary.js:307
-(anonymous) @ summary.js:271
-populateDeviceTable @ summary.js:249
-(anonymous) @ summary.js:192
-Promise.then
-fetchDeviceHistory @ summary.js:191
-(anonymous) @ summary.js:181
-Promise.then
-fetchDeviceData @ summary.js:154
-(anonymous) @ summary.html:107Understand this errorAI
-
-
-
-Read below file and solve abpve Error
-
-
+    at updateDowntimeCount (summary.js:319:51)
+    at summary.js:305:9
+(anonymous)	@	summary.js:320
+updateDowntimeCount	@	summary.js:319
+(anonymous)	@	summary.js:305
+setInterval		
+startDowntime	@	summary.js:299
+(anonymous)	@	summary.js:263
+populateDeviceTable	@	summary.js:241
+(anonymous)	@	summary.js:184
+Promise.then		
+fetchDeviceHistory	@	summary.js:183
+(anonymous)	@	summary.js:173
+Promise.then		
+fetchDeviceData	@	summary.js:146
+(anonymous)	@	summary.html:107
 
 
 let deviceUptimeTimers = {};
@@ -36,39 +29,31 @@ function fetchDeviceData() {
     const selectedRegion = document.getElementById('region').value;
 
     if (selectedRegion === 'All') {
-        fetch(`http://localhost/api/regions/details/${selectedRegion}`)
-    .then(response => response.json())
-    .then(regionData => {
-        const details = regionData.details;
+        fetch(`http://localhost/api/regions/all-details`)  // Adjust API endpoint if needed
+            .then(response => response.json())
+            .then(allRegionsData => {
+                let combinedDetails = {
+                    cameras: [],
+                    archivers: [],
+                    controllers: [],
+                    servers: []
+                };
 
-        // Filter out only the devices that should be visible on the UI
-        const visibleDevices = [
-            ...details.cameras || [],
-            ...details.archivers || [],
-            ...details.controllers || [],
-            ...details.servers || []
-        ].filter(device => device.status === "Online" && device.visible === true);  // Ensure devices are visible in the UI
 
-        // Calculate the counts of visible devices
-        const totalDevices = visibleDevices.length;
-        const totalOnlineDevices = visibleDevices.filter(device => device.status === "Online").length;
-        const totalCameras = details.cameras?.filter(device => device.status === "Online" && device.visible === true).length || 0;
-        const totalControllers = details.controllers?.filter(device => device.status === "Online" && device.visible === true).length || 0;
-        const totalArchivers = details.archivers?.filter(device => device.status === "Online" && device.visible === true).length || 0;
-        const totalServers = details.servers?.filter(device => device.status === "Online" && device.visible === true).length || 0;
+                // Merge all devices from different regions into a single list
+                Object.values(allRegionsData).forEach(regionData => {
+                    if (regionData.details) {
+                        ['cameras', 'archivers', 'controllers', 'servers'].forEach(deviceType => {
+                            if (regionData.details[deviceType]) {
+                                combinedDetails[deviceType].push(...regionData.details[deviceType]);
+                            }
+                        });
+                    }
+                });
 
-        // Update UI with the visible device counts
-        document.getElementById("total-devices").innerText = `Total Devices: ${totalDevices}`;
-        document.getElementById("total-online").innerText = `Total Online Devices: ${totalOnlineDevices}`;
-        document.getElementById("total-cameras").innerText = `Total Cameras: ${totalCameras}`;
-        document.getElementById("total-controllers").innerText = `Total Controllers: ${totalControllers}`;
-        document.getElementById("total-archivers").innerText = `Total Archivers: ${totalArchivers}`;
-        document.getElementById("total-servers").innerText = `Total Servers: ${totalServers}`;
-        
-        // Call the function for fetching device history
-        fetchDeviceHistory(regionData.details);
-    })
-    .catch(error => console.error('Error fetching device data:', error));
+                fetchDeviceHistory(combinedDetails);
+            })
+            .catch(error => console.error('Error fetching all regions data:', error));
     } else {
         fetch(`http://localhost/api/regions/details/${selectedRegion}`)
             .then(response => response.json())
@@ -234,6 +219,11 @@ function startDowntime(deviceIp, history) {
         updateDowntimeCount(deviceIp, history);
     }, 1000);
 }
+
+
+
+
+
 
 // **Fix Downtime Count and Remarks Update (with proper filtering)**
 function updateDowntimeCount(deviceIp, history) {
@@ -528,6 +518,7 @@ function filterData() {
         row.style.display = matchesType && matchesRemark ? "" : "none";
     }
 }
+
 
 document.addEventListener("DOMContentLoaded", function () {
     document.getElementById('region').addEventListener('change', fetchDeviceData);
