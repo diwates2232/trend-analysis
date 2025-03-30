@@ -1,251 +1,12 @@
-<p id="offline-critical"></p>
+Read Below Summary.js file carefully.
 
+My UI Display only Devices is Offline and Devices Which downtime count is greater than 15  this logic is correct.
 
-const details = regionData.details;
+but my UI Display Count of Total Devices .Which is incorrect.
 
-// Get all devices from different categories
-const allDevices = [
-    ...details.cameras || [],
-    ...details.archivers || [],
-    ...details.controllers || [],
-    ...details.servers || []
-];
 
-// Total Devices Count
-const totalDevices = allDevices.length;
+I want to display count only devices present On my UI.
 
-// Count of Online Devices
-const totalOnlineDevices = allDevices.filter(device => device.status === "Online").length;
-
-// Count of Offline Devices with Downtime > 15
-const offlineCriticalDevices = allDevices.filter(device => device.status === "Offline" && device.downtimeCount > 15).length;
-
-// Update UI Elements
-document.getElementById("total-devices").innerText = `Total Devices: ${totalDevices}`;
-document.getElementById("total-online").innerText = `Total Online Devices: ${totalOnlineDevices}`;
-document.getElementById("offline-critical").innerText = `Offline Devices (Downtime > 15): ${offlineCriticalDevices}`;
-document.getElementById("total-cameras").innerText = `Total Cameras: ${details.cameras?.length || 0}`;
-document.getElementById("total-controllers").innerText = `Total Controllers: ${details.controllers?.length || 0}`;
-document.getElementById("total-archivers").innerText = `Total Archivers: ${details.archivers?.length || 0}`;
-document.getElementById("total-servers").innerText = `Total Servers: ${details.servers?.length || 0}`;
-
-
-
-
-
-
-
-
-
-<div class="summary-container">
-    <div class="summary-card" id="total-devices">Total Devices: 0</div>
-    <div class="summary-card" id="total-online">Total Online Devices: 0</div>
-    <div class="summary-card" id="total-cameras">Total Cameras: 0</div>
-    <div class="summary-card" id="total-controllers">Total Controllers: 0</div>
-    <div class="summary-card" id="total-archivers">Total Archivers: 0</div>
-    <div class="summary-card" id="total-servers">Total Servers: 0</div>
-</div>
-
-
-
-
-
-.summary-container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 15px;
-    margin: 20px 0;
-}
-
-.summary-card {
-    background: #f8f9fa;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    font-size: 18px;
-    font-weight: bold;
-    min-width: 200px;
-}
-
-
-
-
-
-
-
-
-const details = regionData.details;
-
-const totalDevices = 
-    (details.cameras?.length || 0) + 
-    (details.archivers?.length || 0) + 
-    (details.controllers?.length || 0) + 
-    (details.servers?.length || 0);
-
-const totalOnlineDevices = [
-    ...details.cameras || [],
-    ...details.archivers || [],
-    ...details.controllers || [],
-    ...details.servers || []
-].filter(device => device.status === "Online").length;
-
-document.getElementById("total-devices").innerText = `Total Devices: ${totalDevices}`;
-document.getElementById("total-online").innerText = `Total Online Devices: ${totalOnlineDevices}`;
-document.getElementById("total-cameras").innerText = `Total Cameras: ${details.cameras?.length || 0}`;
-document.getElementById("total-controllers").innerText = `Total Controllers: ${details.controllers?.length || 0}`;
-document.getElementById("total-archivers").innerText = `Total Archivers: ${details.archivers?.length || 0}`;
-document.getElementById("total-servers").innerText = `Total Servers: ${details.servers?.length || 0}`;
-
-
-
-
-
-
-
-
-
-
-
-Read carefully summary.html and Summary.js file carefully.
-Make A new Summary and display devices count in cards format.
-
-1)Total Devices Present in UI
-2)Total Online Devices Present in UI
-3)Total Cameras
-4) Total Controller
-5)Total Total Archiver
-6)Total Server
-
-Make a Summary And display on UI in cards format .
-
-
-
-
-
-
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-    <!-- Sidebar -->
-    <!-- <div id="sidebar">
-       button id="menu-btn" onclick="toggleSidebar()">☰</button>< -->
-        <div id="sidebar-content">
-            <button onclick="window.location.href='index.html'">Back to Dashboard</button>
-        
-
-           
-            <label for="region">Select Region:</label>
-            <select id="region" onchange="fetchDeviceData()">
-                <option value="global">Global</option>
-                <option value="apac">APAC</option>
-                <option value="emea">EMEA</option>
-                <option value="laca">LACA</option>
-                <option value="namer">NAMER</option>
-            </select>
-
-            <label for="device-type">Filter by Device Type:</label>
-            <select id="device-type" onchange="filterData()">
-                <option value="ALL">All</option>
-                <option value="CONTROLLER">Controller</option>
-
-                <option value="ARCHIVER">Archiver</option>
-
-                <option value="CAMERA">Camera</option>
-
-                <option value="SERVER">Server</option>
-                
-            </select>
-
-             <label for="remark-filter">Filter by Remark:</label>
-             <select id="remark-filter" onchange="filterData()">
-                 <option value="ALL">All</option>
-                 <option value="Device needs repair">Device needs repair</option>
-                 <option value="Device is Online">Device is Online</option>
-                 <option value="Device is Offline">Device is Offline</option>
-             </select>
-
-        </div>
-    </div>
-
-
-    <h1>Devices Summary</h1>
-
-    <div class="container">
-        <table id="device-table">
-            <thead>
-                <tr>
-                    <th>Device IP</th>
-                    <th>Device Name</th>
-                    <th>Device Type</th>
-                    <th>Device Region</th>
-                    <!-- <th>Device Status</th> -->
-                    <th>Uptime Duration</th>
-                    <th>Downtime Count</th>
-                    <th>Downtime Duration</th>
-                    <th>Details</th>
-                    <th>Remark</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-
-    <!-- Device History Modal -->
-    <div id="device-history-modal" class="modal">
-
-        <div class="modal-content">
-
-
-            <div id="device-history-header"></div> <!-- Header for Device Name and IP -->
-          
-            <div id="device-history"></div>
-            <!-- <<span class="close" onclick="closeHistoryModal()">&times;</span> -->
-
-            <span class="close" onclick="closeHistoryModal()">&times;</span>
-            <div id="device-history"></div>
-
-            
-        </div>
-    </div>
-    
-<script>
-    document.addEventListener("DOMContentLoaded" , function (){
-        fetchDeviceData();
-    });
-</script>
-    <script src="summary.js"></script>
-
-
-   <!-- Footer -->
-   <footer class="footer">
-    <img src="images/FooterLogo.png" alt="Company Logo" class="footer-logo">
-    <p>&copy;2025 VisionWatch | Powered by <strong>Western Union Services India Pvt Ltd.</strong></p>
-    <p>Contact: 
-        <a href="mailto:gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com">gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com</a> | 
-        <a href="tel:+91 20 67632394">+91 2067632394</a>
-    </p>
-</footer>
-
-</body>
-</html>
-
-</body>
-</html>
-
-
-
-
-
-Summary.js
 
 
 
@@ -267,6 +28,10 @@ function fetchDeviceData() {
                     servers: []
                 };
 
+
+
+        
+
                 // Merge all devices from different regions into a single list
                 Object.values(allRegionsData).forEach(regionData => {
                     if (regionData.details) {
@@ -285,6 +50,32 @@ function fetchDeviceData() {
         fetch(`http://localhost/api/regions/details/${selectedRegion}`)
             .then(response => response.json())
             .then(regionData => {
+
+
+                const details = regionData.details;
+
+                const totalDevices = 
+                    (details.cameras?.length || 0) + 
+                    (details.archivers?.length || 0) + 
+                    (details.controllers?.length || 0) + 
+                    (details.servers?.length || 0);
+                
+                const totalOnlineDevices = [
+                    ...details.cameras || [],
+                    ...details.archivers || [],
+                    ...details.controllers || [],
+                    ...details.servers || []
+                ].filter(device => device.status === "Online").length;
+                
+                document.getElementById("total-devices").innerText = `Total Devices: ${totalDevices}`;
+                document.getElementById("total-online").innerText = `Total Online Devices: ${totalOnlineDevices}`;
+                document.getElementById("total-cameras").innerText = `Total Cameras: ${details.cameras?.length || 0}`;
+                document.getElementById("total-controllers").innerText = `Total Controllers: ${details.controllers?.length || 0}`;
+                document.getElementById("total-archivers").innerText = `Total Archivers: ${details.archivers?.length || 0}`;
+                document.getElementById("total-servers").innerText = `Total Servers: ${details.servers?.length || 0}`;
+                
+               
+
                 fetchDeviceHistory(regionData.details);
             })
             .catch(error => console.error('Error fetching device data:', error));
