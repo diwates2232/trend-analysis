@@ -1,3 +1,142 @@
+function fetchDeviceData() {
+    const selectedRegion = document.getElementById('region').value;
+
+    if (selectedRegion === 'All') {
+        fetch(`http://localhost/api/regions/all-details`)  // Adjust API endpoint if needed
+            .then(response => response.json())
+            .then(allRegionsData => {
+                let combinedDetails = {
+                    cameras: [],
+                    archivers: [],
+                    controllers: [],
+                    servers: []
+                };
+
+                // Merge all devices from different regions into a single list
+                Object.values(allRegionsData).forEach(regionData => {
+                    if (regionData.details) {
+                        ['cameras', 'archivers', 'controllers', 'servers'].forEach(deviceType => {
+                            if (regionData.details[deviceType]) {
+                                combinedDetails[deviceType].push(...regionData.details[deviceType]);
+                            }
+                        });
+                    }
+                });
+
+                fetchDeviceHistory(combinedDetails);
+            })
+            .catch(error => console.error('Error fetching all regions data:', error));
+    } else {
+        fetch(`http://localhost/api/regions/details/${selectedRegion}`)
+            .then(response => response.json())
+            .then(regionData => {
+                fetchDeviceHistory(regionData.details);
+            })
+            .catch(error => console.error('Error fetching device data:', error));
+    }
+}
+
+
+
+
+
+
+const deviceRegion = device.location || "Unknown"; // Use location instead of region
+
+
+
+
+const currentStatus = device.status || (lastStatusEntry ? lastStatusEntry.status : "Unknown");
+
+
+
+
+function populateDeviceTable(details, historyData, selectedRegion = 'Global') {
+    const tableBody = document.getElementById('device-table').getElementsByTagName('tbody')[0];
+    tableBody.innerHTML = ''; // Clear existing rows
+
+    let deviceList = [];
+
+    if (details) {
+        ['cameras', 'archivers', 'controllers', 'servers'].forEach(deviceType => {
+            details[deviceType]?.forEach(device => {
+                const deviceIp = device.ip_address;
+                const deviceName = device[deviceType.slice(0, -1) + 'name'] || 'Unknown';
+                const deviceCategory = deviceType.slice(0, -1).toUpperCase();
+                const deviceRegion = device.location || "Unknown"; // Fix: Use location instead of region
+
+                const deviceHistory = historyData[deviceIp] || [];
+                const lastStatusEntry = deviceHistory.length > 0 ? deviceHistory[deviceHistory.length - 1] : null;
+                const currentStatus = device.status || (lastStatusEntry ? lastStatusEntry.status : "Unknown"); // Fix: Use device.status directly
+
+                let downtimeCount = deviceHistory.filter(entry => entry.status === "Offline").length;
+
+                if (selectedRegion !== 'Global' && deviceRegion !== selectedRegion) {
+                    return;
+                }
+
+                if (currentStatus === "Offline" || downtimeCount > 10) {
+                    deviceList.push({
+                        deviceIp,
+                        deviceName,
+                        deviceCategory,
+                        deviceRegion,
+                        currentStatus,
+                        deviceHistory,
+                        downtimeCount,
+                        deviceType
+                    });
+                }
+            });
+        });
+
+        deviceList.sort((a, b) => b.downtimeCount - a.downtimeCount);
+
+        if (deviceList.length === 0) {
+            const row = tableBody.insertRow();
+            const cell = row.insertCell(0);
+            cell.colSpan = 9;
+            cell.textContent = "No devices found";
+            cell.style.textAlign = "center";
+            cell.style.fontWeight = "bold";
+            return;
+        }
+
+        deviceList.forEach(({ deviceIp, deviceName, deviceCategory, currentStatus, deviceRegion, deviceHistory, downtimeCount, deviceType }) => {
+            const row = tableBody.insertRow();
+            row.style.border = "1px solid black";
+
+            row.innerHTML = `
+                <td>${deviceIp || 'Unknown'}</td>
+                <td>${deviceName || 'Unknown'}</td>
+                <td>${deviceCategory || 'Unknown'}</td>
+                <td>${deviceRegion || 'Unknown'}</td>
+                <td id="uptime-${deviceIp}">0h/0m/0s</td>
+                <td id="downtime-count-${deviceIp}">${downtimeCount}</td>
+                <td id="downtime-${deviceIp}">0h/0m/0s</td>
+                <td><button onclick="openDeviceHistory('${deviceIp}', '${deviceName}')">View History</button></td>
+                <td id="remark-${deviceIp}">Device working properly</td>
+            `;
+
+            const color = currentStatus === "Online" ? "green" : "red";
+            row.style.color = color;
+
+            if (currentStatus === "Online") {
+                startUptime(deviceIp, deviceHistory);
+            } else {
+                startDowntime(deviceIp, deviceHistory);
+            }
+
+            updateRemarks(deviceIp, deviceHistory, deviceType);
+        });
+    } else {
+        console.error('No details found in the response');
+    }
+}
+
+
+
+
 
 
 
