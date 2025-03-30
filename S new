@@ -1,3 +1,32 @@
+const displayedDevices = [
+    ...details.cameras || [],
+    ...details.archivers || [],
+    ...details.controllers || [],
+    ...details.servers || []
+].filter(device => device.status === "Offline" || getDowntimeCount(device.ip_address, window.deviceHistoryData) > 15);
+
+const totalDevices = displayedDevices.length;
+
+
+
+
+
+document.getElementById("total-devices").innerText = `Total Devices: ${totalDevices}`;
+
+
+
+
+
+function getDowntimeCount(deviceIp, historyData) {
+    if (!historyData || !historyData[deviceIp]) return 0;
+    return historyData[deviceIp].filter(entry => entry.status === "Offline").length;
+}
+
+
+
+
+
+
 Read Below Summary.js file carefully.
 
 My UI Display only Devices is Offline and Devices Which downtime count is greater than 15  this logic is correct.
