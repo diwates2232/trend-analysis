@@ -1,3 +1,54 @@
+function updateDowntimeCount(deviceIp, history, deviceType) {
+    let downtimeEntries = history.filter(entry => entry.status === "Offline");
+
+    // Only count downtimes that last more than 5 minutes, except for servers
+    let filteredDowntimeEntries = downtimeEntries.filter((entry, index, arr) => {
+        if (deviceType === "SERVER") return true; // Always count downtime for servers
+        if (index === 0) return true; // Always keep the first entry
+
+        let previousEntry = arr[index - 1];
+        let duration = (new Date(entry.timestamp) - new Date(previousEntry.timestamp)) / 1000;
+        return duration >= 300; // 300 seconds = 5 minutes
+    });
+
+    let downtimeCount = filteredDowntimeEntries.length;
+
+    let downtimeElement = document.getElementById(`downtime-count-${deviceIp}`);
+    if (downtimeElement) {
+        downtimeElement.innerText = downtimeCount;  // **Ensure the element is found before updating**
+    }
+}
+
+
+
+
+
+
+
+
+updateDowntimeCount(deviceIp, deviceHistory, deviceType);
+
+
+console.log(`Looking for element: downtime-count-${deviceIp}`);
+console.log(document.getElementById(`downtime-count-${deviceIp}`));
+
+
+
+console.log("Updating downtime for:", deviceIp);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 I ahve update above code in this file still count not displaying .read this file and correct it.
 
 let deviceUptimeTimers = {};
