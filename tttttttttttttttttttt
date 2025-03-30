@@ -1,3 +1,135 @@
+
+function updateDowntimeCount(deviceIp, history, deviceType) {
+    let downtimeEntries = history.filter(entry => entry.status === "Offline");
+
+    // Only count downtimes that last more than 5 minutes, except for servers
+    let filteredDowntimeEntries = downtimeEntries.filter((entry, index, arr) => {
+        if (deviceType === "SERVER") return true; // Always count downtime for servers
+        if (index === 0) return true; // Always keep the first entry
+
+        let previousEntry = arr[index - 1];
+        let duration = (new Date(entry.timestamp) - new Date(previousEntry.timestamp)) / 1000;
+        return duration >= 300; // 300 seconds = 5 minutes
+    });
+
+    let downtimeCount = filteredDowntimeEntries.length;
+    
+    let downtimeElement = document.getElementById(`downtime-count-${deviceIp}`);
+    if (downtimeElement) {
+        downtimeElement.innerText = downtimeCount;
+    }
+
+    // Update remarks based on downtime count and total downtime
+    let remarkElement = document.getElementById(`remark-${deviceIp}`);
+    if (remarkElement) {
+        if (downtimeCount === 0) {
+            remarkElement.innerText = "Device is Online.";
+        } else if (downtimeCount >= 3) {
+            remarkElement.innerText = `Device is Online, but it had ${downtimeCount} offline occurrences. Needs repair!`;
+        } else {
+            remarkElement.innerText = `Device is Online, but it had ${downtimeCount} offline occurrences.`;
+        }
+    }
+}
+
+
+
+
+
+
+function populateDeviceTable(details, historyData, selectedRegion = 'Global') {
+    const tableBody = document.getElementById('device-table').getElementsByTagName('tbody')[0];
+    tableBody.innerHTML = ''; // Clear existing rows
+
+    let deviceList = [];
+
+    if (details) {
+        ['cameras', 'archivers', 'controllers', 'servers'].forEach(deviceType => {
+            details[deviceType]?.forEach(device => {
+                const deviceIp = device.ip_address;
+                const deviceName = device[deviceType.slice(0, -1) + 'name'] || 'Unknown';
+                const deviceCategory = deviceType.slice(0, -1).toUpperCase();
+                const deviceRegion = device.location || "Unknown"; // Fix: Use location instead of region
+
+                const deviceHistory = historyData[deviceIp] || [];
+                const lastStatusEntry = deviceHistory.length > 0 ? deviceHistory[deviceHistory.length - 1] : null;
+                const currentStatus = device.status || (lastStatusEntry ? lastStatusEntry.status : "Unknown"); // Fix: Use device.status directly
+
+                let downtimeCount = deviceHistory.filter(entry => entry.status === "Offline").length;
+
+                // Add condition to display only offline devices with downtimeCount greater than 15
+                if ((currentStatus === "Offline" || downtimeCount > 15)) {
+                    deviceList.push({
+                        deviceIp,
+                        deviceName,
+                        deviceCategory,
+                        deviceRegion,
+                        currentStatus,
+                        deviceHistory,
+                        downtimeCount,
+                        deviceType // Pass deviceType
+                    });
+                }
+            });
+        });
+
+        deviceList.sort((a, b) => b.downtimeCount - a.downtimeCount);
+
+        if (deviceList.length === 0) {
+            const row = tableBody.insertRow();
+            const cell = row.insertCell(0);
+            cell.colSpan = 9;
+            cell.textContent = "No devices found";
+            cell.style.textAlign = "center";
+            cell.style.fontWeight = "bold";
+            return;
+        }
+
+        deviceList.forEach(({ deviceIp, deviceName, deviceCategory, currentStatus, deviceRegion, deviceHistory, downtimeCount, deviceType }) => {
+            const row = tableBody.insertRow();
+            row.style.border = "1px solid black";
+
+            row.innerHTML = `
+                <td>${deviceIp || 'Unknown'}</td>
+                <td>${deviceName || 'Unknown'}</td>
+                <td>${deviceCategory || 'Unknown'}</td>
+                <td>${deviceRegion || 'Unknown'}</td>
+                <td id="uptime-${deviceIp}">0h/0m/0s</td>
+                <td id="downtime-count-${deviceIp}">${downtimeCount}</td>
+                <td id="downtime-${deviceIp}">0h/0m/0s</td>
+                <td><button onclick="openDeviceHistory('${deviceIp}', '${deviceName}')">View History</button></td>
+                <td id="remark-${deviceIp}">Device working properly</td>
+            `;
+
+            const color = currentStatus === "Online" ? "green" : "red";
+            row.style.color = color;
+
+            if (currentStatus === "Online") {
+                startUptime(deviceIp, deviceHistory);
+            } else {
+                startDowntime(deviceIp, deviceHistory);
+            }
+
+            updateRemarks(deviceIp, deviceHistory, deviceType); // Pass deviceType here as well
+            updateDowntimeCount(deviceIp, deviceHistory, deviceType); // Pass deviceType here
+        });
+    } else {
+        console.error('No details found in the response');
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 Read above file and solve this error.
 
 summary.js:320 Uncaught ReferenceError: deviceType is not defined
