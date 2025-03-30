@@ -1,3 +1,42 @@
+<p id="offline-critical"></p>
+
+
+const details = regionData.details;
+
+// Get all devices from different categories
+const allDevices = [
+    ...details.cameras || [],
+    ...details.archivers || [],
+    ...details.controllers || [],
+    ...details.servers || []
+];
+
+// Total Devices Count
+const totalDevices = allDevices.length;
+
+// Count of Online Devices
+const totalOnlineDevices = allDevices.filter(device => device.status === "Online").length;
+
+// Count of Offline Devices with Downtime > 15
+const offlineCriticalDevices = allDevices.filter(device => device.status === "Offline" && device.downtimeCount > 15).length;
+
+// Update UI Elements
+document.getElementById("total-devices").innerText = `Total Devices: ${totalDevices}`;
+document.getElementById("total-online").innerText = `Total Online Devices: ${totalOnlineDevices}`;
+document.getElementById("offline-critical").innerText = `Offline Devices (Downtime > 15): ${offlineCriticalDevices}`;
+document.getElementById("total-cameras").innerText = `Total Cameras: ${details.cameras?.length || 0}`;
+document.getElementById("total-controllers").innerText = `Total Controllers: ${details.controllers?.length || 0}`;
+document.getElementById("total-archivers").innerText = `Total Archivers: ${details.archivers?.length || 0}`;
+document.getElementById("total-servers").innerText = `Total Servers: ${details.servers?.length || 0}`;
+
+
+
+
+
+
+
+
+
 <div class="summary-container">
     <div class="summary-card" id="total-devices">Total Devices: 0</div>
     <div class="summary-card" id="total-online">Total Online Devices: 0</div>
