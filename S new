@@ -1,43 +1,4 @@
-const displayedDevices = [
-    ...details.cameras || [],
-    ...details.archivers || [],
-    ...details.controllers || [],
-    ...details.servers || []
-].filter(device => device.status === "Offline" || getDowntimeCount(device.ip_address, window.deviceHistoryData) > 15);
-
-const totalDevices = displayedDevices.length;
-
-
-
-
-
-document.getElementById("total-devices").innerText = `Total Devices: ${totalDevices}`;
-
-
-
-
-
-function getDowntimeCount(deviceIp, historyData) {
-    if (!historyData || !historyData[deviceIp]) return 0;
-    return historyData[deviceIp].filter(entry => entry.status === "Offline").length;
-}
-
-
-
-
-
-
-Read Below Summary.js file carefully.
-
-My UI Display only Devices is Offline and Devices Which downtime count is greater than 15  this logic is correct.
-
-but my UI Display Count of Total Devices .Which is incorrect.
-
-
-I want to display count only devices present On my UI.
-
-
-
+I ahve update above code in this file still count not displaying .read this file and correct it.
 
 let deviceUptimeTimers = {};
 let deviceDowntimeTimers = {};
@@ -59,8 +20,7 @@ function fetchDeviceData() {
 
 
 
-        
-
+    
                 // Merge all devices from different regions into a single list
                 Object.values(allRegionsData).forEach(regionData => {
                     if (regionData.details) {
@@ -83,11 +43,16 @@ function fetchDeviceData() {
 
                 const details = regionData.details;
 
-                const totalDevices = 
-                    (details.cameras?.length || 0) + 
-                    (details.archivers?.length || 0) + 
-                    (details.controllers?.length || 0) + 
-                    (details.servers?.length || 0);
+  const displayedDevices = [
+                    ...details.cameras || [],
+                    ...details.archivers || [],
+                    ...details.controllers || [],
+                    ...details.servers || []
+                ].filter(device => device.status === "Offline" || getDowntimeCount(device.ip_address, window.deviceHistoryData) > 15);
+                
+                const totalDevices = displayedDevices.length;
+
+
                 
                 const totalOnlineDevices = [
                     ...details.cameras || [],
@@ -96,7 +61,11 @@ function fetchDeviceData() {
                     ...details.servers || []
                 ].filter(device => device.status === "Online").length;
                 
+             // document.getElementById("total-devices").innerText = `Total Devices: ${totalDevices}`;
+
+
                 document.getElementById("total-devices").innerText = `Total Devices: ${totalDevices}`;
+
                 document.getElementById("total-online").innerText = `Total Online Devices: ${totalOnlineDevices}`;
                 document.getElementById("total-cameras").innerText = `Total Cameras: ${details.cameras?.length || 0}`;
                 document.getElementById("total-controllers").innerText = `Total Controllers: ${details.controllers?.length || 0}`;
