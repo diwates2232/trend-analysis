@@ -153,25 +153,6 @@ fetchDeviceHistory @ summary.js:191
 Promise.then
 fetchDeviceData @ summary.js:154
 (anonymous) @ summary.js:619Understand this errorAI
-7summary.js:328 Uncaught ReferenceError: deviceType is not defined
-    at summary.js:328:9
-    at Array.filter (<anonymous>)
-    at updateDowntimeCount (summary.js:327:51)
-    at summary.js:313:9
-(anonymous) @ summary.js:328
-updateDowntimeCount @ summary.js:327
-(anonymous) @ summary.js:313
-setInterval
-startDowntime @ summary.js:307
-(anonymous) @ summary.js:271
-populateDeviceTable @ summary.js:249
-(anonymous) @ summary.js:192
-Promise.then
-fetchDeviceHistory @ summary.js:191
-(anonymous) @ summary.js:181
-Promise.then
-fetchDeviceData @ summary.js:154
-(anonymous) @ summary.html:107
 
 
 
@@ -389,11 +370,6 @@ function startDowntime(deviceIp, history) {
         updateDowntimeCount(deviceIp, history);
     }, 1000);
 }
-
-
-
-
-
 
 // **Fix Downtime Count and Remarks Update (with proper filtering)**
 function updateDowntimeCount(deviceIp, history) {
@@ -688,7 +664,6 @@ function filterData() {
         row.style.display = matchesType && matchesRemark ? "" : "none";
     }
 }
-
 
 document.addEventListener("DOMContentLoaded", function () {
     document.getElementById('region').addEventListener('change', fetchDeviceData);
