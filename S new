@@ -1,1 +1,26 @@
+function fetchDeviceData() {
+    const selectedRegion = document.getElementById('region').value;
+    
+    if (selectedRegion === 'All') {
+        // Fetch all data regardless of region
+        fetch(`http://localhost/api/devices/history`)
+            .then(response => response.json())
+            .then(historyData => {
+                populateDeviceTable(null, historyData); // Pass 'null' for details if showing all
+            })
+            .catch(error => console.error('Error fetching device history:', error));
+    } else {
+        fetch(`http://localhost/api/regions/details/${selectedRegion}`)
+            .then(response => response.json())
+            .then(regionData => {
+                fetchDeviceHistory(regionData.details);
+            })
+            .catch(error => console.error('Error fetching device data:', error));
+    }
+}
 
+
+
+if (selectedRegion !== 'Global' && selectedRegion !== 'All' && deviceRegion !== selectedRegion) {
+    return;
+}
