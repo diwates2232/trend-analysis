@@ -1,3 +1,146 @@
+let deviceUptimeTimers = {};
+let deviceDowntimeTimers = {};
+
+function fetchDeviceData() {
+    const selectedRegion = document.getElementById('region').value;
+
+    if (selectedRegion === 'All') {
+        fetch(`http://localhost/api/regions/all-details`)
+            .then(response => response.json())
+            .then(allRegionsData => {
+                let combinedDetails = {
+                    cameras: [],
+                    archivers: [],
+                    controllers: [],
+                    servers: []
+                };
+
+                // Merge all devices from different regions into a single list
+                Object.values(allRegionsData).forEach(regionData => {
+                    if (regionData.details) {
+                        ['cameras', 'archivers', 'controllers', 'servers'].forEach(deviceType => {
+                            if (regionData.details[deviceType]) {
+                                combinedDetails[deviceType].push(...regionData.details[deviceType]);
+                            }
+                        });
+                    }
+                });
+
+                fetchDeviceHistory(combinedDetails);
+            })
+            .catch(error => console.error('Error fetching all regions data:', error));
+    } else {
+        fetch(`http://localhost/api/regions/details/${selectedRegion}`)
+            .then(response => response.json())
+            .then(regionData => {
+                fetchDeviceHistory(regionData.details);
+            })
+            .catch(error => console.error('Error fetching device data:', error));
+    }
+}
+
+function fetchDeviceHistory(regionDetails) {
+    fetch(`http://localhost/api/devices/history`)
+        .then(response => response.json())
+        .then(historyData => {
+            populateDeviceTable(regionDetails, historyData);
+            window.deviceHistoryData = historyData; // Store history for reuse
+        })
+        .catch(error => console.error('Error fetching device history:', error));
+}
+
+function populateDeviceTable(details, historyData, selectedRegion = 'Global') {
+    const tableBody = document.getElementById('device-table').getElementsByTagName('tbody')[0];
+    tableBody.innerHTML = ''; // Clear existing rows
+
+    let deviceList = [];
+
+    if (details) {
+        ['cameras', 'archivers', 'controllers', 'servers'].forEach(deviceType => {
+            details[deviceType]?.forEach(device => {
+                const deviceIp = device.ip_address;
+                const deviceName = device[deviceType.slice(0, -1) + 'name'] || 'Unknown';
+                const deviceCategory = deviceType.slice(0, -1).toUpperCase();
+                const deviceRegion = device.location || "Unknown";
+                const currentStatus = device.status || "Unknown";
+
+                if (selectedRegion !== 'Global' && deviceRegion !== selectedRegion) {
+                    return;
+                }
+
+                deviceList.push({
+                    deviceIp,
+                    deviceName,
+                    deviceCategory,
+                    deviceRegion,
+                    currentStatus,
+                    deviceType
+                });
+            });
+        });
+
+        updateSummarySection(deviceList);
+
+        if (deviceList.length === 0) {
+            const row = tableBody.insertRow();
+            const cell = row.insertCell(0);
+            cell.colSpan = 9;
+            cell.textContent = "No devices found";
+            cell.style.textAlign = "center";
+            cell.style.fontWeight = "bold";
+            return;
+        }
+
+        deviceList.forEach(({ deviceIp, deviceName, deviceCategory, currentStatus, deviceRegion }) => {
+            const row = tableBody.insertRow();
+            row.style.border = "1px solid black";
+
+            row.innerHTML = `
+                <td>${deviceIp || 'Unknown'}</td>
+                <td>${deviceName || 'Unknown'}</td>
+                <td>${deviceCategory || 'Unknown'}</td>
+                <td>${deviceRegion || 'Unknown'}</td>
+                <td id="uptime-${deviceIp}">0h/0m/0s</td>
+                <td id="downtime-count-${deviceIp}">0</td>
+                <td id="downtime-${deviceIp}">0h/0m/0s</td>
+                <td><button onclick="openDeviceHistory('${deviceIp}', '${deviceName}')">View History</button></td>
+                <td id="remark-${deviceIp}">Device working properly</td>
+            `;
+
+            row.style.color = currentStatus === "Online" ? "green" : "red";
+        });
+    } else {
+        console.error('No details found in the response');
+    }
+}
+
+function updateSummarySection(deviceList) {
+    const totalDevices = deviceList.length;
+    const totalOnlineDevices = deviceList.filter(device => device.currentStatus === "Online").length;
+    const totalCameras = deviceList.filter(device => device.deviceCategory === "CAMERA").length;
+    const totalControllers = deviceList.filter(device => device.deviceCategory === "CONTROLLER").length;
+    const totalArchivers = deviceList.filter(device => device.deviceCategory === "ARCHIVER").length;
+    const totalServers = deviceList.filter(device => device.deviceCategory === "SERVER").length;
+
+    document.getElementById("total-devices").innerText = `Total Devices: ${totalDevices}`;
+    document.getElementById("total-online").innerText = `Total Online Devices: ${totalOnlineDevices}`;
+    document.getElementById("total-cameras").innerText = `Total Cameras: ${totalCameras}`;
+    document.getElementById("total-controllers").innerText = `Total Controllers: ${totalControllers}`;
+    document.getElementById("total-archivers").innerText = `Total Archivers: ${totalArchivers}`;
+    document.getElementById("total-servers").innerText = `Total Servers: ${totalServers}`;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 Read below Summary.js File carefully And update summary section
 
 On Ui display total number of devices .I want display only Count of devices Which is present On Ui .
