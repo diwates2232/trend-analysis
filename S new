@@ -1,3 +1,44 @@
+// Get visible devices from the UI (Assuming there's a function or logic for this)
+function getVisibleDevices(deviceType) {
+    return Array.from(document.querySelectorAll(`.device.${deviceType}:visible`)).map(el => el.dataset.deviceId);
+}
+
+const details = regionData.details;
+
+// Get visible devices for each category
+const visibleCameras = getVisibleDevices("camera");
+const visibleArchivers = getVisibleDevices("archiver");
+const visibleControllers = getVisibleDevices("controller");
+const visibleServers = getVisibleDevices("server");
+
+// Filter only the devices present in the UI
+const filteredCameras = details.cameras?.filter(device => visibleCameras.includes(device.id)) || [];
+const filteredArchivers = details.archivers?.filter(device => visibleArchivers.includes(device.id)) || [];
+const filteredControllers = details.controllers?.filter(device => visibleControllers.includes(device.id)) || [];
+const filteredServers = details.servers?.filter(device => visibleServers.includes(device.id)) || [];
+
+// Calculate total counts based on visible devices
+const totalDevices = filteredCameras.length + filteredArchivers.length + filteredControllers.length + filteredServers.length;
+const totalOnlineDevices = [...filteredCameras, ...filteredArchivers, ...filteredControllers, ...filteredServers]
+    .filter(device => device.status === "Online").length;
+
+// Update UI
+document.getElementById("total-devices").innerText = `Total Devices: ${totalDevices}`;
+document.getElementById("total-online").innerText = `Total Online Devices: ${totalOnlineDevices}`;
+document.getElementById("total-cameras").innerText = `Total Cameras: ${filteredCameras.length}`;
+document.getElementById("total-controllers").innerText = `Total Controllers: ${filteredControllers.length}`;
+document.getElementById("total-archivers").innerText = `Total Archivers: ${filteredArchivers.length}`;
+document.getElementById("total-servers").innerText = `Total Servers: ${filteredServers.length}`;
+
+
+
+
+
+
+
+
+
+
 Displpay count for those devices Which is present on Ui only .
 
 Update below code as per my request
