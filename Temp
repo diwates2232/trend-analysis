@@ -1,32 +1,36 @@
+Read below file carefully .dont change another function Just fix a timers and give me full updated Script.js file .
+
+
 const baseUrl = "http://localhost:80/api/regions";
+
 let refreshInterval = 300000; // 5 minutes (300,000 ms)
 let countdownTime = refreshInterval / 1000; // Convert to seconds
 let currentRegion = "global"; // Default region
 let deviceDetails = {}; // Store device details globally
 
 document.addEventListener("DOMContentLoaded", () => {
-    fetchSummary(currentRegion);
-    fetchDetails(currentRegion);
-    startAutoRefresh(currentRegion);
+    // Fetch summary and details for the default region (global)
+    fetchSummary("global");
+    fetchDetails("global");
 
     // Add event listeners to region buttons
-    document.querySelectorAll(".region-button").forEach((button) => {
+    const regionButtons = document.querySelectorAll(".region-button");
+    regionButtons.forEach((button) => {
         button.addEventListener("click", () => {
-            currentRegion = button.getAttribute("data-region").toLowerCase();
-            document.getElementById("region-title").textContent = `${currentRegion.toUpperCase()} Summary`;
-
-            fetchSummary(currentRegion);
-            fetchDetails(currentRegion);
+            const region = button.getAttribute("data-region");
+            document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
+            fetchSummary(region);
+            fetchDetails(region);
         });
     });
 
-    // Close modal
+    // Close modal on button click
     document.getElementById("close-modal").addEventListener("click", () => {
         document.getElementById("modal").style.display = "none";
     });
 });
 
-// Function to fetch summary and details together
+
 function fetchData(regionName) {
     const summaryUrl = `${baseUrl}/summary/${regionName}`;
     const detailsUrl = `${baseUrl}/details/${regionName}`;
@@ -40,12 +44,24 @@ function fetchData(regionName) {
         console.log("Details Data:", details);
         updateSummary(summary);
         updateDetails(details);
-        deviceDetails = details; // Store globally for pinging
     })
     .catch((error) => {
         console.error("Error fetching data:", error);
     });
 }
+
+
+
+
+// Call function with the selected region when the page loads
+document.addEventListener("DOMContentLoaded", () => {
+    let regionName = "Global"; // Default region
+   startAutoRefresh(regionName);
+});
+
+
+
+
 
 // Function to start auto-refresh with a countdown
 function startAutoRefresh(regionName) {
@@ -77,201 +93,11 @@ function startAutoRefresh(regionName) {
     // Ping devices every 5 minutes
     window.pingTimer = setInterval(() => {
         pingAllDevices(deviceDetails, regionName);
-    }, 300000);
-}
-
-function fetchSummary(regionName) {
-    fetch(`${baseUrl}/summary/${regionName}`)
-        .then((res) => res.json())
-        .then((summary) => updateSummary(summary))
-        .catch((error) => console.error("Error fetching summary:", error));
-}
-
-function fetchDetails(regionName) {
-    fetch(`${baseUrl}/details/${regionName}`)
-        .then((res) => res.json())
-        .then((details) => {
-            updateDetails(details);
-            deviceDetails = details; // Store globally
-        })
-        .catch((error) => console.error("Error fetching details:", error));
-}
-
-// Function to ping devices
-function pingAllDevices(details, regionName) {
-    let statusChanged = false;
-
-    if (!details || !details.details) return;
-
-    for (const [key, devices] of Object.entries(details.details)) {
-        if (!Array.isArray(devices) || devices.length === 0) continue;
-
-        devices.forEach((device) => {
-            const ip = device.ip_address || "N/A";
-            const card = document.querySelector(`[data-ip="${ip}"]`);
-            if (!card) return;
-
-            fetch(`${baseUrl}/ping/${ip}`)
-                .then(response => response.json())
-                .then(statusData => {
-                    const newStatus = statusData.status.toLowerCase();
-                    const currentStatus = card.dataset.status;
-                    const statusDot = card.querySelector(".status-dot");
-                    const statusText = card.querySelector(".device-status");
-
-                    if (newStatus === "online") {
-                        statusDot.style.backgroundColor = "green";
-                        statusText.textContent = "Online";
-                    } else {
-                        statusDot.style.backgroundColor = "red";
-                        statusText.textContent = "Offline";
-                    }
-
-                    if (newStatus !== currentStatus) {
-                        statusChanged = true;
-                        card.dataset.status = newStatus;
-                    }
-                })
-                .catch(error => console.error(`Ping failed for ${ip}:`, error));
-        });
-    }
-
-    // Refresh summary if any status changed
-    if (statusChanged) {
-        setTimeout(() => fetchSummary(regionName), 5000);
-    }
-}
-
-// Function to update UI
-function updateSummary(data) {
-    document.getElementById("total-devices").textContent = data.summary?.totalDevices || "N/A";
-    document.getElementById("online-devices").textContent = data.summary?.totalOnlineDevices || "N/A";
-    document.getElementById("offline-devices").textContent = data.summary?.totalOfflineDevices || "N/A";
-}
-
-function updateDetails(data) {
-    const detailsContainer = document.getElementById("device-details");
-    detailsContainer.innerHTML = "";
-
-    for (const [key, devices] of Object.entries(data.details)) {
-        if (!Array.isArray(devices) || devices.length === 0) continue;
-
-        devices.forEach((device) => {
-            const card = document.createElement("div");
-            card.className = "device-card";
-            card.dataset.ip = device.ip_address;
-            card.dataset.status = device.status.toLowerCase();
-
-            card.innerHTML = `
-                <h3>${device.cameraname || device.controllername || device.archivername || device.servername || "Unknown Device"}</h3>
-                <p>IP: ${device.ip_address || "N/A"}</p>
-                <p>Status: ${device.status}</p>
-            `;
-
-            detailsContainer.appendChild(card);
-        });
-    }
+    }, 30000);
 }
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Read Carefully Script.js file and Fix the timers.
-and check each function working properly or not .
-
-
-const baseUrl = "http://localhost:80/api/regions";
-
-document.addEventListener("DOMContentLoaded", () => {
-    // Fetch summary and details for the default region (global)
-    fetchSummary("global");
-    fetchDetails("global");
-
-    // Add event listeners to region buttons
-    const regionButtons = document.querySelectorAll(".region-button");
-    regionButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-            const region = button.getAttribute("data-region");
-            document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
-            fetchSummary(region);
-            fetchDetails(region);
-        });
-    });
-
-    // Close modal on button click
-    document.getElementById("close-modal").addEventListener("click", () => {
-        document.getElementById("modal").style.display = "none";
-    });
-});
-
-
-let refreshInterval = 300000; // 5 minutes (300,000 ms)
-let countdownTime = refreshInterval / 1000; // Convert to seconds
-
-function fetchData(regionName) {
-    const summaryUrl = `${baseUrl}/summary/${regionName}`;
-    const detailsUrl = `${baseUrl}/details/${regionName}`;
-
-    Promise.all([
-        fetch(summaryUrl).then((res) => res.json()),
-        fetch(detailsUrl).then((res) => res.json())
-    ])
-    .then(([summary, details]) => {
-        console.log("Summary Data:", summary);
-        console.log("Details Data:", details);
-        updateSummary(summary);
-        updateDetails(details);
-    })
-    .catch((error) => {
-        console.error("Error fetching data:", error);
-    });
-}
-
-// Function to start auto-refresh with a countdown
-function startAutoRefresh(regionName) {
-    fetchData(regionName); // Fetch data initially
-
-    // Countdown Timer Display
-    const countdownDisplay = document.getElementById("countdown");
-    function updateCountdown() {
-        countdownDisplay.innerText = `Refreshing in ${countdownTime} seconds`;
-        countdownTime--;
-        if (countdownTime < 0) countdownTime = refreshInterval / 1000;
-    }
-    
-    // Start countdown every second
-    setInterval(updateCountdown, 1000);
-
-    // Refresh data every 5 minutes
-    setInterval(() => {
-        fetchData(regionName); // Fetch fresh data
-        countdownTime = refreshInterval / 1000; // Reset countdown
-    }, refreshInterval);
-}
-
-
-
-
-
-
-// Call function with the selected region when the page loads
-document.addEventListener("DOMContentLoaded", () => {
-    let regionName = "Global"; // Default region
-    startAutoRefresh(regionName);
-});
 
 
 function fetchSummary(regionName) {
@@ -374,7 +200,6 @@ setInterval(() => {
 
 
 
-
 function updateSummary(data) {
     document.getElementById("total-devices").textContent = data.summary?.totalDevices || "N/A";
     document.getElementById("online-devices").textContent = data.summary?.totalOnlineDevices || "N/A";
@@ -412,6 +237,10 @@ function updateDetails(data) {
     const offlineDevices = [];
     const onlineDevices = [];
     let allDevices = [];
+
+
+
+
 
 
     // Fetch real-time status from the backend
@@ -513,3 +342,5 @@ function showModal(name, ip, location, status) {
     `;
     document.getElementById("modal").style.display = "block";
 }
+
+
