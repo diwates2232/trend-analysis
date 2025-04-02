@@ -1,3 +1,39 @@
+
+Slide 4: System Workflow
+
+This slide explains how the Device Health Monitoring & Trend Analysis Dashboard functions step by step.
+
+Content for Slide 4:
+
+Title: System Workflow
+
+Bullet Points:
+	1.	Step 1: Ping Devices – The system pings all devices at regular intervals to check their status.
+	2.	Step 2: Monitor Uptime/Downtime – Tracks whether each device is online or offline.
+	3.	Step 3: Record Data – Uptime and downtime data is collected and displayed on the UI.
+	4.	Step 4: Display Data on UI – The system provides a real-time view of device health, helping users create daily health reports faster.
+	5.	Step 5: Analyze Trends – Tracks long-term performance trends (daily, weekly, monthly) to identify recurring failures or downtime patterns.
+	6.	Step 6: Flag Devices for Repair – Devices with frequent downtime are flagged for attention to reduce failures.
+	7.	Continuous Improvement – We are actively enhancing each function to improve system accuracy and efficiency.
+
+This version keeps the focus on UI-based monitoring and assisting in report generation rather than generating reports directly.
+
+Would you like a workflow diagram on this slide to visually represent the steps?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Got it! Here’s the updated version for Slide 3: Key Features:
 
 ⸻
