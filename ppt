@@ -1,3 +1,57 @@
+Slide 7: Future Enhancements
+
+This slide outlines the planned improvements and future upgrades for the Device Health Monitoring & Trend Analysis Dashboard to make it more efficient and scalable.
+
+Content for Slide 7:
+
+Title: Future Enhancements
+
+Bullet Points:
+	1.	SQL Database Integration – Migrating from JSON to SQL for better data management and scalability.
+	2.	Advanced Data Visualization – Implementing interactive charts and graphs for better trend analysis.
+	3.	Automated Alert System – Sending notifications when a device goes offline.
+	4.	Machine Learning for Predictive Analysis – Identifying patterns to predict potential device failures.
+	5.	Role-Based Access Control – Restricting access to specific users for better security.
+	6.	Mobile-Friendly Dashboard – Optimizing the UI for better accessibility on mobile devices.
+
+This slide shows that your project is continuously evolving. Would you like to add a timeline for these improvements?
+
+⸻
+
+Slide 8: Conclusion & Thank You (Final Slide)
+
+This slide summarizes your project and thanks the audience for their time.
+
+Content for Slide 8:
+
+Title: Conclusion & Thank You
+
+Bullet Points:
+	•	The Device Health Monitoring & Trend Analysis Dashboard simplifies device monitoring, reduces downtime, and improves decision-making.
+	•	It enhances efficiency, scalability, and proactive maintenance for organizations.
+	•	Future upgrades will bring better data management, predictive analysis, and automation.
+	•	Thank you! Open to any questions.
+
+Would you like to add a QR code/link for a demo or GitHub repository (if applicable)?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Slide 6: Benefits of the System
 
 This slide will highlight the advantages of using the Device Health Monitoring & Trend Analysis Dashboard and how it improves efficiency.
