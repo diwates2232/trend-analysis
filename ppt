@@ -1,4 +1,40 @@
 
+Slide 5: Technologies Used
+
+This slide highlights the technologies and tools used to develop the Device Health Monitoring & Trend Analysis Dashboard, providing an overview of the tech stack behind the system.
+
+Content for Slide 5:
+
+Title: Technologies Used
+
+Bullet Points:
+	1.	Backend: Node.js – Manages server-side logic and API development.
+	2.	Frontend: HTML, CSS, JavaScript – Builds the user interface for real-time monitoring.
+	3.	Database: Currently using JSON for data storage; planning to migrate to SQL for better scalability and efficiency.
+	4.	Networking: Ping Commands – Periodically checks device status to track uptime and downtime.
+	5.	Visualization: Displays downtime trends in a structured table format for easy analysis.
+	6.	Excel Integration: Assists users in generating health reports efficiently.
+
+Would you like to add a timeline or roadmap for the SQL migration on a separate slide?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Slide 4: System Workflow
 
 This slide explains how the Device Health Monitoring & Trend Analysis Dashboard functions step by step.
