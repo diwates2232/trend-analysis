@@ -1,3 +1,63 @@
+
+
+function updateSummary(data) {
+    // Update region-wise summary
+    document.getElementById("total-devices").textContent = data.summary?.totalDevices || "N/A";
+    document.getElementById("online-devices").textContent = data.summary?.totalOnlineDevices || "N/A";
+    document.getElementById("offline-devices").textContent = data.summary?.totalOfflineDevices || "N/A";
+
+    document.getElementById("camera-total").textContent = data.summary?.cameras?.total || "N/A";
+    document.getElementById("camera-online").textContent = data.summary?.cameras?.online || "N/A";
+    document.getElementById("camera-offline").textContent = data.summary?.cameras?.offline || "N/A";
+
+    document.getElementById("archiver-total").textContent = data.summary?.archivers?.total || "N/A";
+    document.getElementById("archiver-online").textContent = data.summary?.archivers?.online || "N/A";
+    document.getElementById("archiver-offline").textContent = data.summary?.archivers?.offline || "N/A";
+
+    document.getElementById("controller-total").textContent = data.summary?.controllers?.total || "N/A";
+    document.getElementById("controller-online").textContent = data.summary?.controllers?.online || "N/A";
+    document.getElementById("controller-offline").textContent = data.summary?.controllers?.offline || "N/A";
+
+    document.getElementById("server-total").textContent = data.summary?.servers?.total || "N/A";
+    document.getElementById("server-online").textContent = data.summary?.servers?.online || "N/A";
+    document.getElementById("server-offline").textContent = data.summary?.servers?.offline || "N/A";
+
+    // **City-wise Summary**
+    const citySummaryContainer = document.getElementById("city-summary");
+    citySummaryContainer.innerHTML = ""; // Clear previous data
+
+    if (data.citySummary) {
+        Object.keys(data.citySummary).forEach(city => {
+            const cityData = data.citySummary[city];
+
+            const cityCard = document.createElement("div");
+            cityCard.className = "city-summary-card";
+
+            cityCard.innerHTML = `
+                <h3>${city} Summary</h3>
+                <p><strong>Total Devices:</strong> ${cityData.totalDevices || "N/A"}</p>
+                <p><strong>Online:</strong> ${cityData.totalOnlineDevices || "N/A"}</p>
+                <p><strong>Offline:</strong> ${cityData.totalOfflineDevices || "N/A"}</p>
+            `;
+
+            citySummaryContainer.appendChild(cityCard);
+        });
+    } else {
+        citySummaryContainer.innerHTML = "<p>No city data available.</p>";
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 Check below Script.js file carefully .
 Issue is there In a Summary Section Devices count is updated region wise.
 I want to update Devices count Region wise aslo City wise .
