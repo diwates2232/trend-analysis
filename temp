@@ -1,3 +1,35 @@
+Here’s a polite and professional email you can send:
+
+⸻
+
+Subject: Request for Tokyo Visitor Badge Access Number Details
+
+Dear Natsumi,
+
+I hope you are doing well.
+
+We require the Tokyo visitor badge access number details. I have attached an Excel file for your reference. Could you kindly fill in the badge access numbers and share the updated file with us at your earliest convenience?
+
+Please let me know if you need any further information.
+
+Looking forward to your response.
+
+Best regards,
+[Your Name]
+[Your Position]
+[Your Company]
+
+⸻
+
+This keeps the message clear, professional, and polite. Let me know if you want any modifications!
+
+
+
+
+
+
+
+
 const baseUrl = "http://localhost:80/api/regions";
 let refreshInterval = 300000; // 5 minutes
 let pingInterval = 30000; // 30 seconds
