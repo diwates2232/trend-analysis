@@ -1,109 +1,11 @@
-function filterDevices() {
-    const selectedType = deviceFilter.value;
-    const selectedStatus = document.querySelector(".status-filter.active")?.dataset.status || "all";
-    const selectedCity = cityFilter.value;
 
-    detailsContainer.innerHTML = "";
+Read below file carefully ,
+now all function working properly.
+now display Offline devices top of the Ui .firstly .
 
-    const filteredDevices = allDevices.filter((device) =>
-        (selectedType === "all" || device.dataset.type === selectedType) &&
-        (selectedStatus === "all" || device.dataset.status === selectedStatus) &&
-        (selectedCity === "all" || device.dataset.city === selectedCity)
-    );
+and Summary count is not updated . When once click on region button , when click twicw then it reflects count.
 
-    filteredDevices.forEach((deviceCard) => {
-        detailsContainer.appendChild(deviceCard);
-    });
-
-    // Update Summary Title
-    const region = currentRegion?.toUpperCase() || "GLOBAL";
-    if (selectedCity !== "all") {
-        document.getElementById("region-title").textContent = `${region}, ${selectedCity} Summary`;
-    } else {
-        document.getElementById("region-title").textContent = `${region} Summary`;
-    }
-
-    // [UPDATED]: Recalculate city-wise summary
-    const filteredSummaryDevices = deviceObjects.filter((deviceCard, index) => {
-        const element = allDevices[index];
-        return (
-            (selectedType === "all" || element.dataset.type === selectedType) &&
-            (selectedStatus === "all" || element.dataset.status === selectedStatus) &&
-            (selectedCity === "all" || element.dataset.city === selectedCity)
-        );
-    });
-
-    const summary = calculateCitySummary(filteredSummaryDevices);
-    updateSummary(summary);
-}
-
-
-
-function switchRegion(region) {
-    clearExistingIntervals(); // Avoid interval duplication
-    currentRegion = region;   // <-- Add this line
-    fetchData(region);
-    startAutoRefresh(region);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-function updateDetails(data) {
-    return new Promise((resolve, reject) => {
-        ...
-        fetch("http://localhost:80/api/region/devices/status")
-            .then((response) => response.json())
-            .then((realTimeStatus) => {
-                ...
-                // Final part of the function after filters:
-                const summary = calculateCitySummary(filteredSummaryDevices);
-                updateSummary(summary);
-                resolve(); // <-- resolve after summary update
-            })
-            .catch((error) => {
-                console.error("Error fetching real-time device status:", error);
-                detailsContainer.innerHTML = "<p>Failed to load device details.</p>";
-                reject(error);
-            });
-    });
-}
-
-
-
-
-
-
-if (JSON.stringify(details) !== JSON.stringify(deviceDetailsCache)) {
-    updateDetails(details).then(() => {
-        deviceDetailsCache = details;
-    });
-} else {
-    updateSummary(summary); // Only if no detail update is needed
-}
-
-
-
-
-
-
-
-
-
-
-
-
-Read below file carefully . 
-
-issue is there in summary section count is updated region wise but need to click region button twice .initially itv shows 0 count .when click double then it displays count.
+read carefully and update above issue.
 
 
 
@@ -131,8 +33,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
+
+
+
 function switchRegion(region) {
     clearExistingIntervals(); // Avoid interval duplication
+    currentRegion = region; 
     fetchData(region);
     startAutoRefresh(region);
 }
@@ -241,6 +147,10 @@ setInterval(() => {
 
 
 
+
+
+
+
 function updateSummary(data) {
     document.getElementById("total-devices").textContent = data.summary?.totalDevices || "0";
     document.getElementById("online-devices").textContent = data.summary?.totalOnlineDevices || "0";
@@ -263,8 +173,6 @@ function updateSummary(data) {
     document.getElementById("server-offline").textContent = data.summary?.servers?.offline || "0";
 
 }
-
-
 
 
 function updateDetails(data) {
@@ -342,23 +250,33 @@ function updateDetails(data) {
                 cityFilter.appendChild(option);
             });
 
+
+
             function filterDevices() {
                 const selectedType = deviceFilter.value;
                 const selectedStatus = document.querySelector(".status-filter.active")?.dataset.status || "all";
                 const selectedCity = cityFilter.value;
-
+            
                 detailsContainer.innerHTML = "";
-
+            
                 const filteredDevices = allDevices.filter((device) =>
                     (selectedType === "all" || device.dataset.type === selectedType) &&
                     (selectedStatus === "all" || device.dataset.status === selectedStatus) &&
                     (selectedCity === "all" || device.dataset.city === selectedCity)
                 );
-
+            
                 filteredDevices.forEach((deviceCard) => {
                     detailsContainer.appendChild(deviceCard);
                 });
-
+            
+                // Update Summary Title
+                const region = currentRegion?.toUpperCase() || "GLOBAL";
+                if (selectedCity !== "all") {
+                    document.getElementById("region-title").textContent = `${region}, ${selectedCity} Summary`;
+                } else {
+                    document.getElementById("region-title").textContent = `${region} Summary`;
+                }
+            
                 // [UPDATED]: Recalculate city-wise summary
                 const filteredSummaryDevices = deviceObjects.filter((deviceCard, index) => {
                     const element = allDevices[index];
@@ -368,10 +286,12 @@ function updateDetails(data) {
                         (selectedCity === "all" || element.dataset.city === selectedCity)
                     );
                 });
-
+            
                 const summary = calculateCitySummary(filteredSummaryDevices);
                 updateSummary(summary);
             }
+            
+            
 
             // [UPDATED]: Calculate summary from filtered list
             function calculateCitySummary(devices) {
@@ -439,6 +359,5 @@ function updateDetails(data) {
         `;
         document.getElementById("modal").style.display = "block";
     }
-
 
 
