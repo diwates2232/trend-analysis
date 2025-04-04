@@ -1,31 +1,29 @@
-Here’s a polite and professional email you can send:
-
-⸻
-
-Subject: Request for Tokyo Visitor Badge Access Number Details
-
-Dear Natsumi,
-
-I hope you are doing well.
-
-We require the Tokyo visitor badge access number details. I have attached an Excel file for your reference. Could you kindly fill in the badge access numbers and share the updated file with us at your earliest convenience?
-
-Please let me know if you need any further information.
-
-Looking forward to your response.
-
-Best regards,
-[Your Name]
-[Your Position]
-[Your Company]
-
-⸻
-
-This keeps the message clear, professional, and polite. Let me know if you want any modifications!
+Read below Script.js file carefully .in a summary section summary are shows region wise .when i filter devices by city .then expected Update summary Section City WIse kindly check below Script.js file and give me updated file .if need i will share yoy my backend details.
 
 
+API-http://localhost/api/regions/details/apac
 
 
+API Responce 
+{
+  "details": {
+    "cameras": [
+      {
+        "cameraname": "Green Zone to yellow zone passage - 10.199.10.20 (FLIR CM-3102-11-I T71552107) - 350",
+        "ip_address": "10.199.10.20",
+        "location": "APAC",
+        "city": "Pune",
+        "history": [],
+        "status": "Online"
+      },
+      {
+        "cameraname": "IN-PNQ-PF - Green Zone Exit Passage 10.199.10.139",
+        "ip_address": "10.199.10.139",
+        "location": "APAC",
+        "city": "Pune",
+        "history": [],
+        "status": "Online"
+      },
 
 
 
@@ -162,7 +160,6 @@ setInterval(() => {
     pingAllDevices(details, regionName);
 }, 300000); // Every 5 minutes
 
-
 function updateSummary(data) {
     document.getElementById("total-devices").textContent = data.summary?.totalDevices || "N/A";
     document.getElementById("online-devices").textContent = data.summary?.totalOnlineDevices || "N/A";
@@ -183,8 +180,9 @@ function updateSummary(data) {
     document.getElementById("server-total").textContent = data.summary?.servers?.total || "N/A";
     document.getElementById("server-online").textContent = data.summary?.servers?.online || "N/A";
     document.getElementById("server-offline").textContent = data.summary?.servers?.offline || "N/A";
-}
 
+
+}
 
 
 function updateDetails(data) {
