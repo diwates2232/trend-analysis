@@ -1,21 +1,17 @@
-// Sort devices so offline ones appear at the top
-allDevices.sort((a, b) => {
-    const statusA = a.dataset.status === "offline" ? 0 : 1;
-    const statusB = b.dataset.status === "offline" ? 0 : 1;
-    return statusA - statusB;
-});
+read below file carefully .
 
+now all remenaing function are working .
+issue is there in a summary section 
+Total online Device 
+Total offline Device 
+Total online Cameras 
+Total offline Cameras
 
+same for Controller, Server, Archuver
 
-
-
-Read below file carefully ,
-now all function working properly.
-now display Offline devices top of the Ui .firstly .
-
-and Summary count is not updated . When once click on region button , when click twicw then it reflects count.
-
-read carefully and update above issue.
+Count is not Updated City Wise.
+and Above is not updated on a single click .it need to click double this it reflects count ,
+Expected is once i click on region button display count as well details .
 
 
 
@@ -49,6 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
 function switchRegion(region) {
     clearExistingIntervals(); // Avoid interval duplication
     currentRegion = region; 
+    deviceDetailsCache={};
     fetchData(region);
     startAutoRefresh(region);
 }
@@ -217,6 +214,17 @@ function updateDetails(data) {
                 const deviceType = key.toLowerCase();
 
                 devices.forEach((device) => {
+
+                    allDevices.sort((a, b) => {
+                        const statusA = a.dataset.status === "offline" ? 0 : 1;
+                        const statusB = b.dataset.status === "offline" ? 0 : 1;
+                        return statusA - statusB;
+                    });
+                    
+                
+
+
+
                     const deviceIP = device.ip_address || "N/A";
                     const currentStatus = realTimeStatus[deviceIP] || device.status;
                     const city = device.city || "Unknown";
@@ -369,5 +377,4 @@ function updateDetails(data) {
         `;
         document.getElementById("modal").style.display = "block";
     }
-
 
