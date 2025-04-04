@@ -1,3 +1,43 @@
+            // Initial Display
+            filterDevices(); // <--- KEEP THIS
+
+            // ADD THIS LINE TO FORCE A FILTERED CITY-WISE SUMMARY UPDATE
+            setTimeout(() => {
+                const selectedCity = cityFilter.value;
+                const selectedType = deviceFilter.value;
+                const selectedStatus = document.querySelector(".status-filter.active")?.dataset.status || "all";
+
+                const filteredSummaryDevices = deviceObjects.filter((deviceCard, index) => {
+                    const element = allDevices[index];
+                    return (
+                        (selectedType === "all" || element.dataset.type === selectedType) &&
+                        (selectedStatus === "all" || element.dataset.status === selectedStatus) &&
+                        (selectedCity === "all" || element.dataset.city === selectedCity)
+                    );
+                });
+
+                const summary = calculateCitySummary(filteredSummaryDevices);
+                updateSummary(summary);
+            }, 100); // Add slight delay to ensure DOM update is done
+
+
+
+
+
+deviceFilter.value = "all";
+cityFilter.value = "all";
+document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
+allFilterButton.classList.add("active");
+
+
+
+
+
+
+
+
+
+
 read below file carefully .
 
 now all remenaing function are working .
