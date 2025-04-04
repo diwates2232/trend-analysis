@@ -1,352 +1,8 @@
+Read below file carefully . 
 
-document.getElementById("city-filter").addEventListener("change", () => {
-    const selectedCity = document.getElementById("city-filter").value;
-    updateSummaryWithCity(currentRegion, selectedCity);
-});
+issue is there in summary section count is updated region wise but need to click region button twice .initially itv shows 0 count .when click double then it displays count.
 
 
-
-
-
-button.addEventListener("click", () => {
-    const region = button.getAttribute("data-region");
-    currentRegion = region;
-    const selectedCity = document.getElementById("city-filter").value;
-
-    // If city is selected (not "all"), show both region and city
-    if (selectedCity !== "all") {
-        document.getElementById("region-title").textContent = `${region.toUpperCase()}, ${selectedCity} Summary`;
-    } else {
-        document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
-    }
-
-    switchRegion(region);
-});
-
-
-function updateSummaryWithCity(regionName, selectedCity) {
-    fetch(`${baseUrl}/details/${regionName}`)
-        .then(res => res.json())
-        .then(data => {
-            const devices = [];
-
-            Object.values(data.details).forEach(deviceList => {
-                devices.push(...deviceList);
-            });
-
-            let filteredDevices = devices;
-            if (selectedCity !== "all") {
-                filteredDevices = devices.filter(d => d.city === selectedCity);
-            }
-
-            const summary = calculateFilteredSummary(filteredDevices);
-
-            // Update city+region title
-            const regionTitle = selectedCity !== "all" 
-                ? `${regionName.toUpperCase()}, ${selectedCity} Summary` 
-                : `${regionName.toUpperCase()} Summary`;
-
-            document.getElementById("region-title").textContent = regionTitle;
-
-            // Update UI with new summary
-            updateSummary({ summary });
-        });
-}
-
-
-
-
-
-function calculateFilteredSummary(devices) {
-    const types = ['camera', 'archiver', 'controller', 'server'];
-
-    const result = {
-        totalDevices: devices.length,
-        totalOnlineDevices: 0,
-        totalOfflineDevices: 0,
-        cameras: { total: 0, online: 0, offline: 0 },
-        archivers: { total: 0, online: 0, offline: 0 },
-        controllers: { total: 0, online: 0, offline: 0 },
-        servers: { total: 0, online: 0, offline: 0 }
-    };
-
-    devices.forEach(device => {
-        const type = device.type.toLowerCase();
-        const status = device.status.toLowerCase();
-
-        if (status === 'online') result.totalOnlineDevices++;
-        else result.totalOfflineDevices++;
-
-        if (types.includes(type)) {
-            result[`${type}s`].total++;
-            result[`${type}s`][status]++;
-        }
-    });
-
-    return result;
-}
-
-
-Pleaase check both file and sole this issue.
-UI only reflects total count its not update Devices count city wise.also its not reflects City name . like APAC , Pune Summary
-..... like this 
-
-check carefully files and solve above issue.
-
-
-
-Index.html
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device Dashboard</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-
-
-    <div class="container">
-        <div id="sidebar">
-            <h2 style="color:rgb(223, 205, 38);">Regions</h2>
-            <button class="region-button" data-region="global">Global</button>
-            <button class="region-button" data-region="apac">APAC</button>
-
-            <button class="region-button" data-region="emea">EMEA</button>
-            <button class="region-button" data-region="laca">LACA</button>   
-            <button class="region-button" data-region="namer">NAMER</button>
-
-            <button  style="display: block;
-            width: 100%;
-            padding: 15px;
-            margin-bottom: 10px;
-            border: none;
-            background-color:rgb(223, 205, 38);
-           color: rgb(26, 23, 23);
-           font-size: 16px;
-           cursor: pointer;
-          text-align: center;
-           border-radius: 5px;
-           transition: background-color 0.3s ease;""
-             onclick="window.location.href='trend.html'">View Trend Analysis</button>
-
-
-
-
-            <button   style="display: block;
-            width: 100%;
-            padding: 15px;
-            margin-bottom: 10px;
-            border: none;
-            background-color:rgb(223, 205, 38);
-           color: rgb(26, 23, 23);
-           font-size: 16px;
-           cursor: pointer;
-          text-align: center;
-           border-radius: 5px;
-           transition: background-color 0.3s ease;""
-            
-            onclick="window.location.href='summary.html'">View Devices Summary</button>
-
-
-            <div id="countdown" 
-            style="font-size: 16px; font-weight: bold; color:rgb(223, 205, 38);
-            padding: 10px;
-            display: block; "></div>
-
-
-            <div class="filter-buttons">
-                <button id="filter-all" class="status-filter active" data-status="all"
-                style="display: block;
-                 width: 100%;
-                 padding: 15px;
-                 margin-bottom: 10px;
-                 border: none;
-                 background-color: #e8f0f1;
-                color: rgb(26, 23, 23);
-                font-size: 16px;
-                cursor: pointer;
-               text-align: center;
-                border-radius: 5px;
-                transition: background-color 0.3s ease; ">All Devices</button>
-
-
-                <button id="filter-online" class="status-filter" data-status="online" 
-                style="
-                display: block;
-                 width: 100%;
-                 padding: 15px;
-                 margin-bottom: 10px;
-                 border: none;
-                 background-color: #1c9c47;
-                color: rgb(26, 23, 23);
-                font-size: 16px;
-                cursor: pointer;
-               text-align: center;
-                border-radius: 5px;
-                transition: background-color 0.3s ease;">Online Devices</button>
-
-                <button id="filter-offline"  class="status-filter" data-status="offline"
-                style="
-                display: block;
-                 width: 100%;
-                 padding: 15px;
-                 margin-bottom: 10px;
-                 border: none;
-                 background-color: #db2410;
-                color: rgb(26, 23, 23);
-                font-size: 16px;
-                cursor: pointer;
-               text-align: center;
-                border-radius: 5px;
-                transition: background-color 0.3s ease;                
-                 ">Offline Devices</button>
-            </div>
-
-
-       <div><
-            <label for="device-filter" style="color:rgb(223, 205, 38);
-            font-size: 16px;
-            margin: 10;
-            border: none;
-            font-weight: bold;
-            text-align: start;
-            border-radius: 5px;
-            width: 100%;
-             ">Filter by Device Type:</label>
-            <select id="device-filter">
-                <option value="all">All</option>
-                <option value="cameras">Cameras</option>
-                <option value="archivers">Archivers</option>
-                <option value="controllers">Controllers</option>
-                <option value="servers">Servers</option>
-            </select>
-
-              </div>
-
-
-            <div><
-                <label for="device-filter" style="color:rgb(223, 205, 38);
-                font-size: 16px;
-                padding-top: 10px;
-                margin-top: 5px;
-                border: none;
-                font-weight: bold;
-                text-align: start;
-                border-radius: 5px;
-                width: 100%;
-                 ">Filter by Location:</label>
-                <select id="city-filter">
-                    <option value="all">All Cities</option>
-                </select>
-              </div>
-
-    </div>
-
-
-
-
-
-        <div id="content">
-            <h1 id="region-title" style="color:rgb(255, 0, 0);
-            font-weight: bold;
-            border: black;
-            border-radius: 5px;
-            text-align: start;
-            
-            ">Global Summary</h1>
-
-            <div class="summary">
-                <div id="city-summary"></div>
-
-
-                <div class="card">
-                    <h3>Total Devices</h3>
-                    <p>Total: <span id="total-devices">Loading...</span></p>
-                    <p>Online: <span id="online-devices">Loading...</span></p>
-                    <p>Offline: <span id="offline-devices">Loading...</span></p>
-                   </div>
-
-             <div class="card">
-                <h3>Cameras</h3>
-                <p>Total: <span id="camera-total">Loading...</span></p>
-                <p>Online: <span id="camera-online">Loading...</span></p>
-                <p>Offline: <span id="camera-offline">Loading...</span></p>
-               </div>
-            
-               <div class="card">
-                <h3>Archivers</h3>
-                <p>Total: <span id="archiver-total">Loading...</span></p>
-                <p>Online: <span id="archiver-online">Loading...</span></p>
-                <p>Offline: <span id="archiver-offline">Loading...</span></p>
-               </div>
-            
-               <div class="card">
-                <h3>Controllers</h3>
-                <p>Total: <span id="controller-total">Loading...</span></p>
-                <p>Online: <span id="controller-online">Loading...</span></p>
-                <p>Offline: <span id="controller-offline">Loading...</span></p>
-               </div>
-
-               <div class="card">
-                <h3>Servers</h3>
-                <p>Total: <span id="server-total">Loading...</span></p>
-                <p>Online: <span id="server-online">Loading...</span></p>
-                <p>Offline: <span id="server-offline">Loading...</span></p>
-               </div>
-            </div>
-
-           
-            <div id="details-section">
-                <h2 style="color:rgb(255, 0, 0)">Device Details</h2>
-             <!-- Dropdown for Filtering -->
-    <div id="device-details">Loading...</div>
-                <div id ="details-container"></div>
-    
-            </div>
-        </div>
-    </div>
-    </body>
-
-    
-    <div id="modal">
-        <div class="modal-content">
-            <span id="close-modal">&times;</span>
-            <h3 id="modal-title">Device Details</h3>
-            <ul id="modal-body"></ul>
-           
-<button id="refresh-button">Refresh Data</button>
-<div id="device-details"></div>
-        </div>
-    </div>
-
-
-
-    <script src="script.js"></script> 
-    
-     <!-- Include Footer -->
-              <footer class="footer">
-                <img src="images/FooterLogo.png" alt="Company Logo" class="footer-logo">
-                <p>&copy;2025 VisionWatch | Powered by <strong>Western Union Services India Pvt Ltd.</strong></p>
-                <p>Contact :
-                <a href="mailto:gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com">gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com</a> |
-                <a href="tel:+91 20 67632394">+91 2067632394 </a>
-                </p>
-            </footer>  
-        </body>
-        </html>
-
-
-
-
-
-
-
-
-
-Script.js
 
 const baseUrl = "http://localhost:80/api/regions";
 let refreshInterval = 300000; // 5 minutes
@@ -482,30 +138,30 @@ setInterval(() => {
 
 
 
-
 function updateSummary(data) {
-    document.getElementById("total-devices").textContent = data.summary?.totalDevices || "N/A";
-    document.getElementById("online-devices").textContent = data.summary?.totalOnlineDevices || "N/A";
-    document.getElementById("offline-devices").textContent = data.summary?.totalOfflineDevices || "N/A";
+    document.getElementById("total-devices").textContent = data.summary?.totalDevices || "0";
+    document.getElementById("online-devices").textContent = data.summary?.totalOnlineDevices || "0";
+    document.getElementById("offline-devices").textContent = data.summary?.totalOfflineDevices || "0";
 
-    document.getElementById("camera-total").textContent = data.summary?.cameras?.total || "N/A";
-    document.getElementById("camera-online").textContent = data.summary?.cameras?.online || "N/A";
-    document.getElementById("camera-offline").textContent = data.summary?.cameras?.offline || "N/A";
+    document.getElementById("camera-total").textContent = data.summary?.cameras?.total || "0";
+    document.getElementById("camera-online").textContent = data.summary?.cameras?.online || "0";
+    document.getElementById("camera-offline").textContent = data.summary?.cameras?.offline || "0";
 
-    document.getElementById("archiver-total").textContent = data.summary?.archivers?.total || "N/A";
-    document.getElementById("archiver-online").textContent = data.summary?.archivers?.online || "N/A";
-    document.getElementById("archiver-offline").textContent = data.summary?.archivers?.offline || "N/A";
+    document.getElementById("archiver-total").textContent = data.summary?.archivers?.total || "0";
+    document.getElementById("archiver-online").textContent = data.summary?.archivers?.online || "0";
+    document.getElementById("archiver-offline").textContent = data.summary?.archivers?.offline || "0";
 
-    document.getElementById("controller-total").textContent = data.summary?.controllers?.total || "N/A";
-    document.getElementById("controller-online").textContent = data.summary?.controllers?.online || "N/A";
-    document.getElementById("controller-offline").textContent = data.summary?.controllers?.offline || "N/A";
+    document.getElementById("controller-total").textContent = data.summary?.controllers?.total || "0";
+    document.getElementById("controller-online").textContent = data.summary?.controllers?.online || "0";
+    document.getElementById("controller-offline").textContent = data.summary?.controllers?.offline || "0";
 
-    document.getElementById("server-total").textContent = data.summary?.servers?.total || "N/A";
-    document.getElementById("server-online").textContent = data.summary?.servers?.online || "N/A";
-    document.getElementById("server-offline").textContent = data.summary?.servers?.offline || "N/A";
-
+    document.getElementById("server-total").textContent = data.summary?.servers?.total || "0";
+    document.getElementById("server-online").textContent = data.summary?.servers?.online || "0";
+    document.getElementById("server-offline").textContent = data.summary?.servers?.offline || "0";
 
 }
+
+
 
 
 function updateDetails(data) {
@@ -516,16 +172,24 @@ function updateDetails(data) {
     const offlineFilterButton = document.getElementById("filter-offline");
     const allFilterButton = document.getElementById("filter-all");
 
-    detailsContainer.innerHTML = "";
+
+
+    detailsContainer.innerHTML = ""; // Clear previous data
+
+   
+    // detailsContainer.innerHTML = "";
     cityFilter.innerHTML = '<option value="all">All Cities</option>';
 
     let allDevices = [];
     let deviceObjects = []; // [UPDATED] for city-wise summary
     let citySet = new Set();
 
+
+ // Fetch real-time status from the backend
     fetch("http://localhost:80/api/region/devices/status")
         .then((response) => response.json())
         .then((realTimeStatus) => {
+            console.log("Live Status Data:", realTimeStatus);
             for (const [key, devices] of Object.entries(data.details)) {
                 if (!Array.isArray(devices) || devices.length === 0) continue;
 
@@ -672,5 +336,6 @@ function updateDetails(data) {
         `;
         document.getElementById("modal").style.display = "block";
     }
+
 
 
