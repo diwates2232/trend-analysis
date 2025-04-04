@@ -1,11 +1,90 @@
 
+document.getElementById("city-filter").addEventListener("change", () => {
+    const selectedCity = document.getElementById("city-filter").value;
+    updateSummaryWithCity(currentRegion, selectedCity);
+});
 
 
 
 
 
+button.addEventListener("click", () => {
+    const region = button.getAttribute("data-region");
+    currentRegion = region;
+    const selectedCity = document.getElementById("city-filter").value;
+
+    // If city is selected (not "all"), show both region and city
+    if (selectedCity !== "all") {
+        document.getElementById("region-title").textContent = `${region.toUpperCase()}, ${selectedCity} Summary`;
+    } else {
+        document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
+    }
+
+    switchRegion(region);
+});
 
 
+function updateSummaryWithCity(regionName, selectedCity) {
+    fetch(`${baseUrl}/details/${regionName}`)
+        .then(res => res.json())
+        .then(data => {
+            const devices = [];
+
+            Object.values(data.details).forEach(deviceList => {
+                devices.push(...deviceList);
+            });
+
+            let filteredDevices = devices;
+            if (selectedCity !== "all") {
+                filteredDevices = devices.filter(d => d.city === selectedCity);
+            }
+
+            const summary = calculateFilteredSummary(filteredDevices);
+
+            // Update city+region title
+            const regionTitle = selectedCity !== "all" 
+                ? `${regionName.toUpperCase()}, ${selectedCity} Summary` 
+                : `${regionName.toUpperCase()} Summary`;
+
+            document.getElementById("region-title").textContent = regionTitle;
+
+            // Update UI with new summary
+            updateSummary({ summary });
+        });
+}
+
+
+
+
+
+function calculateFilteredSummary(devices) {
+    const types = ['camera', 'archiver', 'controller', 'server'];
+
+    const result = {
+        totalDevices: devices.length,
+        totalOnlineDevices: 0,
+        totalOfflineDevices: 0,
+        cameras: { total: 0, online: 0, offline: 0 },
+        archivers: { total: 0, online: 0, offline: 0 },
+        controllers: { total: 0, online: 0, offline: 0 },
+        servers: { total: 0, online: 0, offline: 0 }
+    };
+
+    devices.forEach(device => {
+        const type = device.type.toLowerCase();
+        const status = device.status.toLowerCase();
+
+        if (status === 'online') result.totalOnlineDevices++;
+        else result.totalOfflineDevices++;
+
+        if (types.includes(type)) {
+            result[`${type}s`].total++;
+            result[`${type}s`][status]++;
+        }
+    });
+
+    return result;
+}
 
 
 Pleaase check both file and sole this issue.
