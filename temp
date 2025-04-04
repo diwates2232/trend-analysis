@@ -1,3 +1,13 @@
+// Sort devices so offline ones appear at the top
+allDevices.sort((a, b) => {
+    const statusA = a.dataset.status === "offline" ? 0 : 1;
+    const statusB = b.dataset.status === "offline" ? 0 : 1;
+    return statusA - statusB;
+});
+
+
+
+
 
 Read below file carefully ,
 now all function working properly.
