@@ -1,57 +1,9 @@
-            // Initial Display
-            filterDevices(); // <--- KEEP THIS
+Read below file carefully . and issue is there in summary section devices count is not showing
+it shows only total count
+Online Count
+Offline count
 
-            // ADD THIS LINE TO FORCE A FILTERED CITY-WISE SUMMARY UPDATE
-            setTimeout(() => {
-                const selectedCity = cityFilter.value;
-                const selectedType = deviceFilter.value;
-                const selectedStatus = document.querySelector(".status-filter.active")?.dataset.status || "all";
-
-                const filteredSummaryDevices = deviceObjects.filter((deviceCard, index) => {
-                    const element = allDevices[index];
-                    return (
-                        (selectedType === "all" || element.dataset.type === selectedType) &&
-                        (selectedStatus === "all" || element.dataset.status === selectedStatus) &&
-                        (selectedCity === "all" || element.dataset.city === selectedCity)
-                    );
-                });
-
-                const summary = calculateCitySummary(filteredSummaryDevices);
-                updateSummary(summary);
-            }, 100); // Add slight delay to ensure DOM update is done
-
-
-
-
-
-deviceFilter.value = "all";
-cityFilter.value = "all";
-document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
-allFilterButton.classList.add("active");
-
-
-
-
-
-
-
-
-
-
-read below file carefully .
-
-now all remenaing function are working .
-issue is there in a summary section 
-Total online Device 
-Total offline Device 
-Total online Cameras 
-Total offline Cameras
-
-same for Controller, Server, Archuver
-
-Count is not Updated City Wise.
-and Above is not updated on a single click .it need to click double this it reflects count ,
-Expected is once i click on region button display count as well details .
+It not showing Devices vise count. like Archiver, controller, server
 
 
 
@@ -309,6 +261,14 @@ function updateDetails(data) {
             });
 
 
+            deviceFilter.value = "all";
+            cityFilter.value = "all";
+            document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
+            allFilterButton.classList.add("active");
+            
+
+
+
 
             function filterDevices() {
                 const selectedType = deviceFilter.value;
@@ -378,6 +338,29 @@ function updateDetails(data) {
             // Initial Display
             filterDevices();
 
+
+            setTimeout(() => {
+                const selectedCity = cityFilter.value;
+                const selectedType = deviceFilter.value;
+                const selectedStatus = document.querySelector(".status-filter.active")?.dataset.status || "all";
+
+                const filteredSummaryDevices = deviceObjects.filter((deviceCard, index) => {
+                    const element = allDevices[index];
+                    return (
+                        (selectedType === "all" || element.dataset.type === selectedType) &&
+                        (selectedStatus === "all" || element.dataset.status === selectedStatus) &&
+                        (selectedCity === "all" || element.dataset.city === selectedCity)
+                    );
+                });
+
+                const summary = calculateCitySummary(filteredSummaryDevices);
+                updateSummary(summary);
+            }, 100); // Add slight delay to ensure DOM update is done
+
+
+
+
+
             deviceFilter.addEventListener("change", filterDevices);
             cityFilter.addEventListener("change", filterDevices);
             allFilterButton.addEventListener("click", () => {
@@ -402,8 +385,6 @@ function updateDetails(data) {
             detailsContainer.innerHTML = "<p>Failed to load device details.</p>";
         });
 }
-
-
 
 
     function showModal(name, ip, location, status) {
