@@ -1,3 +1,32 @@
+
+<span id="totalDevices"></span>
+<span id="totalOnline"></span>
+<span id="totalOffline"></span>
+
+<span id="totalCameras"></span>
+<span id="onlineCameras"></span>
+<span id="offlineCameras"></span>
+
+<span id="totalArchivers"></span>
+<span id="onlineArchivers"></span>
+<span id="offlineArchivers"></span>
+
+<span id="totalControllers"></span>
+<span id="onlineControllers"></span>
+<span id="offlineControllers"></span>
+
+<span id="totalServers"></span>
+<span id="onlineServers"></span>
+<span id="offlineServers"></span>
+
+
+
+
+
+
+
+
+
 function updateDetails(data) {
     const detailsContainer = document.getElementById("device-details");
     const deviceFilter = document.getElementById("device-filter");
