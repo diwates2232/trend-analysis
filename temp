@@ -1,3 +1,103 @@
+document.addEventListener("DOMContentLoaded", function () {
+    const buttons = document.querySelectorAll(".region-button");
+    const summarySection = document.getElementById("summary-section");
+    const summaryTitle = document.getElementById("summary-title"); // Assuming you added this ID in HTML
+
+    async function fetchSummaryData(region, city = null) {
+        try {
+            let url = `/api/region/summary/${region}`;
+            if (city) {
+                url += `?city=${city}`;
+            }
+
+            const response = await fetch(url);
+            const data = await response.json();
+
+            updateSummaryUI(region, data, city);
+        } catch (error) {
+            console.error("Error fetching summary data:", error);
+        }
+    }
+
+    function updateSummaryUI(region, data, city) {
+        // Clear previous content
+        summarySection.innerHTML = "";
+
+        // Update title
+        summaryTitle.textContent = city
+            ? `${region.toUpperCase()}, ${city} Summary`
+            : `${region.toUpperCase()} Summary`;
+
+        const summaryHTML = `
+            <div class="summary-card">
+                <h3>Total Devices: ${data.totalDevices}</h3>
+                <p>Online: ${data.onlineDevices}</p>
+                <p>Offline: ${data.offlineDevices}</p>
+            </div>
+            <div class="summary-card">
+                <h4>Archivers</h4>
+                <p>Total: ${data.totalArchivers}</p>
+                <p>Online: ${data.onlineArchivers}</p>
+                <p>Offline: ${data.offlineArchivers}</p>
+            </div>
+            <div class="summary-card">
+                <h4>Controllers</h4>
+                <p>Total: ${data.totalControllers}</p>
+                <p>Online: ${data.onlineControllers}</p>
+                <p>Offline: ${data.offlineControllers}</p>
+            </div>
+            <div class="summary-card">
+                <h4>Cameras</h4>
+                <p>Total: ${data.totalCameras}</p>
+                <p>Online: ${data.onlineCameras}</p>
+                <p>Offline: ${data.offlineCameras}</p>
+            </div>
+            <div class="summary-card">
+                <h4>Servers</h4>
+                <p>Total: ${data.totalServers}</p>
+                <p>Online: ${data.onlineServers}</p>
+                <p>Offline: ${data.offlineServers}</p>
+            </div>
+        `;
+
+        summarySection.innerHTML = summaryHTML;
+    }
+
+    // Handle region button clicks
+    buttons.forEach(button => {
+        button.addEventListener("click", function () {
+            const region = this.dataset.region;
+            const city = this.dataset.city || null;
+
+            fetchSummaryData(region, city);
+        });
+    });
+});
+
+
+
+
+
+<h2 id="summary-title">Global Summary</h2>
+
+
+
+
+<button class="region-button" data-region="apac" data-city="Pune">APAC - Pune</button>
+<button class="region-button" data-region="apac" data-city="Mumbai">APAC - Mumbai</button>
+
+
+
+
+
+
+
+
+
+
+
+
+
 Pleaase check both file and sole this issue.
 UI only reflects total count its not update Devices count city wise.also its not reflects City name . like APAC , Pune Summary
 ..... like this 
