@@ -1,3 +1,171 @@
+function updateDetails(data) {
+    const detailsContainer = document.getElementById("device-details");
+    const deviceFilter = document.getElementById("device-filter");
+    const cityFilter = document.getElementById("city-filter");
+    const onlineFilterButton = document.getElementById("filter-online");
+    const offlineFilterButton = document.getElementById("filter-offline");
+    const allFilterButton = document.getElementById("filter-all");
+
+    detailsContainer.innerHTML = "";
+    cityFilter.innerHTML = '<option value="all">All Cities</option>';
+
+    let allDevices = [];
+    let deviceObjects = []; // [UPDATED] for city-wise summary
+    let citySet = new Set();
+
+    fetch("http://localhost:80/api/region/devices/status")
+        .then((response) => response.json())
+        .then((realTimeStatus) => {
+            for (const [key, devices] of Object.entries(data.details)) {
+                if (!Array.isArray(devices) || devices.length === 0) continue;
+
+                const deviceType = key.toLowerCase();
+
+                devices.forEach((device) => {
+                    const deviceIP = device.ip_address || "N/A";
+                    const currentStatus = realTimeStatus[deviceIP] || device.status;
+                    const city = device.city || "Unknown";
+
+                    citySet.add(city);
+
+                    const card = document.createElement("div");
+                    card.className = "device-card";
+                    card.dataset.type = deviceType;
+                    card.dataset.status = currentStatus.toLowerCase();
+                    card.dataset.city = city;
+
+                    const statusDot = document.createElement("span");
+                    statusDot.className = "status-dot";
+                    statusDot.style.backgroundColor = currentStatus === "Online" ? "green" : "red";
+
+                    card.innerHTML = `
+                        <h3>${device.cameraname || device.controllername || device.archivername || device.servername || "Unknown Device"}</h3>
+                        <p>DEVICE TYPE: ${deviceType.toUpperCase()}</p>
+                        <p>IP: ${deviceIP}</p>
+                        <p>LOCATION: ${device.location || "N/A"}</p>
+                        <p>CITY: ${city}</p>
+                        <p>Status: ${currentStatus} ${statusDot.outerHTML}</p>
+                        <button class="details-button" onclick="showModal('${device.cameraname || device.controllername || device.archivername || device.servername || "Unknown Device"}', '${deviceIP}', '${device.location || "N/A"}', '${currentStatus}', '${city}')">Details</button>
+                    `;
+
+                    allDevices.push(card);
+
+                    // [UPDATED]: Push raw device data for summary
+                    deviceObjects.push({
+                        type: deviceType,
+                        status: currentStatus.toLowerCase(),
+                    });
+                });
+            }
+
+            citySet.forEach((city) => {
+                const option = document.createElement("option");
+                option.value = city;
+                option.textContent = city;
+                cityFilter.appendChild(option);
+            });
+
+            function filterDevices() {
+                const selectedType = deviceFilter.value;
+                const selectedStatus = document.querySelector(".status-filter.active")?.dataset.status || "all";
+                const selectedCity = cityFilter.value;
+
+                detailsContainer.innerHTML = "";
+
+                const filteredDevices = allDevices.filter((device) =>
+                    (selectedType === "all" || device.dataset.type === selectedType) &&
+                    (selectedStatus === "all" || device.dataset.status === selectedStatus) &&
+                    (selectedCity === "all" || device.dataset.city === selectedCity)
+                );
+
+                filteredDevices.forEach((deviceCard) => {
+                    detailsContainer.appendChild(deviceCard);
+                });
+
+                // [UPDATED]: Recalculate city-wise summary
+                const filteredSummaryDevices = deviceObjects.filter((deviceCard, index) => {
+                    const element = allDevices[index];
+                    return (
+                        (selectedType === "all" || element.dataset.type === selectedType) &&
+                        (selectedStatus === "all" || element.dataset.status === selectedStatus) &&
+                        (selectedCity === "all" || element.dataset.city === selectedCity)
+                    );
+                });
+
+                const summary = calculateCitySummary(filteredSummaryDevices);
+                updateSummary(summary);
+            }
+
+            // [UPDATED]: Calculate summary from filtered list
+            function calculateCitySummary(devices) {
+                const summary = {
+                    summary: {
+                        totalDevices: devices.length,
+                        totalOnlineDevices: devices.filter(d => d.status === "online").length,
+                        totalOfflineDevices: devices.filter(d => d.status === "offline").length,
+                        cameras: { total: 0, online: 0, offline: 0 },
+                        archivers: { total: 0, online: 0, offline: 0 },
+                        controllers: { total: 0, online: 0, offline: 0 },
+                        servers: { total: 0, online: 0, offline: 0 },
+                    }
+                };
+
+                devices.forEach((device) => {
+                    if (!summary.summary[device.type + "s"]) return;
+                    summary.summary[device.type + "s"].total += 1;
+                    if (device.status === "online") summary.summary[device.type + "s"].online += 1;
+                    else summary.summary[device.type + "s"].offline += 1;
+                });
+
+                return summary;
+            }
+
+            // Initial Display
+            filterDevices();
+
+            deviceFilter.addEventListener("change", filterDevices);
+            cityFilter.addEventListener("change", filterDevices);
+            allFilterButton.addEventListener("click", () => {
+                document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
+                allFilterButton.classList.add("active");
+                filterDevices();
+            });
+            onlineFilterButton.addEventListener("click", () => {
+                document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
+                onlineFilterButton.classList.add("active");
+                filterDevices();
+            });
+            offlineFilterButton.addEventListener("click", () => {
+                document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
+                offlineFilterButton.classList.add("active");
+                filterDevices();
+            });
+
+        })
+        .catch((error) => {
+            console.error("Error fetching real-time device status:", error);
+            detailsContainer.innerHTML = "<p>Failed to load device details.</p>";
+        });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Read below Script.js file carefully .in a summary section summary are shows region wise .when i filter devices by city .then expected Update summary Section City WIse kindly check below Script.js file and give me updated file .if need i will share yoy my backend details.
 
 
