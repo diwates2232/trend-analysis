@@ -1,10 +1,19 @@
-Read Below file Carefully.
+Read below file carefully line by line.
 
+error- Uncaught TypeError: Cannot convert undefined or null to object
+    at Object.entries (<anonymous>)
+    at pingAllDevices (script.js:433:41)
+    at script.js:399:9
 
-issue is there When Device goes offline.again its back online then In summary section Count not update.
+also When Device goes offline again its back online Count in Summary Section is not Updated.
+Also When Deive filter using City count of offline Device displays in online count section.
 
+Also Total cameras count
+Total online Cameras count
+Total Offline Cameras count
+same for Archiver , Controller, Server is not displaying it shows only Total decice count and Online offline count.
 
-
+Kindly check all file line by line and give me Updated Script.js
 
 
 
@@ -139,17 +148,14 @@ function pingAllDevices(details, regionName) {
     // After processing all devices, if any status changed, refresh summary
     setTimeout(() => {
         if (statusChanged) {
-            fetchSummary(regionName);
+            fetchData(regionName);
         }
     }, 5000); // Small delay to ensure all pings are processed
 }
 
-setInterval(() => {
-    pingAllDevices(details, regionName);
-}, 300000); // Every 5 minutes
-
-
-
+// setInterval(() => {
+//     pingAllDevices(data.details, regionName);
+// }); 
 
 
 
@@ -264,13 +270,11 @@ function updateDetails(data) {
                 cityFilter.appendChild(option);
             });
 
-
             deviceFilter.value = "all";
             cityFilter.value = "all";
             document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
             allFilterButton.classList.add("active");
             
-
 
 
             function filterDevices() {
@@ -316,7 +320,6 @@ function updateDetails(data) {
             }
             
             
-
             // [UPDATED]: Calculate summary from filtered list
             function calculateCitySummary(devices) {
                 const summary = {
@@ -366,8 +369,6 @@ function updateDetails(data) {
 
 
 
-
-
             deviceFilter.addEventListener("change", filterDevices);
             cityFilter.addEventListener("change", filterDevices);
             allFilterButton.addEventListener("click", () => {
@@ -394,8 +395,6 @@ function updateDetails(data) {
 }
 
 
-
-
     function showModal(name, ip, location, status) {
         document.getElementById("modal-title").textContent = `Details for ${name}`;
         document.getElementById("modal-body").innerHTML = `
@@ -407,4 +406,3 @@ function updateDetails(data) {
         `;
         document.getElementById("modal").style.display = "block";
     }
-
