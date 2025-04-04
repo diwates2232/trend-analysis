@@ -1,3 +1,61 @@
+function filterDevices() {
+    const selectedType = deviceFilter.value;
+    const selectedStatus = document.querySelector(".status-filter.active")?.dataset.status || "all";
+    const selectedCity = cityFilter.value;
+
+    detailsContainer.innerHTML = "";
+
+    const filteredDevices = allDevices.filter((device) =>
+        (selectedType === "all" || device.dataset.type === selectedType) &&
+        (selectedStatus === "all" || device.dataset.status === selectedStatus) &&
+        (selectedCity === "all" || device.dataset.city === selectedCity)
+    );
+
+    filteredDevices.forEach((deviceCard) => {
+        detailsContainer.appendChild(deviceCard);
+    });
+
+    // Update Summary Title
+    const region = currentRegion?.toUpperCase() || "GLOBAL";
+    if (selectedCity !== "all") {
+        document.getElementById("region-title").textContent = `${region}, ${selectedCity} Summary`;
+    } else {
+        document.getElementById("region-title").textContent = `${region} Summary`;
+    }
+
+    // [UPDATED]: Recalculate city-wise summary
+    const filteredSummaryDevices = deviceObjects.filter((deviceCard, index) => {
+        const element = allDevices[index];
+        return (
+            (selectedType === "all" || element.dataset.type === selectedType) &&
+            (selectedStatus === "all" || element.dataset.status === selectedStatus) &&
+            (selectedCity === "all" || element.dataset.city === selectedCity)
+        );
+    });
+
+    const summary = calculateCitySummary(filteredSummaryDevices);
+    updateSummary(summary);
+}
+
+
+
+function switchRegion(region) {
+    clearExistingIntervals(); // Avoid interval duplication
+    currentRegion = region;   // <-- Add this line
+    fetchData(region);
+    startAutoRefresh(region);
+}
+
+
+
+
+
+
+
+
+
+
+
 
 function updateDetails(data) {
     return new Promise((resolve, reject) => {
