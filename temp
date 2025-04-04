@@ -1,4 +1,35 @@
 
+
+
+function updateSummary(summaryData) {
+    const data = summaryData.summary;
+
+    document.getElementById("totalDevices").textContent = data.totalDevices;
+    document.getElementById("totalOnline").textContent = data.totalOnlineDevices;
+    document.getElementById("totalOffline").textContent = data.totalOfflineDevices;
+
+    document.getElementById("totalCameras").textContent = data.cameras.total;
+    document.getElementById("onlineCameras").textContent = data.cameras.online;
+    document.getElementById("offlineCameras").textContent = data.cameras.offline;
+
+    document.getElementById("totalArchivers").textContent = data.archivers.total;
+    document.getElementById("onlineArchivers").textContent = data.archivers.online;
+    document.getElementById("offlineArchivers").textContent = data.archivers.offline;
+
+    document.getElementById("totalControllers").textContent = data.controllers.total;
+    document.getElementById("onlineControllers").textContent = data.controllers.online;
+    document.getElementById("offlineControllers").textContent = data.controllers.offline;
+
+    document.getElementById("totalServers").textContent = data.servers.total;
+    document.getElementById("onlineServers").textContent = data.servers.online;
+    document.getElementById("offlineServers").textContent = data.servers.offline;
+}
+
+
+
+
+
+
 <span id="totalDevices"></span>
 <span id="totalOnline"></span>
 <span id="totalOffline"></span>
