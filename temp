@@ -1,1184 +1,434 @@
+Read below Script.js file nad 
+in Before Device Ip Add "Sr.No" 
+Column for serial number.
+Also add Sr.No column in Device History section.
+before date section
 
 
-const baseUrl = "http://localhost:80/api/regions";
-let refreshInterval = 300000; // 5 minutes
-let pingInterval = 30000; // 30 seconds
-let countdownTime = refreshInterval / 1000; // Convert to seconds
-let currentRegion = "global";
-let deviceDetailsCache = {}; // Store previous details to prevent redundant updates
-let latestDetails = null; // Cache the latest fetched details
 
-document.addEventListener("DOMContentLoaded", () => {
-    fetchData("global"); // Load initial data
-    startAutoRefresh("global");
+let deviceUptimeTimers = {};
+let deviceDowntimeTimers = {};
 
-    document.querySelectorAll(".region-button").forEach((button) => {
-        button.addEventListener("click", () => {
-            const region = button.getAttribute("data-region");
-            document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
-            switchRegion(region);
-        });
-    });
-
-    document.getElementById("close-modal").addEventListener("click", () => {
-        document.getElementById("modal").style.display = "none";
-    });
-});
-
-function switchRegion(region) {
-    clearExistingIntervals(); // Avoid interval duplication
-    currentRegion = region;
-    deviceDetailsCache = {};
-    fetchData(region);
-    startAutoRefresh(region);
-}
-
-// **Auto-refresh mechanism**
-function startAutoRefresh(regionName) {
-    fetchData(regionName); // Fetch initial data
-
-    clearExistingIntervals();
-
-    // Start countdown timer
-    window.countdownTimer = setInterval(() => {
-        document.getElementById("countdown").innerText = `Refreshing in ${countdownTime} seconds`;
-        countdownTime--;
-        if (countdownTime < 0) countdownTime = refreshInterval / 1000;
-    }, 1000);
-
-    // Refresh summary & details every 5 minutes
-    window.refreshTimer = setInterval(() => {
-        fetchData(regionName);
-        countdownTime = refreshInterval / 1000;
-    }, refreshInterval);
-
-    // Ping devices every 30 seconds
-    window.pingTimer = setInterval(() => {
-        pingAllDevices(regionName);
-    }, pingInterval);
-}
-
-function clearExistingIntervals() {
-    clearInterval(window.countdownTimer);
-    clearInterval(window.refreshTimer);
-    clearInterval(window.pingTimer);
-}
-
-// **Fetch summary and details together**
-function fetchData(regionName) {
-    Promise.all([
-        fetch(`${baseUrl}/summary/${regionName}`).then(res => res.json()),
-        fetch(`${baseUrl}/details/${regionName}`).then(res => res.json())
-    ])
-    .then(([summary, details]) => {
-        console.log("Summary Data:", summary);
-        console.log("Details Data:", details);
-
-        // Update summary from backend data
-        updateSummary(summary);
-        
-        if (JSON.stringify(details) !== JSON.stringify(deviceDetailsCache)) {
-            updateDetails(details);
-            deviceDetailsCache = details; // Update cache
-        }
-        // Cache details for pinging
-        latestDetails = details;
-    })
-    .catch((error) => console.error("Error fetching data:", error));
-}
-
-function pingAllDevices(details, regionName) {
-    // If the first parameter is a string or missing, assume it is the region name
-    if (!details || typeof details === "string") {
-        regionName = details || regionName;
-        details = latestDetails;
-    }
-    if (!details || !details.details) return;
-
-    let statusChanged = false; // Track if any status changed
-
-    for (const [key, devices] of Object.entries(details.details)) {
-        if (!Array.isArray(devices) || devices.length === 0) continue;
-
-        devices.forEach((device) => {
-            const ip = device.ip_address || "N/A";
-            const card = document.querySelector(`[data-ip="${ip}"]`);
-
-            if (!card) return; // If device is not found in UI, skip
-
-            // Ping the device API with enhanced error handling
-            fetch(`${baseUrl}/ping/${ip}`)
-                .then(response => {
-                    if (!response.ok) {
-                        console.error(`Ping failed for ${ip}: HTTP status ${response.status}`);
-                        throw new Error(`HTTP error ${response.status}`);
-                    }
-                    return response.json().catch(err => {
-                        console.error(`Ping failed for ${ip}: Response is not valid JSON`, err);
-                        throw err;
-                    });
-                })
-                .then(statusData => {
-                    const newStatus = statusData.status.toLowerCase(); // Get live status
-                    const currentStatus = card.dataset.status; // Current status in UI
-
-                    // Update the UI instantly
-                    const statusDot = card.querySelector(".status-dot");
-                    const statusText = card.querySelector(".device-status");
-
-                    statusDot.style.backgroundColor = (newStatus === "online") ? "green" : "red";
-                    // Capitalize for display
-                    statusText.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
-
-                    if (newStatus !== currentStatus) {
-                        statusChanged = true; // A change in status was detected
-                        card.dataset.status = newStatus; // Update dataset
-                    }
-                })
-                .catch(error => {
-                    console.error(`Ping failed for ${ip}:`, error);
-                });
-        });
-    }
-
-    // After processing all devices, if any status changed, refresh summary
-    setTimeout(() => {
-        if (statusChanged) {
-            fetchData(regionName);
-        }
-    }, 5000); // Small delay to ensure all pings are processed
-}
-
-function updateSummary(data) {
-    document.getElementById("total-devices").textContent = data.summary?.totalDevices || "0";
-    document.getElementById("online-devices").textContent = data.summary?.totalOnlineDevices || "0";
-    document.getElementById("offline-devices").textContent = data.summary?.totalOfflineDevices || "0";
-
-    document.getElementById("camera-total").textContent = data.summary?.cameras?.total || "0";
-    document.getElementById("camera-online").textContent = data.summary?.cameras?.online || "0";
-    document.getElementById("camera-offline").textContent = data.summary?.cameras?.offline || "0";
-
-    document.getElementById("archiver-total").textContent = data.summary?.archivers?.total || "0";
-    document.getElementById("archiver-online").textContent = data.summary?.archivers?.online || "0";
-    document.getElementById("archiver-offline").textContent = data.summary?.archivers?.offline || "0";
-
-    document.getElementById("controller-total").textContent = data.summary?.controllers?.total || "0";
-    document.getElementById("controller-online").textContent = data.summary?.controllers?.online || "0";
-    document.getElementById("controller-offline").textContent = data.summary?.controllers?.offline || "0";
-
-    document.getElementById("server-total").textContent = data.summary?.servers?.total || "0";
-    document.getElementById("server-online").textContent = data.summary?.servers?.online || "0";
-    document.getElementById("server-offline").textContent = data.summary?.servers?.offline || "0";
-}
-
-function updateDetails(data) {
-    const detailsContainer = document.getElementById("device-details");
-    const deviceFilter = document.getElementById("device-filter");
-    const onlineFilterButton = document.getElementById("filter-online");
-    const offlineFilterButton = document.getElementById("filter-offline");
-    const allFilterButton = document.getElementById("filter-all");
-    const cityFilter = document.getElementById("city-filter");
-
-    detailsContainer.innerHTML = ""; // Clear previous data
-    cityFilter.innerHTML = '<option value="all">All Cities</option>';
-
-    let combinedDevices = []; // Array to hold both the card and its device info for summary
-    let citySet = new Set();
-
-    // Fetch real-time status from the backend
-    fetch("http://localhost:80/api/region/devices/status")
-        .then((response) => response.json())
-        .then((realTimeStatus) => {
-            console.log("Live Status Data:", realTimeStatus);
-
-            for (const [key, devices] of Object.entries(data.details)) {
-                if (!Array.isArray(devices) || devices.length === 0) continue;
-
-                const deviceType = key.toLowerCase();
-
-                devices.forEach((device) => {
-                    const deviceIP = device.ip_address || "N/A";
-                    // Use real-time status if available; otherwise use device.status
-                    let currentStatus = (realTimeStatus[deviceIP] || device.status || "offline").toLowerCase();
-                    const city = device.city || "Unknown";
-
-                    citySet.add(city);
-
-                    const card = document.createElement("div");
-                    card.className = "device-card";
-                    card.dataset.type = deviceType;
-                    card.dataset.status = currentStatus;
-                    card.dataset.city = city;
-                    card.setAttribute("data-ip", deviceIP);
-
-                    const statusDot = document.createElement("span");
-                    statusDot.className = "status-dot";
-                    statusDot.style.backgroundColor = (currentStatus === "online") ? "green" : "red";
-
-                    card.innerHTML = `
-                        <h3>${device.cameraname || device.controllername || device.archivername || device.servername || "Unknown Device"}</h3>
-                        <p>DEVICE TYPE: ${deviceType.toUpperCase()}</p>
-                        <p>IP: ${deviceIP}</p>
-                        <p>LOCATION: ${device.location || "N/A"}</p>
-                        <p>CITY: ${city}</p>
-                        <p class="device-status">Status: ${currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)} ${statusDot.outerHTML}</p>
-                        <button class="details-button" onclick="showModal('${device.cameraname || device.controllername || device.archivername || device.servername || "Unknown Device"}', '${deviceIP}', '${device.location || "N/A"}', '${currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}', '${city}')">Details</button>
-                    `;
-
-                    combinedDevices.push({
-                        card: card,
-                        device: {
-                            type: deviceType,
-                            status: currentStatus,
-                            city: city
-                        }
-                    });
-                });
-            }
-
-            combinedDevices.sort((a, b) => {
-                const statusA = (a.device.status === "offline") ? 0 : 1;
-                const statusB = (b.device.status === "offline") ? 0 : 1;
-                return statusA - statusB;
-            });
-
-            const allDevices = combinedDevices.map(item => item.card);
-            const deviceObjects = combinedDevices.map(item => item.device);
-
-            citySet.forEach((city) => {
-                const option = document.createElement("option");
-                option.value = city;
-                option.textContent = city;
-                cityFilter.appendChild(option);
-            });
-
-            deviceFilter.value = "all";
-            cityFilter.value = "all";
-            document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
-            allFilterButton.classList.add("active");
-
-            function filterDevices() {
-                const selectedType = deviceFilter.value;
-                const selectedStatus = document.querySelector(".status-filter.active")?.dataset.status || "all";
-                const selectedCity = cityFilter.value;
-
-                detailsContainer.innerHTML = "";
-
-                const filteredDevices = allDevices.filter((device) =>
-                    (selectedType === "all" || device.dataset.type === selectedType) &&
-                    (selectedStatus === "all" || device.dataset.status === selectedStatus) &&
-                    (selectedCity === "all" || device.dataset.city === selectedCity)
-                );
-
-                filteredDevices.forEach((deviceCard) => {
-                    detailsContainer.appendChild(deviceCard);
-                });
-
-                const region = currentRegion?.toUpperCase() || "GLOBAL";
-                if (selectedCity !== "all") {
-                    document.getElementById("region-title").textContent = `${region}, ${selectedCity} Summary`;
-                } else {
-                    document.getElementById("region-title").textContent = `${region} Summary`;
-                }
-
-                const filteredSummaryDevices = deviceObjects.filter((deviceObj, index) => {
-                    const correspondingCard = allDevices[index];
-                    return (
-                        (selectedType === "all" || correspondingCard.dataset.type === selectedType) &&
-                        (selectedStatus === "all" || correspondingCard.dataset.status === selectedStatus) &&
-                        (selectedCity === "all" || correspondingCard.dataset.city === selectedCity)
-                    );
-                });
-
-                const summary = calculateCitySummary(filteredSummaryDevices);
-                updateSummary(summary);
-            }
-
-            function calculateCitySummary(devices) {
-                const summary = {
-                    summary: {
-                        totalDevices: devices.length,
-                        totalOnlineDevices: devices.filter(d => d.status === "online").length,
-                        totalOfflineDevices: devices.filter(d => d.status === "offline").length,
-                        cameras: { total: 0, online: 0, offline: 0 },
-                        archivers: { total: 0, online: 0, offline: 0 },
-                        controllers: { total: 0, online: 0, offline: 0 },
-                        servers: { total: 0, online: 0, offline: 0 },
-                    }
-                };
-
-                devices.forEach((device) => {
-                    if (!summary.summary[device.type]) return;
-                    summary.summary[device.type].total += 1;
-                    if (device.status === "online") summary.summary[device.type].online += 1;
-                    else summary.summary[device.type].offline += 1;
-                });
-
-                return summary;
-            }
-
-            filterDevices();
-
-            setTimeout(() => {
-                const selectedCity = cityFilter.value;
-                const selectedType = deviceFilter.value;
-                const selectedStatus = document.querySelector(".status-filter.active")?.dataset.status || "all";
-
-                const filteredSummaryDevices = deviceObjects.filter((deviceObj, index) => {
-                    const correspondingCard = allDevices[index];
-                    return (
-                        (selectedType === "all" || correspondingCard.dataset.type === selectedType) &&
-                        (selectedStatus === "all" || correspondingCard.dataset.status === selectedStatus) &&
-                        (selectedCity === "all" || correspondingCard.dataset.city === selectedCity)
-                    );
-                });
-
-                const summary = calculateCitySummary(filteredSummaryDevices);
-                updateSummary(summary);
-            }, 100);
-
-            deviceFilter.addEventListener("change", filterDevices);
-            cityFilter.addEventListener("change", filterDevices);
-            allFilterButton.addEventListener("click", () => {
-                document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
-                allFilterButton.classList.add("active");
-                filterDevices();
-            });
-            onlineFilterButton.addEventListener("click", () => {
-                document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
-                onlineFilterButton.classList.add("active");
-                filterDevices();
-            });
-            offlineFilterButton.addEventListener("click", () => {
-                document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
-                offlineFilterButton.classList.add("active");
-                filterDevices();
-            });
+function fetchDeviceData() {
+    const selectedRegion = document.getElementById('region').value;
+    fetch(`http://localhost/api/regions/details/${selectedRegion}`)
+        .then(response => response.json())
+        .then(regionData => {
+            fetchDeviceHistory(regionData.details);
         })
-        .catch((error) => {
-            console.error("Error fetching real-time device status:", error);
-            detailsContainer.innerHTML = "<p>Failed to load device details.</p>";
-        });
+        .catch(error => console.error('Error fetching device data:', error));
 }
 
-function showModal(name, ip, location, status, city) {
-    document.getElementById("modal-title").textContent = `Details for ${name}`;
-    document.getElementById("modal-body").innerHTML = `
-        <li><strong>Name:</strong> ${name}</li>
-        <li><strong>IP:</strong> ${ip}</li>
-        <li><strong>Location:</strong> ${location}</li>
-        <li><strong>Status:</strong> ${status}</li>
-        <li><strong>City:</strong> ${city}</li>
-    `;
-    document.getElementById("modal").style.display = "block";
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const baseUrl = "http://localhost:80/api/regions";
-let refreshInterval = 300000; // 5 minutes
-let pingInterval = 30000; // 30 seconds
-let countdownTime = refreshInterval / 1000; // Convert to seconds
-let currentRegion = "global";
-let deviceDetailsCache = {}; // Store previous details to prevent redundant updates
-let latestDetails = null; // Cache the latest fetched details
-
-document.addEventListener("DOMContentLoaded", () => {
-    fetchData("global"); // Load initial data
-    startAutoRefresh("global");
-
-    document.querySelectorAll(".region-button").forEach((button) => {
-        button.addEventListener("click", () => {
-            const region = button.getAttribute("data-region");
-            document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
-            switchRegion(region);
-        });
-    });
-
-    document.getElementById("close-modal").addEventListener("click", () => {
-        document.getElementById("modal").style.display = "none";
-    });
-});
-
-function switchRegion(region) {
-    clearExistingIntervals(); // Avoid interval duplication
-    currentRegion = region;
-    deviceDetailsCache = {};
-    fetchData(region);
-    startAutoRefresh(region);
-}
-
-// **Auto-refresh mechanism**
-function startAutoRefresh(regionName) {
-    fetchData(regionName); // Fetch initial data
-
-    clearExistingIntervals();
-
-    // Start countdown timer
-    window.countdownTimer = setInterval(() => {
-        document.getElementById("countdown").innerText = `Refreshing in ${countdownTime} seconds`;
-        countdownTime--;
-        if (countdownTime < 0) countdownTime = refreshInterval / 1000;
-    }, 1000);
-
-    // Refresh summary & details every 5 minutes
-    window.refreshTimer = setInterval(() => {
-        fetchData(regionName);
-        countdownTime = refreshInterval / 1000;
-    }, refreshInterval);
-
-    // Ping devices every 30 seconds
-    window.pingTimer = setInterval(() => {
-        pingAllDevices(regionName);
-    }, pingInterval);
-}
-
-function clearExistingIntervals() {
-    clearInterval(window.countdownTimer);
-    clearInterval(window.refreshTimer);
-    clearInterval(window.pingTimer);
-}
-
-// **Fetch summary and details together**
-function fetchData(regionName) {
-    Promise.all([
-        fetch(`${baseUrl}/summary/${regionName}`).then(res => res.json()),
-        fetch(`${baseUrl}/details/${regionName}`).then(res => res.json())
-    ])
-    .then(([summary, details]) => {
-        console.log("Summary Data:", summary);
-        console.log("Details Data:", details);
-
-        // Update summary from backend data
-        updateSummary(summary);
-        
-        if (JSON.stringify(details) !== JSON.stringify(deviceDetailsCache)) {
-            updateDetails(details);
-            deviceDetailsCache = details; // Update cache
-        }
-        // Cache details for pinging
-        latestDetails = details;
-    })
-    .catch((error) => console.error("Error fetching data:", error));
-}
-
-function pingAllDevices(details, regionName) {
-    // If the first parameter is a string or missing, assume it is the region name
-    if (!details || typeof details === "string") {
-        regionName = details || regionName;
-        details = latestDetails;
-    }
-    if (!details || !details.details) return;
-
-    let statusChanged = false; // Track if any status changed
-
-    for (const [key, devices] of Object.entries(details.details)) {
-        if (!Array.isArray(devices) || devices.length === 0) continue;
-
-        devices.forEach((device) => {
-            const ip = device.ip_address || "N/A";
-            const card = document.querySelector(`[data-ip="${ip}"]`);
-
-            if (!card) return; // If device is not found in UI, skip
-
-            // Ping the device API
-            fetch(`${baseUrl}/ping/${ip}`)
-                .then(response => response.json())
-                .then(statusData => {
-                    const newStatus = statusData.status.toLowerCase(); // Get live status
-                    const currentStatus = card.dataset.status; // Current status in UI
-
-                    // Update the UI instantly
-                    const statusDot = card.querySelector(".status-dot");
-                    const statusText = card.querySelector(".device-status");
-
-                    statusDot.style.backgroundColor = (newStatus === "online") ? "green" : "red";
-                    // Capitalize first letter for display
-                    statusText.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
-
-                    if (newStatus !== currentStatus) {
-                        statusChanged = true; // A change in status was detected
-                        card.dataset.status = newStatus; // Update dataset
-                    }
-                })
-                .catch(error => console.error(`Ping failed for ${ip}:`, error));
-        });
-    }
-
-    // After processing all devices, if any status changed, refresh summary
-    setTimeout(() => {
-        if (statusChanged) {
-            fetchData(regionName);
-        }
-    }, 5000); // Small delay to ensure all pings are processed
-}
-
-function updateSummary(data) {
-    document.getElementById("total-devices").textContent = data.summary?.totalDevices || "0";
-    document.getElementById("online-devices").textContent = data.summary?.totalOnlineDevices || "0";
-    document.getElementById("offline-devices").textContent = data.summary?.totalOfflineDevices || "0";
-
-    document.getElementById("camera-total").textContent = data.summary?.cameras?.total || "0";
-    document.getElementById("camera-online").textContent = data.summary?.cameras?.online || "0";
-    document.getElementById("camera-offline").textContent = data.summary?.cameras?.offline || "0";
-
-    document.getElementById("archiver-total").textContent = data.summary?.archivers?.total || "0";
-    document.getElementById("archiver-online").textContent = data.summary?.archivers?.online || "0";
-    document.getElementById("archiver-offline").textContent = data.summary?.archivers?.offline || "0";
-
-    document.getElementById("controller-total").textContent = data.summary?.controllers?.total || "0";
-    document.getElementById("controller-online").textContent = data.summary?.controllers?.online || "0";
-    document.getElementById("controller-offline").textContent = data.summary?.controllers?.offline || "0";
-
-    document.getElementById("server-total").textContent = data.summary?.servers?.total || "0";
-    document.getElementById("server-online").textContent = data.summary?.servers?.online || "0";
-    document.getElementById("server-offline").textContent = data.summary?.servers?.offline || "0";
-}
-
-function updateDetails(data) {
-    const detailsContainer = document.getElementById("device-details");
-    const deviceFilter = document.getElementById("device-filter");
-    const onlineFilterButton = document.getElementById("filter-online");
-    const offlineFilterButton = document.getElementById("filter-offline");
-    const allFilterButton = document.getElementById("filter-all");
-    const cityFilter = document.getElementById("city-filter");
-
-    detailsContainer.innerHTML = ""; // Clear previous data
-    cityFilter.innerHTML = '<option value="all">All Cities</option>';
-
-    let combinedDevices = []; // Array to hold both the card and its device info for summary
-    let citySet = new Set();
-
-    // Fetch real-time status from the backend
-    fetch("http://localhost:80/api/region/devices/status")
-        .then((response) => response.json())
-        .then((realTimeStatus) => {
-            console.log("Live Status Data:", realTimeStatus);
-
-            for (const [key, devices] of Object.entries(data.details)) {
-                if (!Array.isArray(devices) || devices.length === 0) continue;
-
-                const deviceType = key.toLowerCase(); // Expect keys like "cameras", "archivers", etc.
-
-                devices.forEach((device) => {
-                    const deviceIP = device.ip_address || "N/A";
-                    // Use real-time status if available; otherwise use device.status
-                    let currentStatus = (realTimeStatus[deviceIP] || device.status || "offline").toLowerCase();
-                    const city = device.city || "Unknown";
-
-                    citySet.add(city);
-
-                    const card = document.createElement("div");
-                    card.className = "device-card";
-                    card.dataset.type = deviceType;
-                    card.dataset.status = currentStatus;
-                    card.dataset.city = city;
-                    // Set a data-ip attribute to help identify the card during ping updates
-                    card.setAttribute("data-ip", deviceIP);
-
-                    // Create a status dot element
-                    const statusDot = document.createElement("span");
-                    statusDot.className = "status-dot";
-                    statusDot.style.backgroundColor = (currentStatus === "online") ? "green" : "red";
-
-                    // Build the card content with capitalized status text
-                    card.innerHTML = `
-                        <h3>${device.cameraname || device.controllername || device.archivername || device.servername || "Unknown Device"}</h3>
-                        <p>DEVICE TYPE: ${deviceType.toUpperCase()}</p>
-                        <p>IP: ${deviceIP}</p>
-                        <p>LOCATION: ${device.location || "N/A"}</p>
-                        <p>CITY: ${city}</p>
-                        <p class="device-status">Status: ${currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)} ${statusDot.outerHTML}</p>
-                        <button class="details-button" onclick="showModal('${device.cameraname || device.controllername || device.archivername || device.servername || "Unknown Device"}', '${deviceIP}', '${device.location || "N/A"}', '${currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}', '${city}')">Details</button>
-                    `;
-
-                    combinedDevices.push({
-                        card: card,
-                        device: {
-                            type: deviceType,
-                            status: currentStatus,
-                            city: city
-                        }
-                    });
-                });
-            }
-
-            // Sort the combined devices (offline devices first)
-            combinedDevices.sort((a, b) => {
-                const statusA = (a.device.status === "offline") ? 0 : 1;
-                const statusB = (b.device.status === "offline") ? 0 : 1;
-                return statusA - statusB;
-            });
-
-            // Separate into parallel arrays for filtering
-            const allDevices = combinedDevices.map(item => item.card);
-            const deviceObjects = combinedDevices.map(item => item.device);
-
-            // Populate city filter options
-            citySet.forEach((city) => {
-                const option = document.createElement("option");
-                option.value = city;
-                option.textContent = city;
-                cityFilter.appendChild(option);
-            });
-
-            deviceFilter.value = "all";
-            cityFilter.value = "all";
-            document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
-            allFilterButton.classList.add("active");
-
-            function filterDevices() {
-                const selectedType = deviceFilter.value;
-                const selectedStatus = document.querySelector(".status-filter.active")?.dataset.status || "all";
-                const selectedCity = cityFilter.value;
-
-                detailsContainer.innerHTML = "";
-
-                // Filter devices based on selected filters
-                const filteredDevices = allDevices.filter((device) =>
-                    (selectedType === "all" || device.dataset.type === selectedType) &&
-                    (selectedStatus === "all" || device.dataset.status === selectedStatus) &&
-                    (selectedCity === "all" || device.dataset.city === selectedCity)
-                );
-
-                filteredDevices.forEach((deviceCard) => {
-                    detailsContainer.appendChild(deviceCard);
-                });
-
-                // Update Summary Title
-                const region = currentRegion?.toUpperCase() || "GLOBAL";
-                if (selectedCity !== "all") {
-                    document.getElementById("region-title").textContent = `${region}, ${selectedCity} Summary`;
-                } else {
-                    document.getElementById("region-title").textContent = `${region} Summary`;
-                }
-
-                // Recalculate city-wise summary from filtered devices
-                const filteredSummaryDevices = deviceObjects.filter((deviceObj, index) => {
-                    const correspondingCard = allDevices[index];
-                    return (
-                        (selectedType === "all" || correspondingCard.dataset.type === selectedType) &&
-                        (selectedStatus === "all" || correspondingCard.dataset.status === selectedStatus) &&
-                        (selectedCity === "all" || correspondingCard.dataset.city === selectedCity)
-                    );
-                });
-
-                const summary = calculateCitySummary(filteredSummaryDevices);
-                updateSummary(summary);
-            }
-
-            // Calculate summary based on the filtered device objects
-            function calculateCitySummary(devices) {
-                const summary = {
-                    summary: {
-                        totalDevices: devices.length,
-                        totalOnlineDevices: devices.filter(d => d.status === "online").length,
-                        totalOfflineDevices: devices.filter(d => d.status === "offline").length,
-                        cameras: { total: 0, online: 0, offline: 0 },
-                        archivers: { total: 0, online: 0, offline: 0 },
-                        controllers: { total: 0, online: 0, offline: 0 },
-                        servers: { total: 0, online: 0, offline: 0 },
-                    }
-                };
-
-                devices.forEach((device) => {
-                    if (!summary.summary[device.type]) return;
-                    summary.summary[device.type].total += 1;
-                    if (device.status === "online") summary.summary[device.type].online += 1;
-                    else summary.summary[device.type].offline += 1;
-                });
-
-                return summary;
-            }
-
-            // Initial display of devices and summary update
-            filterDevices();
-
-            setTimeout(() => {
-                const selectedCity = cityFilter.value;
-                const selectedType = deviceFilter.value;
-                const selectedStatus = document.querySelector(".status-filter.active")?.dataset.status || "all";
-
-                const filteredSummaryDevices = deviceObjects.filter((deviceObj, index) => {
-                    const correspondingCard = allDevices[index];
-                    return (
-                        (selectedType === "all" || correspondingCard.dataset.type === selectedType) &&
-                        (selectedStatus === "all" || correspondingCard.dataset.status === selectedStatus) &&
-                        (selectedCity === "all" || correspondingCard.dataset.city === selectedCity)
-                    );
-                });
-
-                const summary = calculateCitySummary(filteredSummaryDevices);
-                updateSummary(summary);
-            }, 100); // Slight delay to ensure DOM update is complete
-
-            deviceFilter.addEventListener("change", filterDevices);
-            cityFilter.addEventListener("change", filterDevices);
-            allFilterButton.addEventListener("click", () => {
-                document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
-                allFilterButton.classList.add("active");
-                filterDevices();
-            });
-            onlineFilterButton.addEventListener("click", () => {
-                document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
-                onlineFilterButton.classList.add("active");
-                filterDevices();
-            });
-            offlineFilterButton.addEventListener("click", () => {
-                document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
-                offlineFilterButton.classList.add("active");
-                filterDevices();
-            });
-
+function fetchDeviceHistory(regionDetails) {
+    fetch(`http://localhost/api/devices/history`)
+        .then(response => response.json())
+        .then(historyData => {
+            populateDeviceTable(regionDetails, historyData);
+            window.deviceHistoryData = historyData; // Store history for reuse
         })
-        .catch((error) => {
-            console.error("Error fetching real-time device status:", error);
-            detailsContainer.innerHTML = "<p>Failed to load device details.</p>";
+        .catch(error => console.error('Error fetching device history:', error));
+}
+
+
+
+
+function populateDeviceTable(details, historyData) {
+    const tableBody = document.getElementById('device-table').getElementsByTagName('tbody')[0];
+    tableBody.innerHTML = ''; // Clear existing rows
+
+    let deviceList = [];
+
+    if (details) {
+        ['cameras', 'archivers', 'controllers', 'servers'].forEach(deviceType => {
+            details[deviceType]?.forEach(device => {
+                const deviceIp = device.ip_address;
+                const deviceName = device[deviceType.slice(0, -1) + 'name'];
+                const deviceCategory = deviceType.slice(0, -1).toUpperCase();
+
+                const deviceHistory = historyData[deviceIp] || [];
+                const lastStatusEntry = deviceHistory.length > 0 ? deviceHistory[deviceHistory.length - 1] : null;
+                const currentStatus = lastStatusEntry ? lastStatusEntry.status : "Unknown";
+
+                // Calculate downtime count
+                let downtimeCount = deviceHistory.filter(entry => entry.status === "Offline").length;
+
+                // Store device info in an array before rendering
+                deviceList.push({
+                    deviceIp,
+                    deviceName,
+                    deviceCategory,
+                    currentStatus,
+                    deviceHistory,
+                    downtimeCount
+                });
+            });
         });
-}
 
-function showModal(name, ip, location, status, city) {
-    document.getElementById("modal-title").textContent = `Details for ${name}`;
-    document.getElementById("modal-body").innerHTML = `
-        <li><strong>Name:</strong> ${name}</li>
-        <li><strong>IP:</strong> ${ip}</li>
-        <li><strong>Location:</strong> ${location}</li>
-        <li><strong>Status:</strong> ${status}</li>
-        <li><strong>City:</strong> ${city}</li>
-    `;
-    document.getElementById("modal").style.display = "block";
-}
+        // **Sort devices by downtime count (descending order)**
+        deviceList.sort((a, b) => b.downtimeCount - a.downtimeCount);
 
+        // **Render sorted devices**
+        deviceList.forEach(({deviceIp, deviceName, deviceCategory, currentStatus, deviceHistory, downtimeCount }) => {
+            const row = tableBody.insertRow();
+            row.style.border = "1px solid black"; // Add border to row
 
-
-
-
-
-
-
-
-
-
-
-
-Read below file carefully line by line.
-
-error- Uncaught TypeError: Cannot convert undefined or null to object
-    at Object.entries (<anonymous>)
-    at pingAllDevices (script.js:433:41)
-    at script.js:399:9
-
-also When Device goes offline again its back online Count in Summary Section is not Updated.
-Also When Deive filter using City count of offline Device displays in online count section.
-
-Also Total cameras count
-Total online Cameras count
-Total Offline Cameras count
-same for Archiver , Controller, Server is not displaying it shows only Total decice count and Online offline count.
-
-Kindly check all file line by line and give me Updated Script.js
-
-and give me full updated files
-
-
-
-
-const baseUrl = "http://localhost:80/api/regions";
-let refreshInterval = 300000; // 5 minutes
-let pingInterval = 30000; // 30 seconds
-let countdownTime = refreshInterval / 1000; // Convert to seconds
-let currentRegion = "global"; 
-let deviceDetailsCache = {}; // Store previous details to prevent redundant updates
-
-document.addEventListener("DOMContentLoaded", () => {
-    fetchData("global"); // Load initial data
-    startAutoRefresh("global");
-
-    document.querySelectorAll(".region-button").forEach((button) => {
-        button.addEventListener("click", () => {
-            const region = button.getAttribute("data-region");
-            document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
-            switchRegion(region);
-        });
-    });
-
-    document.getElementById("close-modal").addEventListener("click", () => {
-        document.getElementById("modal").style.display = "none";
-    });
-});
-
-
-
-
-function switchRegion(region) {
-    clearExistingIntervals(); // Avoid interval duplication
-    currentRegion = region; 
-    deviceDetailsCache={};
-    fetchData(region);
-    startAutoRefresh(region);
-}
-
-// **Auto-refresh mechanism**
-function startAutoRefresh(regionName) {
-    fetchData(regionName); // Fetch initial data
-
-    clearExistingIntervals();
-
-    // Start countdown timer
-    window.countdownTimer = setInterval(() => {
-        document.getElementById("countdown").innerText = `Refreshing in ${countdownTime} seconds`;
-        countdownTime--;
-        if (countdownTime < 0) countdownTime = refreshInterval / 1000;
-    }, 1000);
-
-    // Refresh summary & details every 5 minutes
-    window.refreshTimer = setInterval(() => {
-        fetchData(regionName);
-        countdownTime = refreshInterval / 1000;
-    }, refreshInterval);
-
-    // Ping devices every 30 seconds
-    window.pingTimer = setInterval(() => {
-        pingAllDevices(regionName);
-    }, pingInterval);
-}
-
-function clearExistingIntervals() {
-    clearInterval(window.countdownTimer);
-    clearInterval(window.refreshTimer);
-    clearInterval(window.pingTimer);
-}
-
-// **Fetch summary and details together**
-function fetchData(regionName) {
-    Promise.all([
-        fetch(`${baseUrl}/summary/${regionName}`).then(res => res.json()),
-        fetch(`${baseUrl}/details/${regionName}`).then(res => res.json())
-    ])
-    .then(([summary, details]) => {
-        console.log("Summary Data:", summary);
-        console.log("Details Data:", details);
-
-        updateSummary(summary);
+            row.innerHTML = `
         
-        if (JSON.stringify(details) !== JSON.stringify(deviceDetailsCache)) {
-            updateDetails(details);
-            deviceDetailsCache = details; // Update cache
-        }
-    })
-    .catch((error) => console.error("Error fetching data:", error));
+                <td>${deviceIp}</td>
+                <td>${deviceName}</td>
+
+
+                <td>${deviceCategory}</td>
+                <td id="uptime-${deviceIp}">0h/0m/0s</td>
+                <td id="downtime-count-${deviceIp}">${downtimeCount}</td>
+                <td id="downtime-${deviceIp}">0h/0m/0s</td>
+                 <td><button onclick="openDeviceHistory('${deviceIp}', '${deviceName}')">View History</button></td>
+                <td id="remark-${deviceIp}">Device working properly</td>
+            `;
+
+            // Set text color based on status
+            const color = currentStatus === "Online" ? "green" : "red";
+            row.style.color = color;
+
+            if (currentStatus === "Online") {
+                startUptime(deviceIp, deviceHistory);
+            } else {
+                startDowntime(deviceIp, deviceHistory);
+            }
+
+            updateRemarks(deviceIp, deviceHistory, deviceCategory);
+        });
+    } else {
+        console.error('No details found in the response');
+    }
 }
 
 
-function pingAllDevices(details, regionName) {
-    let statusChanged = false; // Track if any status changed
+function startUptime(deviceIp, history) {
+    clearInterval(deviceDowntimeTimers[deviceIp]);
+    let lastOnlineEntry = history.filter(entry => entry.status === "Online").pop();
+    
+    if (!lastOnlineEntry) return;
+    
+    let startTime = new Date(lastOnlineEntry.timestamp).getTime();
+    deviceUptimeTimers[deviceIp] = setInterval(() => {
+        let elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById(`uptime-${deviceIp}`).innerText = formatDuration(elapsedTime);
+    }, 1000);
+}
 
-    for (const [key, devices] of Object.entries(details.details)) {
-        if (!Array.isArray(devices) || devices.length === 0) continue;
+// **Updated startDowntime function to fix current offline detection**
+function startDowntime(deviceIp, history) {
+    clearInterval(deviceUptimeTimers[deviceIp]);
+    let lastOfflineEntry = history.filter(entry => entry.status === "Offline").pop();
 
-        devices.forEach((device) => {
-            const ip = device.ip_address || "N/A";
-            const card = document.querySelector(`[data-ip="${ip}"]`);
+    if (!lastOfflineEntry) return;
+    
+    let startTime = new Date(lastOfflineEntry.timestamp).getTime();
+    deviceDowntimeTimers[deviceIp] = setInterval(() => {
+        let elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById(`downtime-${deviceIp}`).innerText = formatDuration(elapsedTime);
+        updateDowntimeCount(deviceIp, history);
+    }, 1000);
+}
 
-            if (!card) return; // If device is not found in UI, skip
 
-            // Ping the device API
-            fetch(`${baseUrl}/ping/${ip}`)
-                .then(response => response.json())
-                .then(statusData => {
-                    const newStatus = statusData.status.toLowerCase(); // Get live status
-                    const currentStatus = card.dataset.status; // Current status in UI
+// **Fix Downtime Count and Remarks Update (with proper filtering)**
+function updateDowntimeCount(deviceIp, history) {
+    let downtimeEntries = history.filter(entry => entry.status === "Offline");
 
-                    // Update the UI instantly
-                    const statusDot = card.querySelector(".status-dot");
-                    const statusText = card.querySelector(".device-status");
+    // Only count downtimes that last more than 5 minutes, except for servers
+    let filteredDowntimeEntries = downtimeEntries.filter((entry, index, arr) => {
+        if (deviceType === "SERVER") return true; // Always count downtime for servers
+        if (index === 0) return true; // Always keep the first entry
 
-                    if (newStatus === "online") {
-                        statusDot.style.backgroundColor = "green";
-                        statusText.textContent = "Online";
-                    } else {
-                        statusDot.style.backgroundColor = "red";
-                        statusText.textContent = "Offline";
-                    }
+        let previousEntry = arr[index - 1];
+        let duration = (new Date(entry.timestamp) - new Date(previousEntry.timestamp)) / 1000;
+        return duration >= 300; // 300 seconds = 5 minutes
+    });
 
-                    if (newStatus !== currentStatus) {
-                        statusChanged = true; // A change in status was detected
-                        card.dataset.status = newStatus; // Update dataset
-                    }
-                })
-                .catch(error => console.error(`Ping failed for ${ip}:`, error));
-        });
+    let downtimeCount = filteredDowntimeEntries.length;
+    
+    let downtimeElement = document.getElementById(`downtime-count-${deviceIp}`);
+    if (downtimeElement) {
+        downtimeElement.innerText = downtimeCount;
     }
 
-    // After processing all devices, if any status changed, refresh summary
-    setTimeout(() => {
-        if (statusChanged) {
-            fetchData(regionName);
+    // Update remarks based on downtime count and total downtime
+    let remarkElement = document.getElementById(`remark-${deviceIp}`);
+    if (remarkElement) {
+        if (downtimeCount === 0) {
+            remarkElement.innerText = "Device is Online.";
+        } else if (downtimeCount >= 3) {
+            remarkElement.innerText = `Device is Online, but it had ${downtimeCount} offline occurrences. Needs repair!`;
+        } else {
+            remarkElement.innerText = `Device is Online, but it had ${downtimeCount} offline occurrences.`;
         }
-    }, 5000); // Small delay to ensure all pings are processed
+    }
 }
 
-// setInterval(() => {
-//     pingAllDevices(data.details, regionName);
-// }); 
+// Fix for updateRemarks function to prioritize current status and handle downtime properly
+function updateRemarks(deviceIp, history, deviceType) {
+    let downtimeEntries = history.filter(entry => entry.status === "Offline");
 
+    // Filter downtimes that lasted more than 5 minutes (except for servers)
+    let filteredDowntimeEntries = downtimeEntries.filter((entry, index, arr) => {
+        if (deviceType === "SERVER") return true; // Always count downtime for servers
+        if (index === 0) return true; // Always keep the first entry
 
+        let previousEntry = arr[index - 1];
+        let duration = (new Date(entry.timestamp) - new Date(previousEntry.timestamp)) / 1000;
+        return duration >= 300; // 300 seconds = 5 minutes
+    });
 
+    let downtimeCount = filteredDowntimeEntries.length;
+    let lastStatus = history.length > 0 ? history[history.length - 1].status : "Unknown";
+    let remarkElement = document.getElementById(`remark-${deviceIp}`);
+    
+    // Calculate total offline duration
+    let totalOfflineTime = 0;
+    let lastOfflineTime = null;
 
-function updateSummary(data) {
+    history.forEach(entry => {
+        if (entry.status === "Offline") {
+            if (!lastOfflineTime) lastOfflineTime = new Date(entry.timestamp);
+        } else if (entry.status === "Online" && lastOfflineTime) {
+            totalOfflineTime += (new Date(entry.timestamp) - lastOfflineTime) / 1000;
+            lastOfflineTime = null;
+        }
+    });
 
-    document.getElementById("total-devices").textContent = data.summary?.totalDevices || "0";
-    document.getElementById("online-devices").textContent = data.summary?.totalOnlineDevices || "0";
-    document.getElementById("offline-devices").textContent = data.summary?.totalOfflineDevices || "0";
+    if (lastOfflineTime) {
+        totalOfflineTime += (new Date() - lastOfflineTime) / 1000;
+    }
 
-    document.getElementById("camera-total").textContent = data.summary?.cameras?.total || "0";
-    document.getElementById("camera-online").textContent = data.summary?.cameras?.online || "0";
-    document.getElementById("camera-offline").textContent = data.summary?.cameras?.offline || "0";
+    let totalOfflineDays = Math.floor(totalOfflineTime / 86400); // Convert seconds to days
 
-    document.getElementById("archiver-total").textContent = data.summary?.archivers?.total || "0";
-    document.getElementById("archiver-online").textContent = data.summary?.archivers?.online || "0";
-    document.getElementById("archiver-offline").textContent = data.summary?.archivers?.offline || "0";
+    // **Condition: Device needs repair if any of the following is true**
+    let needsRepair = downtimeCount >= 10 || totalOfflineDays >= 1;
 
-    document.getElementById("controller-total").textContent = data.summary?.controllers?.total || "0";
-    document.getElementById("controller-online").textContent = data.summary?.controllers?.online || "0";
-    document.getElementById("controller-offline").textContent = data.summary?.controllers?.offline || "0";
+    // **Setting the Correct Remark**
+    if (lastStatus === "Offline") {
+        if (needsRepair) {
+            remarkElement.innerText = "Device is Offline, needs repair.";
+        } else {
+            remarkElement.innerText = "Device is Offline.";
+        }
+    } else if (lastStatus === "Online") {
+        if (needsRepair) {
+            remarkElement.innerText = "Device is Online, needs repair.";
+        } else if (downtimeCount > 0) {
+            remarkElement.innerText = `Device is Online, it had ${downtimeCount} downtime occurrences.`;
+        } else {
+            remarkElement.innerText = "Device is Online.";
+        }
+    } else {
+        remarkElement.innerText = "Device status unknown.";
+    }
 
-    document.getElementById("server-total").textContent = data.summary?.servers?.total || "0";
-    document.getElementById("server-online").textContent = data.summary?.servers?.online || "0";
-    document.getElementById("server-offline").textContent = data.summary?.servers?.offline || "0";
-
+    // **Update Downtime Count in UI**
+    let downtimeElement = document.getElementById(`downtime-count-${deviceIp}`);
+    if (downtimeElement) {
+        downtimeElement.innerText = downtimeCount;
+    }
 }
 
 
-function updateDetails(data) {
-    const detailsContainer = document.getElementById("device-details");
-    const deviceFilter = document.getElementById("device-filter");
-    const onlineFilterButton = document.getElementById("filter-online");
-    const offlineFilterButton = document.getElementById("filter-offline");
-    const allFilterButton = document.getElementById("filter-all");
-    const cityFilter = document.getElementById("city-filter");
+function formatDuration(seconds) {
+    let days = Math.floor(seconds / 86400); // 1 day = 86400 seconds
+    let hours = Math.floor((seconds % 86400) / 3600);
+    let minutes = Math.floor((seconds % 3600) / 60);
+    let secs = seconds % 60;
+
+    let result = [];
+    if (days > 0) result.push(`${days}d`);
+    if (hours > 0 || days > 0) result.push(`${hours}h`);
+    if (minutes > 0 || hours > 0 || days > 0) result.push(`${minutes}m`);
+    result.push(`${secs}s`); // Always show seconds
+
+    return result.join('/');
+}
 
 
+function openDeviceHistory(deviceIp, deviceName) {
+    if (!window.deviceHistoryData) {
+        console.error("Device history data not loaded.");
+        return;
+    }
+    const history = window.deviceHistoryData[deviceIp] || [];
+    displayDeviceHistory(deviceIp, deviceName, history);
+    document.getElementById('device-history-modal').style.display = 'block';
+}
 
-    detailsContainer.innerHTML = ""; // Clear previous data
 
-   
-    // detailsContainer.innerHTML = "";
-    cityFilter.innerHTML = '<option value="all">All Cities</option>';
+function calculateDowntimeDuration(timestamp, history) {
+    let downtimeStart = new Date(timestamp).getTime();
+    
+    // Find the next Online entry after the current Offline timestamp
+    let nextOnlineEntry = history.find(entry => 
+        entry.status === "Online" && new Date(entry.timestamp).getTime() > downtimeStart
+    );
 
-    let allDevices = [];
-    let deviceObjects = []; // [UPDATED] for city-wise summary
-    let citySet = new Set();
+    if (nextOnlineEntry) {
+        let downtimeEnd = new Date(nextOnlineEntry.timestamp).getTime();
+        let durationInSeconds = (downtimeEnd - downtimeStart) / 1000;
+        return formatDuration(durationInSeconds);
+    }
+
+    // If device is still offline, calculate downtime until now
+    let durationInSeconds = (Date.now() - downtimeStart) / 1000;
+    return formatDuration(durationInSeconds);
+}
+
+
+    
+    function formatDuration(seconds) {
+        let days = Math.floor(seconds / 86400); // 1 day = 86400 seconds
+        let hours = Math.floor((seconds % 86400) / 3600);
+        let minutes = Math.floor((seconds % 3600) / 60);
+        let secs = seconds % 60;
+    
+        let result = [];
+        if (days > 0) result.push(`${days}d`);
+        if (hours > 0 || days > 0) result.push(`${hours}h`);
+        if (minutes > 0 || hours > 0 || days > 0) result.push(`${minutes}m`);
+        result.push(`${secs}s`); // Always show seconds
+    
+        return result.join('/');
+    
+    }
+    
+    
+    function displayDeviceHistory(deviceIp, deviceName, history) {
+        const modalHeader = document.getElementById('device-history-header');
+        const historyContainer = document.getElementById('device-history');
+    
+        modalHeader.innerHTML = `
+            <h3>Device History</h3>
+            <p><strong>Device Name:</strong> ${deviceName}</p>
+            <p><strong>Device IP:</strong> ${deviceIp}</p>
+            <hr>
+        `;
+    
+        historyContainer.innerHTML = '';
+    
+        if (history.length === 0) {
+            historyContainer.innerHTML = `<p>No history available for this device.</p>`;
+            return;
+        }
+    
+        let tableHTML = `
+            <table border="1" style="width:100%; text-align:center; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Day</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                        <th>Downtime Duration</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+    
+        let lastOfflineTimestamp = null;
+        let lastStatus = null;
+    
+        history.forEach((entry, index) => {
+            let entryDate = new Date(entry.timestamp);
+            let formattedDate = entryDate.toLocaleDateString();
+            let formattedTime = entryDate.toLocaleTimeString();
+            let formattedDay = entryDate.toLocaleString('en-US', { weekday: 'long' });
+    
+            let downtimeDuration = "-"; // Default, only set for Offline entries
+    
+            if (entry.status === "Offline") {
+                lastOfflineTimestamp = entry.timestamp; // Store last offline time
+            } else if (entry.status === "Online" && lastOfflineTimestamp) {
+                // Only calculate duration when switching from Offline → Online
+                downtimeDuration = calculateDowntimeDuration(lastOfflineTimestamp, history);
+                lastOfflineTimestamp = null; // Reset after use
+            }
+    
+            lastStatus = entry.status;
+    
+            tableHTML += `
+                <tr>
+                    <td>${formattedDate}</td>
+                    <td>${formattedDay}</td>
+                    <td>${formattedTime}</td>
+                    <td style="color: ${entry.status === "Online" ? 'green' : 'red'};">${entry.status}</td>
+                    <td>${downtimeDuration}</td>
+                </tr>
+            `;
+        });
+    
+        tableHTML += `</tbody></table>`;
+        historyContainer.innerHTML = tableHTML;
+    }
+
+    
+    // **Updated function to format duration properly**
+    function formatDuration(seconds) {
+        let days = Math.floor(seconds / 86400); // 1 day = 86400 seconds
+        let hours = Math.floor((seconds % 86400) / 3600);
+        let minutes = Math.floor((seconds % 3600) / 60);
+        let secs = Math.round(seconds % 60); // Round seconds properly
+    
+        let result = [];
+        if (days > 0) result.push(`${days}d`);
+        if (hours > 0) result.push(`${hours}h`);
+        if (minutes > 0) result.push(`${minutes}m`);
+        if (secs > 0 || result.length === 0) result.push(`${secs}s`); // Always show at least seconds
+    
+        return result.join('/');
+    }
+    
+    function calculateDowntimeDuration(timestamp, history) {
+        let downtimeStart = new Date(timestamp).getTime();
+    
+        // Find the next Online entry after the current Offline timestamp
+        let nextOnlineEntry = history.find(entry => 
+            entry.status === "Online" && new Date(entry.timestamp).getTime() > downtimeStart
+        );
+    
+        if (nextOnlineEntry) {
+            let downtimeEnd = new Date(nextOnlineEntry.timestamp).getTime();
+            let durationInSeconds = (downtimeEnd - downtimeStart) / 1000;
+            return formatDuration(durationInSeconds);
+        }
+    
+        // If the device is still offline, calculate downtime until now
+        let durationInSeconds = (Date.now() - downtimeStart) / 1000;
+        return formatDuration(durationInSeconds);
+    }
     
 
-
- // Fetch real-time status from the backend
-    fetch("http://localhost:80/api/region/devices/status")
-        .then((response) => response.json())
-        .then((realTimeStatus) => {
-            console.log("Live Status Data:", realTimeStatus);
-
-            for (const [key, devices] of Object.entries(data.details)) {
-                if (!Array.isArray(devices) || devices.length === 0) continue;
-
-                const deviceType = key.toLowerCase();
-
-                devices.forEach((device) => {
-
-                    allDevices.sort((a, b) => {
-                        const statusA = a.dataset.status === "offline" ? 0 : 1;
-                        const statusB = b.dataset.status === "offline" ? 0 : 1;
-                        return statusA - statusB;
-                    });
-                    
-            
-                    const deviceIP = device.ip_address || "N/A";
-                    const currentStatus = realTimeStatus[deviceIP] || device.status;
-                    const city = device.city || "Unknown";
-
-                    citySet.add(city);
-
-                    const card = document.createElement("div");
-                    card.className = "device-card";
-                    card.dataset.type = deviceType;
-                    card.dataset.status = currentStatus.toLowerCase();
-                    card.dataset.city = city;
-
-                    const statusDot = document.createElement("span");
-                    statusDot.className = "status-dot";
-                    statusDot.style.backgroundColor = currentStatus === "Online" ? "green" : "red";
-
-                    card.innerHTML = `
-                        <h3>${device.cameraname || device.controllername || device.archivername || device.servername || "Unknown Device"}</h3>
-                        <p>DEVICE TYPE: ${deviceType.toUpperCase()}</p>
-                        <p>IP: ${deviceIP}</p>
-                        <p>LOCATION: ${device.location || "N/A"}</p>
-                        <p>CITY: ${city}</p>
-                        <p>Status: ${currentStatus} ${statusDot.outerHTML}</p>
-                        <button class="details-button" onclick="showModal('${device.cameraname || device.controllername || device.archivername || device.servername || "Unknown Device"}', '${deviceIP}', '${device.location || "N/A"}', '${currentStatus}', '${city}')">Details</button>
-                    `;
-
-                    allDevices.push(card);
-
-                    // [UPDATED]: Push raw device data for summary
-                    deviceObjects.push({
-                        type: deviceType,
-                        status: currentStatus.toLowerCase(),
-                    });
-                });
-            }
-
-            citySet.forEach((city) => {
-                const option = document.createElement("option");
-                option.value = city;
-                option.textContent = city;
-                cityFilter.appendChild(option);
-            });
-
-            deviceFilter.value = "all";
-            cityFilter.value = "all";
-            document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
-            allFilterButton.classList.add("active");
-            
-
-
-            function filterDevices() {
-                const selectedType = deviceFilter.value;
-                const selectedStatus = document.querySelector(".status-filter.active")?.dataset.status || "all";
-                const selectedCity = cityFilter.value;
-            
-                detailsContainer.innerHTML = "";
-            
-                const filteredDevices = allDevices.filter((device) =>
-                    (selectedType === "all" || device.dataset.type === selectedType) &&
-                    (selectedStatus === "all" || device.dataset.status === selectedStatus) &&
-                    (selectedCity === "all" || device.dataset.city === selectedCity)
-                );
-            
-                filteredDevices.forEach((deviceCard) => {
-                    detailsContainer.appendChild(deviceCard);
-                });
-            
-
-                // Update Summary Title
-                const region = currentRegion?.toUpperCase() || "GLOBAL";
-                if (selectedCity !== "all") {
-                    document.getElementById("region-title").textContent = `${region}, ${selectedCity} Summary`;
-                } else {
-                    document.getElementById("region-title").textContent = `${region} Summary`;
-                }
-
-
-            
-                // [UPDATED]: Recalculate city-wise summary
-                const filteredSummaryDevices = deviceObjects.filter((deviceCard, index) => {
-                    const element = allDevices[index];
-                    return (
-                        (selectedType === "all" || element.dataset.type === selectedType) &&
-                        (selectedStatus === "all" || element.dataset.status === selectedStatus) &&
-                        (selectedCity === "all" || element.dataset.city === selectedCity)
-                    );
-                });
-            
-                const summary = calculateCitySummary(filteredSummaryDevices);
-                updateSummary(summary);
-            }
-            
-            
-            // [UPDATED]: Calculate summary from filtered list
-            function calculateCitySummary(devices) {
-                const summary = {
-                    summary: {
-                        totalDevices: devices.length,
-                        totalOnlineDevices: devices.filter(d => d.status === "online").length,
-                        totalOfflineDevices: devices.filter(d => d.status === "offline").length,
-                        cameras: { total: 0, online: 0, offline: 0 },
-                        archivers: { total: 0, online: 0, offline: 0 },
-                        controllers: { total: 0, online: 0, offline: 0 },
-                        servers: { total: 0, online: 0, offline: 0 },
-                    }
-                };
-
-                devices.forEach((device) => {
-
-                    if (!summary.summary[device.type + "s"]) return;
-                    summary.summary[device.type + "s"].total += 1;
-                    if (device.status === "online") summary.summary[device.type + "s"].online += 1;
-                    else summary.summary[device.type + "s"].offline += 1;
-                });
-
-                return summary;
-            }
-
-            // Initial Display
-            filterDevices();
-
-
-            setTimeout(() => {
-                const selectedCity = cityFilter.value;
-                const selectedType = deviceFilter.value;
-                const selectedStatus = document.querySelector(".status-filter.active")?.dataset.status || "all";
-
-                const filteredSummaryDevices = deviceObjects.filter((deviceCard, index) => {
-                    const element = allDevices[index];
-                    return (
-                        (selectedType === "all" || element.dataset.type === selectedType) &&
-                        (selectedStatus === "all" || element.dataset.status === selectedStatus) &&
-                        (selectedCity === "all" || element.dataset.city === selectedCity)
-                    );
-                });
-
-                const summary = calculateCitySummary(filteredSummaryDevices);
-                updateSummary(summary);
-            }, 100); // Add slight delay to ensure DOM update is done
-
-
-
-            deviceFilter.addEventListener("change", filterDevices);
-            cityFilter.addEventListener("change", filterDevices);
-            allFilterButton.addEventListener("click", () => {
-                document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
-                allFilterButton.classList.add("active");
-                filterDevices();
-            });
-            onlineFilterButton.addEventListener("click", () => {
-                document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
-                onlineFilterButton.classList.add("active");
-                filterDevices();
-            });
-            offlineFilterButton.addEventListener("click", () => {
-                document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
-                offlineFilterButton.classList.add("active");
-                filterDevices();
-            });
-
-        })
-        .catch((error) => {
-            console.error("Error fetching real-time device status:", error);
-            detailsContainer.innerHTML = "<p>Failed to load device details.</p>";
-        });
+function closeHistoryModal() {
+    document.getElementById('device-history-modal').style.display = 'none';
 }
 
 
-    function showModal(name, ip, location, status) {
-        document.getElementById("modal-title").textContent = `Details for ${name}`;
-        document.getElementById("modal-body").innerHTML = `
-            <li><strong>Name:</strong> ${name}</li>
-            <li><strong>IP:</strong> ${ip}</li>
-            <li><strong>Location:</strong> ${location}</li>
+function filterData() {
+    const selectedType = document.getElementById('device-type').value.toUpperCase();
+    const selectedRemark = document.getElementById('remark-filter').value;
 
-            <li><strong>Status:</strong> ${status}</li>
-        `;
-        document.getElementById("modal").style.display = "block";
+    const table = document.getElementById('device-table');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    for (let row of rows) {
+        const type = row.cells[2].textContent.toUpperCase();
+        const remark = row.cells[7].textContent.trim();
+
+        const matchesType = selectedType === "ALL" || type === selectedType;
+        const matchesRemark = selectedRemark === "ALL" || remark.includes(selectedRemark);
+
+        row.style.display = matchesType && matchesRemark ? "" : "none";
     }
+}
+
+
+document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById('region').addEventListener('change', fetchDeviceData);
+    fetchDeviceData(); // Initial load
+});
