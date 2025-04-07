@@ -1,3 +1,66 @@
+<button onclick="exportFullDashboardToExcel()">Export Full Dashboard to Excel</button>
+
+
+
+
+function exportFullDashboardToExcel() {
+    // Title
+    const title = document.querySelector(".title")?.innerText || "Dashboard Report";
+
+    // Summary Section
+    const summary = document.querySelector(".summary")?.innerText || "Summary not available.";
+
+    // Footer
+    const footer = document.querySelector("footer")?.innerText || "No Footer Found";
+
+    // Device Table
+    const table = document.getElementById("device-table");
+    const deviceTableSheet = XLSX.utils.table_to_sheet(table);
+
+    // Device History (if open)
+    let historySheet;
+    const historyTable = document.querySelector("#device-history-modal table");
+    if (historyTable) {
+        historySheet = XLSX.utils.table_to_sheet(historyTable);
+    }
+
+    // Create a new workbook
+    const wb = XLSX.utils.book_new();
+
+    // Add summary sheet
+    const summaryData = [
+        [title],
+        [""],
+        ["Summary:"],
+        [summary],
+        [""],
+        ["Footer:"],
+        [footer]
+    ];
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(wb, summarySheet, "Overview");
+
+    // Add Device Table sheet
+    XLSX.utils.book_append_sheet(wb, deviceTableSheet, "Device Table");
+
+    // Add Device History sheet if available
+    if (historySheet) {
+        XLSX.utils.book_append_sheet(wb, historySheet, "Device History");
+    }
+
+    // Write to file
+    const now = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    const fileName = `Dashboard_Report_${now}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+}
+
+
+
+
+
+
+
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 
