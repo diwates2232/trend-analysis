@@ -1,103 +1,12 @@
-<button onclick="exportFullDashboardToExcel()">Export Full Dashboard to Excel</button>
+Read Below trend.js File carefully.
+in this file 
+filter by device type Function is not Working.
+Filter by remark button is nott Working.
+Add Automatic remark on dropdoen .
 
+Also in bottom of Ui some devices are back to footer.they are not displaying .
 
-
-
-function exportFullDashboardToExcel() {
-    // Title
-    const title = document.querySelector(".title")?.innerText || "Dashboard Report";
-
-    // Summary Section
-    const summary = document.querySelector(".summary")?.innerText || "Summary not available.";
-
-    // Footer
-    const footer = document.querySelector("footer")?.innerText || "No Footer Found";
-
-    // Device Table
-    const table = document.getElementById("device-table");
-    const deviceTableSheet = XLSX.utils.table_to_sheet(table);
-
-    // Device History (if open)
-    let historySheet;
-    const historyTable = document.querySelector("#device-history-modal table");
-    if (historyTable) {
-        historySheet = XLSX.utils.table_to_sheet(historyTable);
-    }
-
-    // Create a new workbook
-    const wb = XLSX.utils.book_new();
-
-    // Add summary sheet
-    const summaryData = [
-        [title],
-        [""],
-        ["Summary:"],
-        [summary],
-        [""],
-        ["Footer:"],
-        [footer]
-    ];
-    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(wb, summarySheet, "Overview");
-
-    // Add Device Table sheet
-    XLSX.utils.book_append_sheet(wb, deviceTableSheet, "Device Table");
-
-    // Add Device History sheet if available
-    if (historySheet) {
-        XLSX.utils.book_append_sheet(wb, historySheet, "Device History");
-    }
-
-    // Write to file
-    const now = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-    const fileName = `Dashboard_Report_${now}.xlsx`;
-    XLSX.writeFile(wb, fileName);
-}
-
-
-
-
-
-
-
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-
-
-<button onclick="exportDeviceTableToExcel()">Export Device Table to Excel</button>
-<button onclick="exportDeviceHistoryToExcel()">Export Device History to Excel</button>
-
-
-
-function exportDeviceTableToExcel() {
-    const table = document.getElementById("device-table");
-    const workbook = XLSX.utils.table_to_book(table, { sheet: "Device Table" });
-    XLSX.writeFile(workbook, "Device_Table.xlsx");
-}
-
-function exportDeviceHistoryToExcel() {
-    const historyTable = document.querySelector("#device-history-modal table");
-    if (!historyTable) {
-        alert("Please open a device's history first.");
-        return;
-    }
-    const workbook = XLSX.utils.table_to_book(historyTable, { sheet: "Device History" });
-    XLSX.writeFile(workbook, "Device_History.xlsx");
-}
-
-
-
-
-
-
-
-Read below Script.js file nad 
-in Before Device Ip Add "Sr.No" 
-Column for serial number.
-Also add Sr.No column in Device History section.
-before date section
-
+solve above errors and give me updated js file.
 
 
 let deviceUptimeTimers = {};
@@ -162,12 +71,12 @@ function populateDeviceTable(details, historyData) {
         deviceList.sort((a, b) => b.downtimeCount - a.downtimeCount);
 
         // **Render sorted devices**
-        deviceList.forEach(({deviceIp, deviceName, deviceCategory, currentStatus, deviceHistory, downtimeCount }) => {
+        deviceList.forEach(({deviceIp, deviceName, deviceCategory, currentStatus, deviceHistory, downtimeCount },index) => {
             const row = tableBody.insertRow();
             row.style.border = "1px solid black"; // Add border to row
 
             row.innerHTML = `
-        
+        <td>${index +1}</td>
                 <td>${deviceIp}</td>
                 <td>${deviceName}</td>
 
@@ -299,7 +208,7 @@ function updateRemarks(deviceIp, history, deviceType) {
     let totalOfflineDays = Math.floor(totalOfflineTime / 86400); // Convert seconds to days
 
     // **Condition: Device needs repair if any of the following is true**
-    let needsRepair = downtimeCount >= 10 || totalOfflineDays >= 1;
+    let needsRepair = downtimeCount >= 15 || totalOfflineDays >= 1;
 
     // **Setting the Correct Remark**
     if (lastStatus === "Offline") {
@@ -414,7 +323,7 @@ function calculateDowntimeDuration(timestamp, history) {
         let tableHTML = `
             <table border="1" style="width:100%; text-align:center; border-collapse: collapse;">
                 <thead>
-                    <tr>
+                    <th>Sr.No</th>
                         <th>Date</th>
                         <th>Day</th>
                         <th>Time</th>
@@ -429,6 +338,7 @@ function calculateDowntimeDuration(timestamp, history) {
         let lastStatus = null;
     
         history.forEach((entry, index) => {
+
             let entryDate = new Date(entry.timestamp);
             let formattedDate = entryDate.toLocaleDateString();
             let formattedTime = entryDate.toLocaleTimeString();
@@ -448,6 +358,7 @@ function calculateDowntimeDuration(timestamp, history) {
     
             tableHTML += `
                 <tr>
+                <td>${index +1}</td>
                     <td>${formattedDate}</td>
                     <td>${formattedDay}</td>
                     <td>${formattedTime}</td>
@@ -519,6 +430,23 @@ function filterData() {
 
         row.style.display = matchesType && matchesRemark ? "" : "none";
     }
+}
+
+
+function exportDeviceTableToExcel() {
+    const table = document.getElementById("device-table");
+    const workbook = XLSX.utils.table_to_book(table, { sheet: "Device Table" });
+    XLSX.writeFile(workbook, "Device_Table.xlsx");
+}
+
+function exportDeviceHistoryToExcel() {
+    const historyTable = document.querySelector("#device-history-modal table");
+    if (!historyTable) {
+        alert("Please open a device's history first.");
+        return;
+    }
+    const workbook = XLSX.utils.table_to_book(historyTable, { sheet: "Device History" });
+    XLSX.writeFile(workbook, "Device_History.xlsx");
 }
 
 
