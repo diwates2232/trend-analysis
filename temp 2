@@ -1,74 +1,8 @@
--- Step 1: Create the database if it doesn't exist
-IF NOT EXISTS (
-    SELECT name 
-    FROM sys.databases 
-    WHERE name = N'temp_device_monitoring'
-)
-BEGIN
-    CREATE DATABASE temp_device_monitoring;
-END
-GO
-
--- Step 2: Use the database
-USE temp_device_monitoring;
-GO
-
--- Step 3: Create the device_status table if it doesn't exist
-IF NOT EXISTS (
-    SELECT * 
-    FROM INFORMATION_SCHEMA.TABLES 
-    WHERE TABLE_NAME = 'device_status'
-)
-BEGIN
-    CREATE TABLE device_status (
-        id INT IDENTITY(1,1) PRIMARY KEY,
-        device_name NVARCHAR(255) NOT NULL,
-        ip_address NVARCHAR(50) NOT NULL,
-        location NVARCHAR(100),
-        status NVARCHAR(20),
-        device_type NVARCHAR(50)
-    );
-END
-GO
-
-
-
-
--- Sample inserts for devices
-INSERT INTO device_status (device_name, ip_address, location, status, device_type)
-VALUES 
-('Cam1', '192.168.0.1', 'APAC', 'Online', 'camera'),
-('Arch1', '192.168.0.2', 'APAC', 'Offline', 'archiver'),
-('Ctrl1', '192.168.0.3', 'APAC', 'Online', 'controller'),
-('Server1', '192.168.0.4', 'APAC', 'Offline', 'server');
-
-
-
-
-SELECT 
-    device_type,
-    COUNT(*) AS total,
-    SUM(CASE WHEN status = 'Online' THEN 1 ELSE 0 END) AS online,
-    SUM(CASE WHEN status = 'Offline' THEN 1 ELSE 0 END) AS offline
-FROM device_status
-GROUP BY device_type;
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 Read below js file carefully .
 i want to store API responce data on SQl format.
-then create temp database and store dta in table.
+then create temp table  and store data.
 write sql queary.
 
 
