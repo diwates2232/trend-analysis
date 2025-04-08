@@ -1,3 +1,24 @@
+CREATE TEMP TABLE device_data (
+    device_id SERIAL,
+    device_type VARCHAR(20),
+    device_name VARCHAR(100),
+    ip_address VARCHAR(50),
+    status VARCHAR(20),
+    location VARCHAR(50),
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 Read below js file carefully .
