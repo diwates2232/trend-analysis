@@ -1,3 +1,56 @@
+
+-- Step 1: Create a temporary database
+CREATE DATABASE IF NOT EXISTS temp_device_monitoring;
+
+-- Step 2: Use the database
+USE temp_device_monitoring;
+
+-- Step 3: Create the device table
+CREATE TABLE IF NOT EXISTS device_status (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    device_name VARCHAR(255),
+    ip_address VARCHAR(50),
+    location VARCHAR(100),
+    status VARCHAR(20),
+    device_type VARCHAR(50)
+);
+
+
+
+
+
+-- Sample inserts for devices
+INSERT INTO device_status (device_name, ip_address, location, status, device_type)
+VALUES 
+('Cam1', '192.168.0.1', 'APAC', 'Online', 'camera'),
+('Arch1', '192.168.0.2', 'APAC', 'Offline', 'archiver'),
+('Ctrl1', '192.168.0.3', 'APAC', 'Online', 'controller'),
+('Server1', '192.168.0.4', 'APAC', 'Offline', 'server');
+
+
+
+
+SELECT 
+    device_type,
+    COUNT(*) AS total,
+    SUM(CASE WHEN status = 'Online' THEN 1 ELSE 0 END) AS online,
+    SUM(CASE WHEN status = 'Offline' THEN 1 ELSE 0 END) AS offline
+FROM device_status
+GROUP BY device_type;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Read below js file carefully .
 i want to store API responce data on SQl format.
 then create temp database and store dta in table.
