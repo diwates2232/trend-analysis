@@ -1,80 +1,90 @@
-const fs = require("fs");
-const xlsx = require("xlsx");
-const path = require("path");
-const axios = require("axios");
-const pLimit = require("p-limit");
-const { DateTime } = require("luxon");
+Read below API-
+http://localhost/api/regions/details/apac ( We can replace Region name as apac, emea, laca, namer)
 
-// Excel paths…
-const archiverPath = path.join(__dirname, "../data/ArchiverData.xlsx");
-const controllerPath = path.join(__dirname, "../data/ControllerData.xlsx");
-const cameraPath = path.join(__dirname, "../data/CameraData.xlsx");
-const serverPath = path.join(__dirname, "../data/ServerData.xlsx");
-const logFile = "./deviceLogs.json";
+API Responce-
 
-let allData = {};
-const cache = new Map();
-
-// Map region → ping‑agent endpoint
-const AGENT_URLS = {
-  apac: "http://apac-agent.local:3001/ping",
-  emea: "http://vilnius-agent.local:3001/ping",
-  namer: "http://cr-agent.local:3001/ping",
-};
-
-// Load & normalize Excel sheets (unchanged)
-function normalizeHeaders(rows) { /* … */ }
-function loadExcelData() { /* … */ }
-loadExcelData();
-
-// Utility: read logs
-const loadLogs = () => /* … */;
-const saveLogs = (logs) => /* … */;
-function monitorDevice(device) { /* … */ }
-
-// **NEW**: call a region’s agent once
-async function pingRegionAgent(region) {
-  const url = AGENT_URLS[region];
-  if (!url) throw new Error(`No ping‑agent configured for region "${region}"`);
-  const resp = await axios.get(url);
-  return resp.data;  // [{ ip, status, … }, …]
+{
+  "details": {
+    "cameras": [
+      {
+        "cameraname": "Green Zone to yellow zone passage - 10.199.10.20 (FLIR CM-3102-11-I T71552107) - 350",
+        "ip_address": "10.199.10.20",
+        "location": "APAC",
+        "city": "Pune",
+        "history": [],
+        "status": "Online"
+      },
+      {
+        "cameraname": "IN-PNQ-PF - Green Zone Exit Passage 10.199.10.139",
+        "ip_address": "10.199.10.139",
+        "location": "APAC",
+        "city": "Pune",
+        "history": [],
+        "status": "Online"
+      },
+ ],
+    "controllers": [
+      {
+        "controllername": "IN-PUN-2NDFLR-ISTAR PRO",
+        "ip_address": "10.199.13.10",
+        "location": "APAC",
+        "city": "Pune",
+        "history": [],
+        "status": "Online"
+      },
+      {
+        "controllername": "IN-PUN-PODIUM-ISTAR PRO-01",
+        "ip_address": "10.199.8.20",
+        "location": "APAC",
+        "city": "Pune",
+        "history": [],
+        "status": "Online"
+      },
+ ],
+    "archivers": [
+      {
+        "archivername": "Archiver Manila",
+        "ip_address": "10.193.132.8",
+        "location": "APAC",
+        "city": "Quezon",
+        "history": [],
+        "status": "Online"
+      },
+      {
+        "archivername": "Archiver Taguig City Philippines",
+        "ip_address": "10.194.2.190",
+        "location": "APAC",
+        "city": "Taguig",
+        "history": [],
+        "status": "Online"
+      },
+ ],
+    "servers": [
+      {
+        "servername": "New APACServer  ",
+        "ip_address": "10.199.22.61",
+        "location": "APAC",
+        "city": "Pune",
+        "history": [],
+        "status": "Online"
+      }
+    ]
+  }
 }
 
-// **REPLACED** pingDevices:
-const pingDevices = async (devices) => {
-  // 1) Group by region
-  const byRegion = devices.reduce((map, dev) => {
-    const r = (dev.location || "").toLowerCase();
-    if (!map[r]) map[r] = [];
-    map[r].push(dev);
-    return map;
-  }, {});
 
-  // 2) For each region, fetch statuses once
-  await Promise.all(Object.entries(byRegion).map(async ([region, list]) => {
-    try {
-      const results = await pingRegionAgent(region);
-      const statusMap = new Map(results.map(r => [r.ip, r.status]));
-      list.forEach(dev => {
-        dev.status = statusMap.get(dev.ip_address) || "Unknown";
-        monitorDevice(dev);
-      });
-    } catch (err) {
-      console.error(`Error pinging region ${region}:`, err.message);
-      list.forEach(dev => {
-        dev.status = "Error";
-        monitorDevice(dev);
-      });
-    }
-  }));
-};
 
-// The rest of your service methods stay the same, except they call the new pingDevices()
-// fetchGlobalData(), fetchRegionData(), fetchRegionTrendData(), calculateSummary(), etc.
+Read above API and responce.
 
-module.exports = {
-  fetchGlobalData,
-  fetchRegionData,
-  fetchAllIpAddress,
-  fetchRegionTrendData,
-};
+and create Temp database and Store API responce
+Region - APAC , EMEA, LACA, NAMER
+Devivice Type- cameras, controller, archiver, servers
+ip_address
+Location
+City 
+Status,
+history
+
+
+so write sql query to store data.
+
