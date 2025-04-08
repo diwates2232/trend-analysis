@@ -1,68 +1,10 @@
-INSERT INTO temp_device_status 
-(device_type, device_name, ip_address, location, status, uptime, downtime, downtime_duration) 
-VALUES 
-('camera', 'Camera 1', '192.168.1.10', 'APAC', 'Online', '1d 2h 30m', '0d 5h 0m', '0d 5h 0m');
-
-
-
-
-
-
-
-CREATE TEMPORARY TABLE temp_device_status (
-    device_type VARCHAR(20),
-    device_name VARCHAR(100),
-    ip_address VARCHAR(50),
-    location VARCHAR(50),
-    status VARCHAR(10),
-    uptime VARCHAR(50),
-    downtime VARCHAR(50),
-    downtime_duration VARCHAR(50),
-    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-CREATE TEMP TABLE device_data (
-    device_id SERIAL,
-    device_type VARCHAR(20),
-    device_name VARCHAR(100),
-    ip_address VARCHAR(50),
-    status VARCHAR(20),
-    location VARCHAR(50),
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Read below js file carefully .
-i want to store API responce data on SQl format.
-then create temp table  and store data.
+i want to store API responce data on SQL Server managment studuio format.
+We dont have an access to Create new database here .
+then create temp table  and store data in table format.
 write sql queary.
+for automate fetch data from API read below file carefully and make changes and give me updated files.
+
 
 
 
