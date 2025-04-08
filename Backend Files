@@ -1,8 +1,7 @@
 regionController.js
 
 
-
-const { fetchGlobalData, fetchRegionData, fetchRegionTrendData } = require("../services/excelService");
+const { fetchGlobalData, fetchRegionData} = require("../services/excelService");
 
 
 // Controller for fetch trend data
@@ -83,6 +82,9 @@ const getRegionSummary = async (req, res) => {
     }
 };
 
+
+
+
 // Region Details Controller
 const getRegionDetails = async (req, res) => {
     const { regionName } = req.params;
@@ -116,6 +118,7 @@ regionRoutes.js
      getRegionDetails,
      getRegionTrendDetails,
      getRegionTrendSummary,
+     getCitySummary,
  } = require("../controllers/regionControllers");
  
  const router = express.Router();
@@ -132,6 +135,7 @@ regionRoutes.js
  router.get("/trend/summary/:region",getRegionTrendSummary)
  
  module.exports = router;
+
 
 
 excelService.js
@@ -508,8 +512,14 @@ module.exports = { fetchGlobalData, fetchRegionData, fetchAllIpAddress , fetchRe
 
 
 
-app.js
 
+
+
+
+
+
+
+app.js
 
 
 require("dotenv").config();
@@ -520,6 +530,7 @@ const fs = require("fs");
 const ping = require("ping");
 const regionRoutes = require("./routes/regionRoutes");
 const { fetchAllIpAddress, fetchRegionTrendData } = require("./services/excelService");
+const { checkServerIdentity } = require("tls");
 
 
 const app = express();
@@ -597,7 +608,6 @@ app.get("/api/region/devices/status", (req, res) => {
 });
 
 
-
 // API to fetch device history for all devices
 app.get("/api/devices/history", (req, res) => {
   res.json(deviceLogs);
@@ -660,7 +670,6 @@ app.get("/api/device/history/:ip", async (req, res) => {
 
 
 
-
 // API to fetch region device trends
 app.get("/api/regions/trend/details/:region", async (req, res) => {
   const region = req.params.region;
@@ -692,12 +701,5 @@ app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   pingDevices(); // Initial ping on startup
 });
-
-
-
-
-
-Read carefully above js files kindly check each function ,timers are working or not is there any issue you find kindky infrom me then we will discuss about sovling this issue
-
 
 
