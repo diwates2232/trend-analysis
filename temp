@@ -1,3 +1,29 @@
+CREATE TABLE #DeviceDetails (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    region VARCHAR(10),
+    device_type VARCHAR(20),
+    name NVARCHAR(100),
+    ip_address VARCHAR(50),
+    location VARCHAR(50),
+    city VARCHAR(50),
+    status VARCHAR(10),
+    history NVARCHAR(MAX)
+);
+
+
+
+INSERT INTO #DeviceDetails (region, device_type, name, ip_address, location, city, status, history)
+VALUES ('APAC', 'camera', 'Green Zone Passage', '10.199.10.20', 'APAC', 'Pune', 'Online', '[]');
+
+
+
+SELECT * FROM #DeviceDetails;
+
+
+
+
+
+
 psql -U postgres
 
 
