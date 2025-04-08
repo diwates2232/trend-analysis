@@ -1,3 +1,14 @@
+INSERT INTO temp_device_status 
+(device_type, device_name, ip_address, location, status, uptime, downtime, downtime_duration) 
+VALUES 
+('camera', 'Camera 1', '192.168.1.10', 'APAC', 'Online', '1d 2h 30m', '0d 5h 0m', '0d 5h 0m');
+
+
+
+
+
+
+
 CREATE TEMPORARY TABLE temp_device_status (
     device_type VARCHAR(20),
     device_name VARCHAR(100),
