@@ -1,3 +1,69 @@
+
+-- 1. Create the database
+CREATE DATABASE IF NOT EXISTS device_monitoring;
+USE device_monitoring;
+
+-- 2. Create a permanent table for Global Summary
+CREATE TABLE IF NOT EXISTS global_summary (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  fetched_at DATETIME NOT NULL,
+  total_devices INT,
+  total_online_devices INT,
+  total_offline_devices INT
+);
+
+-- 3. Create a permanent table for Region Summary
+CREATE TABLE IF NOT EXISTS region_summary (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  region_name VARCHAR(100) NOT NULL,
+  fetched_at DATETIME NOT NULL,
+  total_devices INT,
+  total_online_devices INT,
+  total_offline_devices INT
+);
+
+-- 4. Create a permanent table for device details (flat)
+CREATE TABLE IF NOT EXISTS device_details (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  fetched_at DATETIME NOT NULL,
+  region_name VARCHAR(100),
+  device_type VARCHAR(50),
+  device_name VARCHAR(255),
+  ip_address VARCHAR(50),
+  status VARCHAR(20)
+);
+
+-- 5. Create a TEMPORARY table to stage details for each fetch
+CREATE TEMPORARY TABLE temp_device_details (
+  region_name VARCHAR(100),
+  device_type VARCHAR(50),
+  device_name VARCHAR(255),
+  ip_address VARCHAR(50),
+  status VARCHAR(20)
+);
+
+-- 6. Example of inserting into temp table, then moving to permanent table:
+-- (Assume you bulk‑insert rows into temp_device_details first)
+INSERT INTO device_details (fetched_at, region_name, device_type, device_name, ip_address, status)
+SELECT NOW(), region_name, device_type, device_name, ip_address, status
+FROM temp_device_details;
+
+-- 7. Clean up temp table if desired (it will auto‑drop at end of session)
+TRUNCATE TABLE temp_device_details;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Read below js file carefully .
 i want to store API responce data on MySQL.
 create database then store details in this db
