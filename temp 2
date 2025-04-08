@@ -1,20 +1,35 @@
-
--- Step 1: Create a temporary database
-CREATE DATABASE IF NOT EXISTS temp_device_monitoring;
+-- Step 1: Create the database if it doesn't exist
+IF NOT EXISTS (
+    SELECT name 
+    FROM sys.databases 
+    WHERE name = N'temp_device_monitoring'
+)
+BEGIN
+    CREATE DATABASE temp_device_monitoring;
+END
+GO
 
 -- Step 2: Use the database
 USE temp_device_monitoring;
+GO
 
--- Step 3: Create the device table
-CREATE TABLE IF NOT EXISTS device_status (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    device_name VARCHAR(255),
-    ip_address VARCHAR(50),
-    location VARCHAR(100),
-    status VARCHAR(20),
-    device_type VARCHAR(50)
-);
-
+-- Step 3: Create the device_status table if it doesn't exist
+IF NOT EXISTS (
+    SELECT * 
+    FROM INFORMATION_SCHEMA.TABLES 
+    WHERE TABLE_NAME = 'device_status'
+)
+BEGIN
+    CREATE TABLE device_status (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        device_name NVARCHAR(255) NOT NULL,
+        ip_address NVARCHAR(50) NOT NULL,
+        location NVARCHAR(100),
+        status NVARCHAR(20),
+        device_type NVARCHAR(50)
+    );
+END
+GO
 
 
 
