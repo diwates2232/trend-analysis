@@ -1,3 +1,88 @@
+const axios = require('axios');
+const sql = require('mssql');
+
+// API endpoint URL
+const apiUrl = 'http://localhost/api/regions/details/apac'; // Replace with the appropriate region
+
+// SQL Server configuration
+const config = {
+  user: 'your_sql_user', // Replace with your SQL Server username
+  password: 'your_sql_password', // Replace with your SQL Server password
+  server: 'localhost', // Replace with your server name if different
+  database: 'tempdb', // Use the correct database
+  options: {
+    encrypt: true, // Use this if you're using encryption (e.g., Azure SQL)
+    trustServerCertificate: true, // For self-signed certificates
+  },
+};
+
+// Function to fetch data from the API and insert into SQL Server
+async function fetchAndInsertData() {
+  try {
+    // Fetch data from the API
+    const response = await axios.get(apiUrl);
+    const devices = response.data.details; // Assuming the response structure
+
+    // Connect to SQL Server
+    const pool = await sql.connect(config);
+
+    // Insert camera data into the temporary table
+    const cameras = devices.cameras;
+    for (const camera of cameras) {
+      await pool.request()
+        .input('region', sql.VarChar, 'APAC') // Replace with dynamic region if necessary
+        .input('device_type', sql.VarChar, 'camera')
+        .input('name', sql.NVarChar, camera.cameraname)
+        .input('ip_address', sql.VarChar, camera.ip_address)
+        .input('location', sql.VarChar, camera.location)
+        .input('city', sql.VarChar, camera.city)
+        .input('status', sql.VarChar, camera.status)
+        .input('history', sql.NVarChar, JSON.stringify(camera.history)) // Assuming it's an array
+        .query(`
+          INSERT INTO #DeviceDetails (region, device_type, name, ip_address, location, city, status, history)
+          VALUES (@region, @device_type, @name, @ip_address, @location, @city, @status, @history)
+        `);
+    }
+
+    // Repeat similar steps for other device types (controllers, archivers, servers)
+    const controllers = devices.controllers;
+    for (const controller of controllers) {
+      await pool.request()
+        .input('region', sql.VarChar, 'APAC') // Replace with dynamic region if necessary
+        .input('device_type', sql.VarChar, 'controller')
+        .input('name', sql.NVarChar, controller.controllername)
+        .input('ip_address', sql.VarChar, controller.ip_address)
+        .input('location', sql.VarChar, controller.location)
+        .input('city', sql.VarChar, controller.city)
+        .input('status', sql.VarChar, controller.status)
+        .input('history', sql.NVarChar, JSON.stringify(controller.history)) // Assuming it's an array
+        .query(`
+          INSERT INTO #DeviceDetails (region, device_type, name, ip_address, location, city, status, history)
+          VALUES (@region, @device_type, @name, @ip_address, @location, @city, @status, @history)
+        `);
+    }
+
+    // Insert other device types (archivers, servers) similarly...
+
+    console.log('Data inserted successfully!');
+    pool.close();
+  } catch (error) {
+    console.error('Error fetching or inserting data:', error);
+  }
+}
+
+// Run the function
+fetchAndInsertData();
+
+
+
+
+
+
+
+
+
+
 CREATE TABLE #DeviceDetails (
     id INT IDENTITY(1,1) PRIMARY KEY,
     region VARCHAR(10),
