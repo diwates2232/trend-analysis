@@ -4,53 +4,6 @@ regionController.js
 const { fetchGlobalData, fetchRegionData} = require("../services/excelService");
 
 
-// Controller for fetch trend data
-const getRegionTrendDetails = async (req, res) => {
-    try {
-        const { region} = req.params;
-        console.log("Requested Region:", region);
-
-        if (!region) {
-            return res.status(400).json({ error: "Region parameter is missing" });
-        }
-
-        const trendData = await fetchRegionTrendData(region);
-        console.log("Trend Data Response:", JSON.stringify(trendData, null, 2));
-
-        if (!trendData || typeof trendData !== "object") {
-            return res.status(500).json({ error: "Failed to fetch trend data" });
-        }
-
-        res.json({
-            region,
-            trends: trendData
-        });
-    } catch (error) {
-        console.error("Error in getRegionTrendDetails:", error);
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
-
-// Region Trend Summary Controller (for uptime/downtime trends)
-const getRegionTrendSummary = async (req, res) => {
-    try {
-        const { region } = req.params;
-        console.log("Fetching trend summary for region:", region);
-        const trendData = await fetchRegionTrendData(region);
-
-        if (!trendData) {
-            return res.status(500).json({ error: "Failed to fetch trend data for region" });
-        }
-
-        res.json({ region, trendData });
-    } catch (error) {
-        console.error("Error in getRegionTrendSummary:", error);
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
-
-
-
 // Global Summary Controller
 const getGlobalSummary = async (req, res) => {
     try {
@@ -101,14 +54,12 @@ module.exports = {
     getGlobalDetails,
     getRegionSummary,
     getRegionDetails,
-    getRegionTrendDetails,
-    getRegionTrendSummary,
 };
 
 
 
-regionRoutes.js
 
+regionRoutes.js
 
  const express = require("express");
  const {
@@ -116,9 +67,6 @@ regionRoutes.js
      getGlobalDetails,
      getRegionSummary,
      getRegionDetails,
-     getRegionTrendDetails,
-     getRegionTrendSummary,
-     getCitySummary,
  } = require("../controllers/regionControllers");
  
  const router = express.Router();
@@ -130,15 +78,17 @@ regionRoutes.js
  
  // Region Routes
  router.get("/summary/:regionName", getRegionSummary);
- router.get("/details/:regionName", getRegionDetails);
- router.get("/trend/details/:region",getRegionTrendDetails);
- router.get("/trend/summary/:region",getRegionTrendSummary)
+ router.get("/details/:regionName", getRegionDetails)
  
  module.exports = router;
 
 
 
-excelService.js
+
+
+
+
+excelservice.js
 
 
 const fs = require("fs");
@@ -147,6 +97,7 @@ const path = require("path");
 const ping = require("ping");
 const pLimit = require("p-limit");
 const { DateTime } = require("luxon"); // Import Luxon for timezone handling
+//const axios=require("axios");
 
 // Paths for Excel files
 const archiverPath = path.join(__dirname, "../data/ArchiverData.xlsx");
@@ -160,13 +111,14 @@ const logFile = "./deviceLogs.json";
 
 // Cache to store preloaded data
 let allData = {};
+
+
+
 const activeDevices = {}; // Store active monitoring sessions
 
 // Function to load logs
 const loadLogs = () => fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
 
-// Function to save logs
-// const saveLogs = (logs) => fs.writeFileSync(logFile, JSON.stringify(logs, null, 2), "utf8");
 
 const saveLogs = (logs) => {
     const existingLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
@@ -277,6 +229,7 @@ const pingDevice = (ip) => {
 
 // Function to ping devices and cache results
 const cache = new Map();
+
 const pingDevices = async (devices) => {
     const limit = pLimit(10);
 
@@ -402,81 +355,6 @@ const computeDeviceStats = (history) => {
     };
 };
 
-
-// Function to calculate trends for devices
-const calculateTrend = (devices, timePeriod = "daily") => {
-    let trends = [];
-
-    for (const deviceType in devices) {
-        const deviceList = devices[deviceType];
-        
-        for (const device of deviceList) {
-            if (Array.isArray(device.history) && device.history.length > 0) {
-
-                const stats = computeDeviceStats(device.history);
-
-                trends.push({
-                    device_type: device.device_type || "Unknown",
-                    device_name: device.device_name || "Unknown",
-                    ip_address: device.ip_address,
-                    uptime: stats.uptime,
-                    downtime: stats.downtime,
-                    downtimeDuration: stats.downtimeDuration
-                });
-            }
-        }
-    }
-
-    return trends;
-};
-
-// Updated function to fetch region trend data
-const fetchRegionTrendData = async (region) => {
-    if (!allData || Object.keys(allData).length === 0) {
-        console.error("Error: Device data is not loaded.");
-        return null;
-    }
-
-    const filterByRegion = (devices) => 
-        devices.filter(device => device.location?.toLowerCase() === region.toLowerCase());
-
-    const regionDevices = {
-        cameras: filterByRegion(allData.cameras),
-        archivers: filterByRegion(allData.archivers),
-        controllers: filterByRegion(allData.controllers),
-        servers: filterByRegion(allData.servers)
-    };
-
-    if (!regionDevices.cameras.length && !regionDevices.archivers.length && !regionDevices.controllers.length && !regionDevices.servers.length) {
-        console.log(`No devices found for region: ${region}`);
-        return null;
-    }
-
-    // Ensure devices have history before calculating trends
-    await Promise.all([
-        ...regionDevices.cameras.map(device => fetchDeviceHistory(device)),
-        ...regionDevices.archivers.map(device => fetchDeviceHistory(device)),
-        ...regionDevices.controllers.map(device => fetchDeviceHistory(device)),
-        ...regionDevices.servers.map(device => fetchDeviceHistory(device))
-    ]);
-
-    // Ensure history data is correctly assigned
-    for (let deviceType in regionDevices) {
-        regionDevices[deviceType] = regionDevices[deviceType].map(device => ({
-            ...device,
-            history: device.history || []  // Ensure history is initialized
-        }));
-    }
-
-    // Calculate trends with accurate history
-    const trends = calculateTrend(regionDevices);
-
-    return { 
-        region,
-        trends 
-
-    };
-};
 // Fetch Device History
 const fetchDeviceHistory = async (device) => {
     const devicesLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
@@ -508,7 +386,7 @@ const fetchDeviceHistory = async (device) => {
 // Preload Data
 loadExcelData();
 
-module.exports = { fetchGlobalData, fetchRegionData, fetchAllIpAddress , fetchRegionTrendData };
+module.exports = { fetchGlobalData, fetchRegionData, fetchAllIpAddress };
 
 
 
@@ -522,6 +400,8 @@ module.exports = { fetchGlobalData, fetchRegionData, fetchAllIpAddress , fetchRe
 app.js
 
 
+
+
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -529,12 +409,14 @@ const bodyParser = require("body-parser");
 const fs = require("fs");
 const ping = require("ping");
 const regionRoutes = require("./routes/regionRoutes");
-const { fetchAllIpAddress, fetchRegionTrendData } = require("./services/excelService");
+const { fetchAllIpAddress} = require("./services/excelService");
 const { checkServerIdentity } = require("tls");
 
 
 const app = express();
 const PORT = process.env.PORT || 80;
+
+
 
 // Middleware
 app.use(
@@ -549,8 +431,6 @@ app.use(bodyParser.json());
 
 // Routes
 app.use("/api/regions", regionRoutes);
-
-
 
 
 // Device Status Tracking
@@ -638,7 +518,6 @@ app.get("/api/region/:region/history", (req, res) => {
 
 
 
-
 // API to fetch history of a specific device by IP address
 app.get("/api/device/history/:ip", async (req, res) => {
   const ip = req.params.ip;
@@ -669,37 +548,13 @@ app.get("/api/device/history/:ip", async (req, res) => {
 });
 
 
-
-// API to fetch region device trends
-app.get("/api/regions/trend/details/:region", async (req, res) => {
-  const region = req.params.region;
-
-  // Clear previous data before fetching new trends
-  allData = {};
-  loadExcelData();
-
-  const trendData = await fetchRegionTrendData(region);
-
-  if (!trendData) {
-      return res.status(404).json({ message: "No devices found for the specified region" });
-  }
-
-  res.json(trendData);
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send("Something went wrong!");
-});
-
-
-
-
 // Start Server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   pingDevices(); // Initial ping on startup
 });
+
+
+
 
 
