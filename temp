@@ -1,4 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Devices Summary</title>
+  <style>
+    /* --- Overall Sidebar Container --- */
+    #sidebar-content {
+      background: #000;
+      color: #fff;
+      padding: 1rem;
+      font-family: Arial, sans-serif;
+      width: 300px; /* adjust as needed */
+    }
+
+    /* --- Header --- */
+    #sidebar-content header h1 {
+      text-align: center;
+      padding: 20px;
+      background: #000;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(178, 190, 11, 0.3);
+      color: #c6d212; /* Western Union yellow */
+      font-size: 1.8rem;
+      margin: 0 0 1rem;
+      transition: color 0.3s ease;
+    }
+    #sidebar-content header h1:hover {
+      color: #fff;
+    }
+
+    /* --- Summary Card Containers --- */
+    .summary-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    /* --- Individual Cards --- */
+    .summary-card {
+      flex: 1 1 45%;
+      background: #111;
+      border-radius: 6px;
+      padding: 0.75rem;
+      box-shadow: 0 2px 4px rgba(255,255,255,0.05);
+      text-align: center;
+    }
+    .summary-card h4 {
+      margin: 0 0 0.25rem;
+      font-size: 0.9rem;
+      color: #c6d212;
+    }
+    .summary-card p,
+    .summary-card[id^="total-"] {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    /* --- Buttons & Selects --- */
+    #sidebar-content button,
+    #sidebar-content select {
+      width: 100%;
+      margin: 0.25rem 0;
+      padding: 0.5rem;
+      background: #111;
+      color: #fff;
+      border: 1px solid #333;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    #sidebar-content button:hover,
+    #sidebar-content select:hover {
+      background: #222;
+      border-color: #444;
+    }
+    #sidebar-content label {
+      display: block;
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar-content">
+    <header>
+      <h1>Devices Summary</h1>
+    </header>
+
+    <!-- First row: overall totals -->
+    <div class="summary-container">
+      <div class="summary-card" id="total-devices">Total Devices: 0</div>
+      <div class="summary-card" id="total-online">Total Online: 0</div>
+      <div class="summary-card" id="total-cameras">Cameras: 0</div>
+      <div class="summary-card" id="total-controllers">Controllers: 0</div>
+      <div class="summary-card" id="total-archivers">Archivers: 0</div>
+      <div class="summary-card" id="total-servers">Servers: 0</div>
+    </div>
+
+    <!-- Second row: downtime/offline counts -->
+    <div class="summary-container">
+      <div class="summary-card">
+        <h4>High Downtime</h4>
+        <p id="count-downtime-over-15">0</p>
+      </div>
+      <div class="summary-card">
+        <h4>Currently Offline</h4>
+        <p id="count-currently-offline">0</p>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <button onclick="window.location.href='index.html'">Back to Dashboard</button>
+    <button onclick="exportDeviceTableToExcel()">Export Device Table</button>
+
+    <label for="region">Select Region:</label>
+    <select id="region" onchange="fetchDeviceData()">
+      <option value="global">Global</option>
+      <option value="apac">APAC</option>
+      <option value="emea">EMEA</option>
+      <option value="laca">LACA</option>
+      <option value="namer">NAMER</option>
+    </select>
+
+    <label for="device-type">Filter by Device Type:</label>
+    <select id="device-type" onchange="filterData()">
+      <option value="ALL">All</option>
+      <option value="CONTROLLER">Controller</option>
+      <option value="ARCHIVER">Archiver</option>
+      <option value="CAMERA">Camera</option>
+      <option value="SERVER">Server</option>
+    </select>
+
+    <label for="remark-filter">Filter by Remark:</label>
+    <select id="remark-filter" onchange="filterData()">
+      <option value="ALL">All</option>
+      <option value="Device needs repair">Needs Repair</option>
+      <option value="Device is Online">Online</option>
+      <option value="Device is Offline">Offline</option>
+    </select>
+  </div>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
 Read below html section .
+
 merge this section into sidebar.
 and fill colour background is black and display text in white.
 
