@@ -1,3 +1,58 @@
+#sidebar-content {
+  padding: 1rem;
+}
+
+.summary-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.summary-card {
+  flex: 1 1 150px;       /* grow/shrink, min width */
+  min-width: 150px;
+  padding: 1rem;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.summary-card h4 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: #333;
+}
+
+.summary-card p {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #007bff;
+}
+
+/* Optional: tweak the “Total …” cards to match the style of the h4/p cards */
+#sidebar-content .summary-card[id^="total-"] {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: #333;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+#sidebar-content .summary-card[id^="total-"]::before {
+  content: attr(id);
+  display: none; /* hide the attribute name; we only keep the inner text */
+}
+
+
+
+
+
+
+
 <div id="sidebar-content">
   <div class="summary-container">
     <!-- First row: overall totals -->
