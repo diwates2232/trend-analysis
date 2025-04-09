@@ -1,359 +1,18 @@
+Read below html file carefullly and amke this html page more dynamic.want to display more attractive.
+so kindky check all file and update my html file.
+arrange button 
 
 
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Devices Summary</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-    }
-
-    /* Top bar: header + summary cards */
-    #top-bar {
-      display: flex;
-      align-items: center;
-      background: #000;
-      color: #fff;
-      padding: 0.5rem 1rem;
-      overflow-x: auto;
-    }
-
-    /* Title area */
-    #top-bar header {
-      flex: 0 0 auto;
-      margin-right: 2rem;
-    }
-    #top-bar header h1 {
-      margin: 0;
-      font-size: 1.5rem;
-      color: #c6d212;
-      white-space: nowrap;
-    }
-
-    /* Summary cards area */
-    .summary-container {
-      display: flex;
-      gap: 0.75rem;
-      flex: 1 1 auto;
-    }
-
-    .summary-card {
-      flex: 0 0 auto;
-      background: #111;
-      border-radius: 6px;
-      padding: 0.5rem 1rem;
-      box-shadow: 0 2px 4px rgba(255,255,255,0.05);
-      text-align: center;
-      white-space: nowrap;
-    }
-    .summary-card h4 {
-      margin: 0 0 0.25rem;
-      font-size: 0.9rem;
-      color: #c6d212;
-    }
-    .summary-card p,
-    .summary-card[id^="total-"] {
-      margin: 0;
-      font-size: 1rem;
-      font-weight: bold;
-      color: #fff;
-    }
-
-    /* Main content below top bar */
-    #main-content {
-      display: flex;
-      padding: 1rem;
-    }
-    /* Sidebar controls on left */
-    #sidebar-controls {
-      width: 300px;
-      background: #000;
-      color: #fff;
-      padding: 1rem;
-      border-radius: 8px;
-    }
-    #sidebar-controls button,
-    #sidebar-controls select {
-      width: 100%;
-      margin: 0.5rem 0;
-      padding: 0.5rem;
-      background: #111;
-      color: #fff;
-      border: 1px solid #333;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    #sidebar-controls button:hover,
-    #sidebar-controls select:hover {
-      background: #222;
-      border-color: #444;
-    }
-    #sidebar-controls label {
-      display: block;
-      margin-top: 0.75rem;
-      font-size: 0.85rem;
-    }
-
-    /* Device table takes remaining width */
-    #device-table-container {
-      flex: 1 1 auto;
-      margin-left: 1rem;
-      background: #fff;
-      border-radius: 8px;
-      padding: 1rem;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devices Summary</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-
-  <div id="top-bar">
-    <header>
-      <h1>Devices Summary</h1>
-    </header>
-
-    <div class="summary-container">
-      <div class="summary-card" id="total-devices">Total: 0</div>
-      <div class="summary-card" id="total-online">Online: 0</div>
-      <div class="summary-card" id="total-cameras">Cameras: 0</div>
-      <div class="summary-card" id="total-controllers">Controllers: 0</div>
-      <div class="summary-card" id="total-archivers">Archivers: 0</div>
-      <div class="summary-card" id="total-servers">Servers: 0</div>
-      <div class="summary-card">
-        <h4>High Downtime</h4>
-        <p id="count-downtime-over-15">0</p>
-      </div>
-      <div class="summary-card">
-        <h4>Currently Offline</h4>
-        <p id="count-currently-offline">0</p>
-      </div>
-    </div>
-  </div>
-
-  <div id="main-content">
-    <div id="sidebar-controls">
-      <button onclick="window.location.href='index.html'">Back to Dashboard</button>
-      <button onclick="exportDeviceTableToExcel()">Export Device Table</button>
-
-      <label for="region">Select Region:</label>
-      <select id="region" onchange="fetchDeviceData()">
-        <option value="global">Global</option>
-        <option value="apac">APAC</option>
-        <option value="emea">EMEA</option>
-        <option value="laca">LACA</option>
-        <option value="namer">NAMER</option>
-      </select>
-
-      <label for="device-type">Filter by Device Type:</label>
-      <select id="device-type" onchange="filterData()">
-        <option value="ALL">All</option>
-        <option value="CONTROLLER">Controller</option>
-        <option value="ARCHIVER">Archiver</option>
-        <option value="CAMERA">Camera</option>
-        <option value="SERVER">Server</option>
-      </select>
-
-      <label for="remark-filter">Filter by Remark:</label>
-      <select id="remark-filter" onchange="filterData()">
-        <option value="ALL">All</option>
-        <option value="Device needs repair">Needs Repair</option>
-        <option value="Device is Online">Online</option>
-        <option value="Device is Offline">Offline</option>
-      </select>
-    </div>
-
-    <div id="device-table-container">
-      <!-- Your table goes here -->
-      <table id="device-table" style="width:100%; border-collapse: collapse;">
-        <thead>
-          <!-- columns -->
-        </thead>
-        <tbody>
-          <!-- rows -->
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-</body>
-</html>
-
-
-
-
-
-
-
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Devices Summary</title>
-  <style>
-    /* --- Overall Sidebar Container --- */
-    #sidebar-content {
-      background: #000;
-      color: #fff;
-      padding: 1rem;
-      font-family: Arial, sans-serif;
-      width: 300px; /* adjust as needed */
-    }
-
-    /* --- Header --- */
-    #sidebar-content header h1 {
-      text-align: center;
-      padding: 20px;
-      background: #000;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(178, 190, 11, 0.3);
-      color: #c6d212; /* Western Union yellow */
-      font-size: 1.8rem;
-      margin: 0 0 1rem;
-      transition: color 0.3s ease;
-    }
-    #sidebar-content header h1:hover {
-      color: #fff;
-    }
-
-    /* --- Summary Card Containers --- */
-    .summary-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-    }
-
-    /* --- Individual Cards --- */
-    .summary-card {
-      flex: 1 1 45%;
-      background: #111;
-      border-radius: 6px;
-      padding: 0.75rem;
-      box-shadow: 0 2px 4px rgba(255,255,255,0.05);
-      text-align: center;
-    }
-    .summary-card h4 {
-      margin: 0 0 0.25rem;
-      font-size: 0.9rem;
-      color: #c6d212;
-    }
-    .summary-card p,
-    .summary-card[id^="total-"] {
-      margin: 0;
-      font-size: 1.1rem;
-      font-weight: bold;
-      color: #fff;
-    }
-
-    /* --- Buttons & Selects --- */
-    #sidebar-content button,
-    #sidebar-content select {
-      width: 100%;
-      margin: 0.25rem 0;
-      padding: 0.5rem;
-      background: #111;
-      color: #fff;
-      border: 1px solid #333;
-      border-radius: 4px;
-      font-size: 0.9rem;
-      cursor: pointer;
-    }
-    #sidebar-content button:hover,
-    #sidebar-content select:hover {
-      background: #222;
-      border-color: #444;
-    }
-    #sidebar-content label {
-      display: block;
-      margin-top: 0.5rem;
-      font-size: 0.85rem;
-    }
-  </style>
-</head>
-<body>
-  <div id="sidebar-content">
-    <header>
-      <h1>Devices Summary</h1>
-    </header>
-
-    <!-- First row: overall totals -->
-    <div class="summary-container">
-      <div class="summary-card" id="total-devices">Total Devices: 0</div>
-      <div class="summary-card" id="total-online">Total Online: 0</div>
-      <div class="summary-card" id="total-cameras">Cameras: 0</div>
-      <div class="summary-card" id="total-controllers">Controllers: 0</div>
-      <div class="summary-card" id="total-archivers">Archivers: 0</div>
-      <div class="summary-card" id="total-servers">Servers: 0</div>
-    </div>
-
-    <!-- Second row: downtime/offline counts -->
-    <div class="summary-container">
-      <div class="summary-card">
-        <h4>High Downtime</h4>
-        <p id="count-downtime-over-15">0</p>
-      </div>
-      <div class="summary-card">
-        <h4>Currently Offline</h4>
-        <p id="count-currently-offline">0</p>
-      </div>
-    </div>
-
-    <!-- Controls -->
-    <button onclick="window.location.href='index.html'">Back to Dashboard</button>
-    <button onclick="exportDeviceTableToExcel()">Export Device Table</button>
-
-    <label for="region">Select Region:</label>
-    <select id="region" onchange="fetchDeviceData()">
-      <option value="global">Global</option>
-      <option value="apac">APAC</option>
-      <option value="emea">EMEA</option>
-      <option value="laca">LACA</option>
-      <option value="namer">NAMER</option>
-    </select>
-
-    <label for="device-type">Filter by Device Type:</label>
-    <select id="device-type" onchange="filterData()">
-      <option value="ALL">All</option>
-      <option value="CONTROLLER">Controller</option>
-      <option value="ARCHIVER">Archiver</option>
-      <option value="CAMERA">Camera</option>
-      <option value="SERVER">Server</option>
-    </select>
-
-    <label for="remark-filter">Filter by Remark:</label>
-    <select id="remark-filter" onchange="filterData()">
-      <option value="ALL">All</option>
-      <option value="Device needs repair">Needs Repair</option>
-      <option value="Device is Online">Online</option>
-      <option value="Device is Offline">Offline</option>
-    </select>
-  </div>
-</body>
-</html>
-
-
-
-
-
-
-
-
-
-
-
-
-Read below html section .
-
-merge this section into sidebar.
-and fill colour background is black and display text in white.
-
-also refrer Western union india pvt ltd theme for this .
-
 
  <header>
     <h1  style=" text-align: center;
@@ -373,33 +32,22 @@ also refrer Western union india pvt ltd theme for this .
 
 
           <div class="summary-container">
-    <!-- First row: overall totals -->
+
     <div class="summary-card" id="total-devices">Total Devices: 0</div>
-
     <div class="summary-card" id="total-online">Total Online Devices: 0</div>
-
     <div class="summary-card" id="total-cameras">Total Cameras: 0</div>
-
-
     <div class="summary-card" id="total-controllers">Total Controllers: 0</div>
-
-
     <div class="summary-card" id="total-archivers">Total Archivers: 0</div>
-
-
     <div class="summary-card" id="total-servers">Total Servers: 0</div>
-    
      </div>
-
   <div class="summary-container" 
-  
+
   style=" display: flex;
   flex-wrap: wrap;
   gap: 1rem;
   margin-bottom: 1rem;">
-    
     <div class="summary-card">
-    
+
       <p id="count-downtime-over-15">0</p>
     </div>
     <div class="summary-card">
@@ -409,8 +57,8 @@ also refrer Western union india pvt ltd theme for this .
     </div>
   </div>
                 
-            <button style="align-items: center;padding-top: 10px;margin-left: 10px;margin-top: 10px;" onclick="window.location.href='index.html'">Back to Dashboard</button>
-            <button onclick="exportDeviceTableToExcel()">Export Device Table</button>
+     <button style="align-items: center;padding-top: 10px;margin-left: 10px;margin-top: 10px;" onclick="window.location.href='index.html'">Back to Dashboard</button>
+    <button onclick="exportDeviceTableToExcel()">Export Device Table</button>
            
             <label for="region">Select Region:</label>
             <select id="region" onchange="fetchDeviceData()">
@@ -444,4 +92,73 @@ also refrer Western union india pvt ltd theme for this .
 
         </div>
     </div>
+
+
+    <div class="container">
+        <table id="device-table">
+            <thead>
+                <tr>
+                    <th>Sr . No</th>
+                    <th>Device IP</th>
+                    <th>Device Name</th>
+                    <th>Device Type</th>
+                    <th>Device Region</th>
+                    <!-- <th>Device Status</th> -->
+                    <th>Uptime Duration</th>
+                    <th>Downtime Count</th>
+                    <th>Downtime Duration</th>
+                    <th>Details</th>
+                    <th>Remark</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Device History Modal -->
+    <div id="device-history-modal" class="modal">
+
+        <div class="modal-content">
+
+            
+            <div id="device-history-header"></div> <!-- Header for Device Name and IP -->
+          
+            <div id="device-history"></div>
+            <!-- <<span class="close" onclick="closeHistoryModal()">&times;</span> -->
+
+            <span class="close" onclick="closeHistoryModal()">&times;</span>
+            <div id="device-history"></div>
+            <button onclick="exportDeviceHistoryToExcel()">Export Device History</button>
+            
+
+            
+        </div>
+    </div>
+    
+<script>
+    document.addEventListener("DOMContentLoaded" , function (){
+        fetchDeviceData();
+    });
+</script>
+    <script src="summary.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+
+   <!-- Footer -->
+   <footer class="footer">
+    <img src="images/FooterLogo.png" alt="Company Logo" class="footer-logo">
+    <p>&copy;2025 VisionWatch | Powered by <strong>Western Union Services India Pvt Ltd.</strong></p>
+    <p>Contact: 
+        <a href="mailto:gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com">gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com</a> | 
+        <a href="tel:+91 20 67632394">+91 2067632394</a>
+    </p>
+</footer>
+
+</body>
+</html>
+
+</body>
+</html>
+
+
 
