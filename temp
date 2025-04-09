@@ -1,3 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Devices Summary</title>
+  <style>
+    /* Reset & Base */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f0f0f0; color: #333; }
+
+    /* Top bar */
+    #top-bar {
+      display: flex; align-items: center; padding: 0.5rem 1rem;
+      background: #000; color: #fff; overflow-x: auto;
+    }
+    #top-bar h1 {
+      flex: 0 0 auto; font-size: 1.8rem; color: #c6d212;
+      margin-right: 2rem; white-space: nowrap;
+    }
+    .summary-container {
+      display: flex; gap: 0.75rem; flex: 1 1 auto;
+    }
+    .summary-card {
+      flex: 0 0 auto; background: #111; border-radius: 6px;
+      padding: 0.5rem 1rem; text-align: center; white-space: nowrap;
+      box-shadow: 0 2px 4px rgba(255,255,255,0.05);
+    }
+    .summary-card h4 { margin-bottom: 0.25rem; color: #c6d212; font-size: 0.85rem; }
+    .summary-card p,
+    .summary-card[id^="total-"] {
+      font-size: 1rem; font-weight: bold; color: #fff; margin: 0;
+    }
+
+    /* Layout */
+    #main {
+      display: flex; height: calc(100vh - 64px);
+    }
+    /* Sidebar */
+    #sidebar {
+      flex: 0 0 260px; background: #000; color: #fff;
+      padding: 1rem; overflow-y: auto;
+    }
+    #sidebar button,
+    #sidebar select {
+      width: 100%; margin: 0.5rem 0; padding: 0.5rem;
+      background: #111; color: #fff; border: 1px solid #333;
+      border-radius: 4px; cursor: pointer;
+    }
+    #sidebar button:hover,
+    #sidebar select:hover {
+      background: #222; border-color: #444;
+    }
+    #sidebar label {
+      display: block; margin-top: 1rem; font-size: 0.85rem;
+    }
+
+    /* Table area */
+    #content {
+      flex: 1 1 auto; padding: 1rem; overflow-x: auto;
+    }
+    table {
+      width: 100%; border-collapse: collapse; background: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 0.5rem; border: 1px solid #ddd; text-align: center;
+    }
+    th { background: #f7f7f7; }
+
+    /* Modal */
+    .modal {
+      display: none; position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%; background: rgba(0,0,0,0.6);
+      justify-content: center; align-items: center;
+    }
+    .modal-content {
+      background: #fff; padding: 1rem; border-radius: 8px;
+      max-width: 90%; max-height: 90%; overflow-y: auto;
+      position: relative;
+    }
+    .modal .close {
+      position: absolute; top: 0.5rem; right: 0.75rem;
+      font-size: 1.5rem; cursor: pointer;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center; padding: 0.75rem; background: #000;
+      color: #fff; font-size: 0.85rem;
+    }
+    footer a { color: #c6d212; text-decoration: none; }
+    footer img { height: 24px; vertical-align: middle; margin-right: 0.5rem; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <div id="top-bar">
+    <h1>Devices Summary</h1>
+    <div class="summary-container">
+      <div class="summary-card" id="total-devices">Total: 0</div>
+      <div class="summary-card" id="total-online">Online: 0</div>
+      <div class="summary-card" id="total-cameras">Cameras: 0</div>
+      <div class="summary-card" id="total-controllers">Controllers: 0</div>
+      <div class="summary-card" id="total-archivers">Archivers: 0</div>
+      <div class="summary-card" id="total-servers">Servers: 0</div>
+      <div class="summary-card">
+        <h4>High Downtime</h4>
+        <p id="count-downtime-over-15">0</p>
+      </div>
+      <div class="summary-card">
+        <h4>Currently Offline</h4>
+        <p id="count-currently-offline">0</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div id="main">
+    <!-- Sidebar Controls -->
+    <div id="sidebar">
+      <button onclick="window.location.href='index.html'">Back to Dashboard</button>
+      <button onclick="exportDeviceTableToExcel()">Export Table</button>
+
+      <label for="region">Region</label>
+      <select id="region" onchange="fetchDeviceData()">
+        <option value="global">Global</option>
+        <option value="apac">APAC</option>
+        <option value="emea">EMEA</option>
+        <option value="laca">LACA</option>
+        <option value="namer">NAMER</option>
+      </select>
+
+      <label for="device-type">Device Type</label>
+      <select id="device-type" onchange="filterData()">
+        <option value="ALL">All</option>
+        <option value="CONTROLLER">Controller</option>
+        <option value="ARCHIVER">Archiver</option>
+        <option value="CAMERA">Camera</option>
+        <option value="SERVER">Server</option>
+      </select>
+
+      <label for="remark-filter">Remark</label>
+      <select id="remark-filter" onchange="filterData()">
+        <option value="ALL">All</option>
+        <option value="Device needs repair">Needs Repair</option>
+        <option value="Device is Online">Online</option>
+        <option value="Device is Offline">Offline</option>
+      </select>
+    </div>
+
+    <!-- Table Content -->
+    <div id="content">
+      <table id="device-table">
+        <thead>
+          <tr>
+            <th>Sr. No</th><th>IP</th><th>Name</th><th>Type</th>
+            <th>Region</th><th>Uptime</th><th>Down Count</th>
+            <th>Down Duration</th><th>Details</th><th>Remark</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- History Modal -->
+  <div id="device-history-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeHistoryModal()">&times;</span>
+      <div id="device-history-header"></div>
+      <div id="device-history"></div>
+      <button onclick="exportDeviceHistoryToExcel()">Export History</button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <img src="images/FooterLogo.png" alt="Logo">
+    &copy;2025 VisionWatch | Powered by
+    <strong>Western Union Services India Pvt Ltd.</strong><br>
+    <a href="mailto:gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com">
+      gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com
+    </a> |
+    <a href="tel:+912067632394">+91 20 6763 2394</a>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="summary.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", fetchDeviceData);
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
 Read below html file carefullly and amke this html page more dynamic.want to display more attractive.
 so kindky check all file and update my html file.
 arrange button 
