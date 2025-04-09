@@ -1,3 +1,41 @@
+
+
+        <div id="sidebar-content">
+        
+            <div class="summary-container">
+           
+                <div class="summary-card" id="total-devices">Total Devices: 0</div>
+                <div class="summary-card" id="total-online">Total Online Devices: 0</div>
+                <div class="summary-card" id="total-cameras">Total Cameras: 0</div>
+                <div class="summary-card" id="total-controllers">Total Controllers: 0</div>
+                <div class="summary-card" id="total-archivers">Total Archivers: 0</div>
+                <div class="summary-card" id="total-servers">Total Servers: 0</div>    
+            </div>
+            
+            
+            <div class="summary-cards">
+                <div id="count-downtime-over-15-card" class="summary-card">
+                  <h4>High Downtime</h4>
+                  <p id="count-downtime-over-15">0</p>
+                </div>
+                <div id="count-currently-offline-card" class="summary-card">
+                  <h4>Currently Offline</h4>
+                  <p id="count-currently-offline">0</p>
+                </div>
+              </div>
+              
+
+
+
+
+
+
+
+
+
+
+
+
 <div class="summary-cards">
   <div id="count-downtime-over-15-card" class="summary-card">
     <h4>High Downtime</h4>
