@@ -1,3 +1,194 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Devices Summary</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+    }
+
+    /* Top bar: header + summary cards */
+    #top-bar {
+      display: flex;
+      align-items: center;
+      background: #000;
+      color: #fff;
+      padding: 0.5rem 1rem;
+      overflow-x: auto;
+    }
+
+    /* Title area */
+    #top-bar header {
+      flex: 0 0 auto;
+      margin-right: 2rem;
+    }
+    #top-bar header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      color: #c6d212;
+      white-space: nowrap;
+    }
+
+    /* Summary cards area */
+    .summary-container {
+      display: flex;
+      gap: 0.75rem;
+      flex: 1 1 auto;
+    }
+
+    .summary-card {
+      flex: 0 0 auto;
+      background: #111;
+      border-radius: 6px;
+      padding: 0.5rem 1rem;
+      box-shadow: 0 2px 4px rgba(255,255,255,0.05);
+      text-align: center;
+      white-space: nowrap;
+    }
+    .summary-card h4 {
+      margin: 0 0 0.25rem;
+      font-size: 0.9rem;
+      color: #c6d212;
+    }
+    .summary-card p,
+    .summary-card[id^="total-"] {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    /* Main content below top bar */
+    #main-content {
+      display: flex;
+      padding: 1rem;
+    }
+    /* Sidebar controls on left */
+    #sidebar-controls {
+      width: 300px;
+      background: #000;
+      color: #fff;
+      padding: 1rem;
+      border-radius: 8px;
+    }
+    #sidebar-controls button,
+    #sidebar-controls select {
+      width: 100%;
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      background: #111;
+      color: #fff;
+      border: 1px solid #333;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #sidebar-controls button:hover,
+    #sidebar-controls select:hover {
+      background: #222;
+      border-color: #444;
+    }
+    #sidebar-controls label {
+      display: block;
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+    }
+
+    /* Device table takes remaining width */
+    #device-table-container {
+      flex: 1 1 auto;
+      margin-left: 1rem;
+      background: #fff;
+      border-radius: 8px;
+      padding: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="top-bar">
+    <header>
+      <h1>Devices Summary</h1>
+    </header>
+
+    <div class="summary-container">
+      <div class="summary-card" id="total-devices">Total: 0</div>
+      <div class="summary-card" id="total-online">Online: 0</div>
+      <div class="summary-card" id="total-cameras">Cameras: 0</div>
+      <div class="summary-card" id="total-controllers">Controllers: 0</div>
+      <div class="summary-card" id="total-archivers">Archivers: 0</div>
+      <div class="summary-card" id="total-servers">Servers: 0</div>
+      <div class="summary-card">
+        <h4>High Downtime</h4>
+        <p id="count-downtime-over-15">0</p>
+      </div>
+      <div class="summary-card">
+        <h4>Currently Offline</h4>
+        <p id="count-currently-offline">0</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="main-content">
+    <div id="sidebar-controls">
+      <button onclick="window.location.href='index.html'">Back to Dashboard</button>
+      <button onclick="exportDeviceTableToExcel()">Export Device Table</button>
+
+      <label for="region">Select Region:</label>
+      <select id="region" onchange="fetchDeviceData()">
+        <option value="global">Global</option>
+        <option value="apac">APAC</option>
+        <option value="emea">EMEA</option>
+        <option value="laca">LACA</option>
+        <option value="namer">NAMER</option>
+      </select>
+
+      <label for="device-type">Filter by Device Type:</label>
+      <select id="device-type" onchange="filterData()">
+        <option value="ALL">All</option>
+        <option value="CONTROLLER">Controller</option>
+        <option value="ARCHIVER">Archiver</option>
+        <option value="CAMERA">Camera</option>
+        <option value="SERVER">Server</option>
+      </select>
+
+      <label for="remark-filter">Filter by Remark:</label>
+      <select id="remark-filter" onchange="filterData()">
+        <option value="ALL">All</option>
+        <option value="Device needs repair">Needs Repair</option>
+        <option value="Device is Online">Online</option>
+        <option value="Device is Offline">Offline</option>
+      </select>
+    </div>
+
+    <div id="device-table-container">
+      <!-- Your table goes here -->
+      <table id="device-table" style="width:100%; border-collapse: collapse;">
+        <thead>
+          <!-- columns -->
+        </thead>
+        <tbody>
+          <!-- rows -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
