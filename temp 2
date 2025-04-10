@@ -1,3 +1,153 @@
+const baseUrl = "http://localhost:80/api/regions";
+let refreshInterval = 300000; // 5 minutes
+let pingInterval = 30000; // 30 seconds
+let countdownTime = refreshInterval / 1000; // Convert to seconds
+let currentRegion = "global";
+let deviceDetailsCache = {}; // Store previous details to prevent redundant updates
+let latestDetails = null; // Cache the latest fetched details
+
+document.addEventListener("DOMContentLoaded", () => {
+    fetchData("global"); // Load initial data
+    startAutoRefresh("global");
+
+    document.querySelectorAll(".region-button").forEach((button) => {
+        button.addEventListener("click", () => {
+            const region = button.getAttribute("data-region");
+            document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
+            switchRegion(region);
+        });
+    });
+
+    document.getElementById("close-modal").addEventListener("click", () => {
+        document.getElementById("modal").style.display = "none";
+    });
+});
+
+function switchRegion(region) {
+    clearExistingIntervals(); // Avoid interval duplication
+    currentRegion = region;
+    deviceDetailsCache = {};
+    fetchData(region);
+    startAutoRefresh(region);
+}
+
+// **Auto-refresh mechanism**
+function startAutoRefresh(regionName) {
+    fetchData(regionName); // Fetch initial data
+
+    clearExistingIntervals();
+
+    // Start countdown timer
+    window.countdownTimer = setInterval(() => {
+        document.getElementById("countdown").innerText = `Refreshing in ${countdownTime} seconds`;
+        countdownTime--;
+        if (countdownTime < 0) countdownTime = refreshInterval / 1000;
+    }, 1000);
+
+    // Refresh summary & details every 5 minutes
+    window.refreshTimer = setInterval(() => {
+        fetchData(regionName);
+        countdownTime = refreshInterval / 1000;
+    }, refreshInterval);
+
+    // Ping devices every 30 seconds using history API
+    window.pingTimer = setInterval(() => {
+        pingAllDevices(regionName);
+    }, pingInterval);
+}
+
+function clearExistingIntervals() {
+    clearInterval(window.countdownTimer);
+    clearInterval(window.refreshTimer);
+    clearInterval(window.pingTimer);
+}
+
+// **Fetch summary and details together**
+function fetchData(regionName) {
+    Promise.all([
+        fetch(`${baseUrl}/summary/${regionName}`).then(res => res.json()),
+        fetch(`${baseUrl}/details/${regionName}`).then(res => res.json())
+    ])
+    .then(([summary, details]) => {
+        updateSummary(summary);
+
+        if (JSON.stringify(details) !== JSON.stringify(deviceDetailsCache)) {
+            updateDetails(details);
+            deviceDetailsCache = details; // Update cache
+        }
+        // Cache details for pinging and modal refresh
+        latestDetails = details;
+    })
+    .catch((error) => console.error("Error fetching data:", error));
+}
+
+/* ... pingAllDevices, updateSummary remain unchanged ... */
+
+/*
+   Updated updateDetails: unchanged from your version
+   (omitted here for brevity)
+*/
+
+function showModal(name, ip, location, status, city) {
+    const modal = document.getElementById("modal");
+    modal.style.display = "block";
+
+    // Render the initial modal content
+    renderModalContent({ name, ip, location, status, city });
+
+    // Bind the Refresh button
+    const btn = document.getElementById("refresh-data");
+    btn.onclick = () => {
+        // Find the latest device info from latestDetails
+        if (!latestDetails || !latestDetails.details) return;
+
+        // Search through the details object to find this IP
+        let found = null;
+        for (const devList of Object.values(latestDetails.details)) {
+            found = devList.find(d => d.ip_address === ip);
+            if (found) break;
+        }
+        if (!found) return;
+
+        // Derive updated fields
+        const updatedStatus = (found.status || "offline")
+            .charAt(0).toUpperCase() + found.status.slice(1);
+        const updatedLocation = found.location || location;
+        const updatedCity = found.city || city;
+
+        renderModalContent({
+            name,
+            ip,
+            location: updatedLocation,
+            status: updatedStatus,
+            city: updatedCity
+        });
+    };
+}
+
+// Helper to render the modal’s inner HTML
+function renderModalContent({ name, ip, location, status, city }) {
+    document.getElementById("modal-title").textContent = `Details for ${name}`;
+    document.getElementById("modal-body").innerHTML = `
+        <ul>
+            <li><strong>Name:</strong> ${name}</li>
+            <li><strong>IP:</strong> ${ip}</li>
+            <li><strong>Location:</strong> ${location}</li>
+            <li><strong>Status:</strong> ${status}</li>
+            <li><strong>City:</strong> ${city}</li>
+        </ul>
+        <button id="refresh-data">Refresh Data</button>
+    `;
+}
+
+
+
+
+
+
+
+
+
 
 read below script.js file carefully.
 There is button in Show modal ( detaails button ) When click details button there is a option for refresh data 
