@@ -1,620 +1,492 @@
-
--- 1. Create the database
-CREATE DATABASE IF NOT EXISTS device_monitoring;
-USE device_monitoring;
-
--- 2. Create a permanent table for Global Summary
-CREATE TABLE IF NOT EXISTS global_summary (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  fetched_at DATETIME NOT NULL,
-  total_devices INT,
-  total_online_devices INT,
-  total_offline_devices INT
-);
-
--- 3. Create a permanent table for Region Summary
-CREATE TABLE IF NOT EXISTS region_summary (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  region_name VARCHAR(100) NOT NULL,
-  fetched_at DATETIME NOT NULL,
-  total_devices INT,
-  total_online_devices INT,
-  total_offline_devices INT
-);
-
--- 4. Create a permanent table for device details (flat)
-CREATE TABLE IF NOT EXISTS device_details (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  fetched_at DATETIME NOT NULL,
-  region_name VARCHAR(100),
-  device_type VARCHAR(50),
-  device_name VARCHAR(255),
-  ip_address VARCHAR(50),
-  status VARCHAR(20)
-);
-
--- 5. Create a TEMPORARY table to stage details for each fetch
-CREATE TEMPORARY TABLE temp_device_details (
-  region_name VARCHAR(100),
-  device_type VARCHAR(50),
-  device_name VARCHAR(255),
-  ip_address VARCHAR(50),
-  status VARCHAR(20)
-);
-
--- 6. Example of inserting into temp table, then moving to permanent table:
--- (Assume you bulk‑insert rows into temp_device_details first)
-INSERT INTO device_details (fetched_at, region_name, device_type, device_name, ip_address, status)
-SELECT NOW(), region_name, device_type, device_name, ip_address, status
-FROM temp_device_details;
-
--- 7. Clean up temp table if desired (it will auto‑drop at end of session)
-TRUNCATE TABLE temp_device_details;
+Summary.js
 
 
+let deviceUptimeTimers = {};
+let deviceDowntimeTimers = {};
 
+// Utility to turn an IP (or any string) into a safe DOM‑ID fragment
+function sanitizeId(str) {
+    return (str || '').replace(/[^a-zA-Z0-9]/g, '_');
+}
 
+function fetchDeviceData() {
+    const selectedRegion = document.getElementById('region').value;
 
-
-
-
-
-
-
-
-
-
-Read below js file carefully .
-i want to store API responce data on MySQL.
-create database then store details in this db
-then create temp table  and store data in table format.
-write sql queary.
-for automate fetch data from API read below file carefully and make changes and give me updated files.
-
-
-
-
-RegionController.js
-
-
-const { fetchGlobalData, fetchRegionData} = require("../services/excelService");
-
-
-// Global Summary Controller
-const getGlobalSummary = async (req, res) => {
-    try {
-        const globalData = await fetchGlobalData();
-        res.status(200).json({ summary: globalData.summary });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
+    if (selectedRegion === 'All') {
+        fetch(`http://localhost/api/regions/all-details`)
+            .then(res => res.json())
+            .then(allRegionsData => {
+                let combinedDetails = { cameras: [], archivers: [], controllers: [], servers: [] };
+                Object.values(allRegionsData).forEach(regionData => {
+                    if (regionData.details) {
+                        ['cameras','archivers','controllers','servers'].forEach(type => {
+                            combinedDetails[type].push(...(regionData.details[type]||[]));
+                        });
+                    }
+                });
+                fetchDeviceHistory(combinedDetails);
+            })
+            .catch(err => console.error('Error fetching all regions data:', err));
+    } else {
+        fetch(`http://localhost/api/regions/details/${selectedRegion}`)
+            .then(res => res.json())
+            .then(regionData => {
+                const d = regionData.details;
+                const total = (d.cameras?.length||0)+(d.archivers?.length||0)+(d.controllers?.length||0)+(d.servers?.length||0);
+                const online = ([...(d.cameras||[]),...(d.archivers||[]),...(d.controllers||[]),...(d.servers||[])]
+                    .filter(dev => dev.status==="Online").length);
+                const setIf = (id,txt)=>{const el=document.getElementById(id); if(el) el.innerText=txt;};
+                setIf("total-devices", `Total Devices: ${total}`);
+                setIf("total-online", `Total Online Devices: ${online}`);
+                setIf("total-cameras", `Total Cameras: ${d.cameras?.length||0}`);
+                setIf("total-controllers", `Total Controllers: ${d.controllers?.length||0}`);
+                setIf("total-archivers", `Total Archivers: ${d.archivers?.length||0}`);
+                setIf("total-servers", `Total Servers: ${d.servers?.length||0}`);
+                fetchDeviceHistory(d);
+            })
+            .catch(err => console.error('Error fetching device data:', err));
     }
-};
+}
 
-// Global Details Controller
-const getGlobalDetails = async (req, res) => {
-    try {
-        const globalData = await fetchGlobalData();
-        res.status(200).json({ details: globalData.details });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
+function fetchDeviceHistory(details) {
+    fetch(`http://localhost/api/devices/history`)
+        .then(res => res.json())
+        .then(historyData => {
+            populateDeviceTable(details, historyData);
+            window.deviceHistoryData = historyData;
+        })
+        .catch(err => console.error('Error fetching device history:', err));
+}
 
-// Region Summary Controller
-const getRegionSummary = async (req, res) => {
-    const { regionName } = req.params;
-    try {
-        const regionData = await fetchRegionData(regionName);
-        res.status(200).json({ summary: regionData.summary });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
+function populateDeviceTable(details, historyData) {
+    const tbody = document.getElementById('device-table').getElementsByTagName('tbody')[0];
+    tbody.innerHTML = '';
+    let list = [];
 
+    ['cameras','archivers','controllers','servers'].forEach(type => {
+        details[type]?.forEach(dev => {
+            const ip = dev.ip_address;
+            const safe = sanitizeId(ip);
+            const name = dev[type.slice(0,-1)+'name']||'Unknown';
+            const category = type.slice(0,-1).toUpperCase();
+            const region = dev.location||'Unknown';
+            const hist = historyData[ip]||[];
+            const current = dev.status || (hist.length? hist[hist.length-1].status : 'Unknown');
+            const downCount = hist.filter(e=>e.status==='Offline').length;
 
-
-
-// Region Details Controller
-const getRegionDetails = async (req, res) => {
-    const { regionName } = req.params;
-    try {
-        const regionData = await fetchRegionData(regionName);
-        res.status(200).json({ details: regionData.details });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
-    }
-};
-
-module.exports = {
-    getGlobalSummary,
-    getGlobalDetails,
-    getRegionSummary,
-    getRegionDetails,
-};
-
-
-
-regionRoutes.js
-
-//  my code working 
- const express = require("express");
- const {
-     getGlobalSummary,
-     getGlobalDetails,
-     getRegionSummary,
-     getRegionDetails,
- } = require("../controllers/regionControllers");
- 
- const router = express.Router();
- 
- // Global Routes
- router.get("/summary/global", getGlobalSummary);
- router.get("/details/global", getGlobalDetails);
- 
- 
- // Region Routes
- router.get("/summary/:regionName", getRegionSummary);
- router.get("/details/:regionName", getRegionDetails)
- 
- module.exports = router;
-
-
-
-
-excelService.js
-
-const fs = require("fs");
-const xlsx = require("xlsx");
-const path = require("path");
-const ping = require("ping");
-const pLimit = require("p-limit");
-const { DateTime } = require("luxon"); // Import Luxon for timezone handling
-//const axios=require("axios");
-
-// Paths for Excel files
-const archiverPath = path.join(__dirname, "../data/ArchiverData.xlsx");
-const controllerPath = path.join(__dirname, "../data/ControllerData.xlsx");
-const cameraPath = path.join(__dirname, "../data/CameraData.xlsx");
-const serverPath = path.join(__dirname, "../data/ServerData.xlsx");
-
-
-// Log file for device status history
-const logFile = "./deviceLogs.json";
-
-// Cache to store preloaded data
-let allData = {};
-
-
-
-const activeDevices = {}; // Store active monitoring sessions
-
-// Function to load logs
-const loadLogs = () => fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
-
-
-const saveLogs = (logs) => {
-    const existingLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
-    const mergedLogs = { ...existingLogs, ...logs }; // Merge new and old logs
-    fs.writeFileSync(logFile, JSON.stringify(mergedLogs, null, 2), "utf8");
-};
-
-
-
-// Function to normalize column headers
-const normalizeHeaders = (data) => {
-    return data.map((row) => {
-        const normalizedRow = {};
-        for (const key in row) {
-            const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
-            normalizedRow[normalizedKey] = row[key];
-        }
-        return normalizedRow;
-    });
-};
-
-
-// Function to load Excel data into cache
-const loadExcelData = () => {
-    if (Object.keys(allData).length === 0) {
-        const loadSheet = (filePath) => {
-            const workbook = xlsx.readFile(filePath);
-            return normalizeHeaders(xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]));
-        };
-
-        allData = {
-            archivers: loadSheet(archiverPath),
-            controllers: loadSheet(controllerPath),
-            cameras: loadSheet(cameraPath),
-            servers: loadSheet(serverPath),
-        };
-
-        for (const deviceList of Object.values(allData)) {
-            deviceList.forEach(device => {
-                if (!device.history) {
-                    device.history = [];
-                }
-            });
-        }
-
-        console.log("Excel Data Loaded:", Object.keys(allData));
-    }
-};
-
-// Fetch all IP addresses from loaded devices
-const fetchAllIpAddress = () => {
-    if (!allData || Object.keys(allData).length === 0) {
-        console.error("Error: Device data is not loaded.");
-        return [];
-    }
-
-    return Object.values(allData).flatMap(devices => devices.map(device => device.ip_address).filter(Boolean));
-};
-
-const monitorDevice = (device) => {
-    const logs = loadLogs();
-    const currentTime = DateTime.now().setZone("Asia/Kolkata").toISO();
-
-    if (!logs[device.ip_address]) {
-        logs[device.ip_address] = [];
-    }
-
-    let lastEntry = logs[device.ip_address].slice(-1)[0];
-    if (lastEntry && lastEntry.status === device.status) {
-        return; // Avoid duplicate entries
-    }
-
-    console.log(`Status changed: ${device.device_name || device.ip_address} is now ${device.status}`);
-    logs[device.ip_address].push({ status: device.status, timestamp: currentTime });
-    saveLogs(logs);
-};
-
-
-
-// Update logs for uptime and downtime
-const updateLogs = (device, status) => {
-    const logs = loadLogs();
-    const currentTime = DateTime.now().setZone("Asia/Kolkata").toISO();
-
-    logs[device.ip_address] = logs[device.ip_address] || [];
-    logs[device.ip_address].push({ status, timestamp: currentTime });
-
-    saveLogs(logs);
-};
-
-// Stop tracking when device status changes
-const stopTracking = (device) => {
-    if (activeDevices[device.ip_address]) {
-        clearInterval(activeDevices[device.ip_address]);
-        delete activeDevices[device.ip_address];
-    }
-};
-
-
-// Function to Ping a Single Device
-const pingDevice = (ip) => {
-    return new Promise((resolve) => {
-        ping.sys.probe(ip, (isAlive) => {
-            resolve(isAlive ? "Online" : "Offline");
+            // Only show offline or >15 downtimes
+            if (current==='Offline' || downCount>15) {
+                list.push({ ip, safe, name, category, region, current, hist, downCount });
+            }
         });
     });
-};
 
-// Function to ping devices and cache results
-const cache = new Map();
+    list.sort((a,b)=>b.downCount - a.downCount);
 
-const pingDevices = async (devices) => {
-    const limit = pLimit(10);
+    // compute our two new summary counts:
+    const downtimeOver15Count = list.filter(d=>d.downCount>15).length;
+    const currentlyOfflineCount = list.filter(d=>d.current==='Offline').length;
+    const setIf = (id, txt) => { const el = document.getElementById(id); if (el) el.innerText = txt; };
+    setIf('count-downtime-over-15', `Devices with >15 downtimes: ${downtimeOver15Count}`);
+    setIf('count-currently-offline', `Devices currently Offline: ${currentlyOfflineCount}`);
 
-    const pingPromises = devices.map((device) =>
-        limit(async () => {
-            if (!device.ip_address) {
-                device.status = "IP Address Missing";
-                return;
-            }
-
-            if (cache.has(device.ip_address)) {
-                device.status = cache.get(device.ip_address);
-            } else {
-                device.status = await pingDevice(device.ip_address);
-                cache.set(device.ip_address, device.status);
-            }
-
-            monitorDevice(device);  // Ensure monitorDevice handles uptime/downtime properly
-        })
-    );
-
-    await Promise.all(pingPromises);
-};
-// Fetch Global Data
-const fetchGlobalData = async () => {
-    if (!allData || Object.keys(allData).length === 0) {
-        console.error("Error: Device data is not loaded.");
-        return null;
-    }
-
-    const allDevices = [...allData.cameras, ...allData.archivers, ...allData.controllers, ...allData.servers];
-
-    await pingDevices(allDevices);
-    const summary = calculateSummary(allData);
-
-    return { summary, details: allData };
-};
-
-// Fetch Region Data
-const fetchRegionData = async (regionName) => {
-    if (!allData || Object.keys(allData).length === 0) {
-        console.error("Error: Device data is not loaded.");
-        return null;
-    }
-
-    const filterByRegion = (devices) =>
-        devices.filter(device => device.location?.toLowerCase() === regionName.toLowerCase());
-
-    const regionDevices = {
-        cameras: filterByRegion(allData.cameras),
-        archivers: filterByRegion(allData.archivers),
-        controllers: filterByRegion(allData.controllers),
-        servers: filterByRegion(allData.servers),
-    };
-
-    await pingDevices([...regionDevices.cameras, ...regionDevices.archivers, ...regionDevices.controllers, ...regionDevices.servers]);
-
-    const summary = calculateSummary(regionDevices);
-    return { summary, details: regionDevices };
-};
-
-// Calculate summary of devices
-const calculateSummary = (devices) => {
-    const summary = {};
-
-    for (const [key, deviceList] of Object.entries(devices)) {
-        const total = deviceList.length;
-        const online = deviceList.filter(device => device.status === "Online").length;
-        const offline = total - online;
-
-        summary[key] = { total, online, offline };
-    }
-
-    return {
-        totalDevices: Object.values(summary).reduce((sum, { total }) => sum + total, 0),
-        totalOnlineDevices: Object.values(summary).reduce((sum, { online }) => sum + online, 0),
-        totalOfflineDevices: Object.values(summary).reduce((sum, { offline }) => sum + offline, 0),
-        ...summary,
-    };
-};
-
-
-// Helper function to compute uptime and downtime for a device
-const computeDeviceStats = (history) => {
-    let uptime = 0, downtime = 0, downtimeDuration = 0;
-    let lastStatus = history[0]?.status || "Offline";
-    let lastTimestamp = history[0] ? DateTime.fromISO(history[0].timestamp).toMillis() : DateTime.now().toMillis();
-
-    for (let i = 1; i < history.length; i++) {
-        let currentStatus = history[i].status;
-        let currentTime = DateTime.fromISO(history[i].timestamp).toMillis();
-        let timeDiff = (currentTime - lastTimestamp) / 60000; // Convert to minutes
-
-        if (timeDiff > 0) {
-            if (lastStatus === "Online") {
-                uptime += timeDiff;
-            } else if (lastStatus === "Offline") {
-                downtime += timeDiff;
-            }
-
-            if (lastStatus === "Offline" && currentStatus === "Online") {
-                downtimeDuration += downtime;
-                downtime = 0;
-            }
-        }
-
-        lastStatus = currentStatus;
-        lastTimestamp = currentTime;
-    }
-
-    // Format time in days, hours, minutes
-    const formatTime = (minutes) => {
-        const days = Math.floor(minutes / 1440);
-        const hours = Math.floor((minutes % 1440) / 60);
-        const mins = Math.floor(minutes % 60);
-        return `${days}d ${hours}h ${mins}m`;
-    };
-
-    return {
-        uptime: formatTime(uptime),
-        downtime: formatTime(downtime),
-        downtimeDuration: formatTime(downtimeDuration)
-    };
-};
-
-// Fetch Device History
-const fetchDeviceHistory = async (device) => {
-    const devicesLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
-
-    if (!devicesLogs[device.ip_address]) {
-        console.log(`No history found for device: ${device.device_name || "Unknown"} (${device.ip_address})`);
+    if (!list.length) {
+        const row = tbody.insertRow();
+        const cell = row.insertCell();
+        cell.colSpan = 10;
+        cell.textContent = "No devices found";
+        cell.style.textAlign = "center";
+        cell.style.fontWeight = "bold";
+        updateDisplayedDeviceCount(0);
         return;
     }
 
-    // Reset history before assigning new logs
-    device.history = [];
+    list.forEach((dev, idx) => {
+        const row = tbody.insertRow();
+        row.style.border = "1px solid black";
+        row.innerHTML = `
+            <td>${idx+1}</td>
+            <td>${dev.ip}</td>
+            <td>${dev.name}</td>
+            <td>${dev.category}</td>
+            <td>${dev.region}</td>
+            <td id="uptime-${dev.safe}">0h/0m/0s</td>
+            <td id="downtime-count-${dev.safe}">${dev.downCount}</td>
+            <td id="downtime-${dev.safe}">0h/0m/0s</td>
+            <td><button onclick="openDeviceHistory('${dev.ip}','${dev.name}')">View History</button></td>
+            <td id="remark-${dev.safe}">Device working properly</td>
+        `;
+        row.style.color = dev.current==="Online" ? "green" : "red";
 
-    devicesLogs[device.ip_address].forEach(log => {
-        const convertedTimestamp = DateTime.fromISO(log.timestamp, { zone: 'utc' })
-            .setZone('Asia/Kolkata')
-            .toISO();
-
-        device.history.push({
-            status: log.status,
-            timestamp: convertedTimestamp
-        });
+        if (dev.current==="Online") {
+            startUptime(dev.ip, dev.hist);
+        } else {
+            startDowntime(dev.ip, dev.hist, dev.category);
+        }
+        updateRemarks(dev.ip, dev.hist, dev.category);
     });
 
-    console.log(`Device history for ${device.device_name} (${device.ip_address}):`, device.history);
-};
-
-// Monitor and update device status (existing code continues here)...
-
-// Preload Data
-loadExcelData();
-
-module.exports = { fetchGlobalData, fetchRegionData, fetchAllIpAddress };
-
-
-
-
-
-
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-const fs = require("fs");
-const ping = require("ping");
-const regionRoutes = require("./routes/regionRoutes");
-const { fetchAllIpAddress} = require("./services/excelService");
-const { checkServerIdentity } = require("tls");
-
-
-const app = express();
-const PORT = process.env.PORT || 80;
-
-
-
-// Middleware
-app.use(
-  cors({
-    origin: "http://127.0.0.1:5500",
-    methods: "GET,POST,PUT,DELETE",
-    allowedHeaders: "Content-Type,Authorization",
-  })
-);
-app.use(bodyParser.json());
-
-
-// Routes
-app.use("/api/regions", regionRoutes);
-
-
-// Device Status Tracking
-const devices = fetchAllIpAddress();
-let deviceStatus = {};
-const logFile = "./deviceLogs.json";
-
-// Load previous logs if exists
-let deviceLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
-
-// Function to log device status changes
-function logDeviceChange(ip, status) {
-  const timestamp = new Date().toISOString();
-
-  if (!deviceLogs[ip]) {
-    deviceLogs[ip] = [];
-  }
-
-  const lastLog = deviceLogs[ip].length ? deviceLogs[ip][deviceLogs[ip].length - 1] : null;
-
-  // Log only if status changes
-  if (!lastLog || lastLog.status !== status) {
-    deviceLogs[ip].push({ status, timestamp });
-    fs.writeFileSync(logFile, JSON.stringify(deviceLogs, null, 2));
-  }
+    filterData();
 }
 
-// Ping all devices and log changes
-async function pingDevices() {
-  for (const ip of devices) {
-    try {
-      const result = await ping.promise.probe(ip);
-      const newStatus = result.alive ? "Online" : "Offline";
+function startUptime(ip, hist) {
+    const safe = sanitizeId(ip);
+    clearInterval(deviceDowntimeTimers[safe]);
+    const lastOn = hist.filter(e=>e.status==='Online').pop();
+    if (!lastOn) return;
+    const start = new Date(lastOn.timestamp).getTime();
+    deviceUptimeTimers[safe] = setInterval(()=>{
+        const secs = Math.floor((Date.now()-start)/1000);
+        const el = document.getElementById(`uptime-${safe}`);
+        if (el) el.innerText = formatDuration(secs);
+    },1000);
+}
 
-      if (deviceStatus[ip] !== newStatus) {
-        logDeviceChange(ip, newStatus);
-      }
-      deviceStatus[ip] = newStatus;
-    } catch (error) {
-      console.error(`Error pinging ${ip}:`, error);
-      deviceStatus[ip] = "Offline";
+function startDowntime(ip, hist, category) {
+    const safe = sanitizeId(ip);
+    clearInterval(deviceUptimeTimers[safe]);
+    const lastOff = hist.filter(e=>e.status==='Offline').pop();
+    if (!lastOff) return;
+    const start = new Date(lastOff.timestamp).getTime();
+    deviceDowntimeTimers[safe] = setInterval(()=>{
+        const secs = Math.floor((Date.now()-start)/1000);
+        const el = document.getElementById(`downtime-${safe}`);
+        if (el) el.innerText = formatDuration(secs);
+        updateDowntimeCount(ip, hist, category);
+    },1000);
+}
+
+// **Fix Downtime Count and Remarks Update**
+function updateDowntimeCount(ip, hist, category) {
+    const safe = sanitizeId(ip);
+    const offs = hist.filter(e=>e.status==='Offline');
+    const filtered = offs.filter((e,i,arr)=>{
+        if (category==='SERVER') return true;
+        if (i===0) return true;
+        return (new Date(e.timestamp)-new Date(arr[i-1].timestamp))/1000 >=300;
+    });
+    const count = filtered.length;
+    const el = document.getElementById(`downtime-count-${safe}`);
+    if (el) el.innerText = count;
+    updateRemarks(ip, hist, category);
+}
+
+// **Update Remarks**
+function updateRemarks(ip, hist, category) {
+    const safe = sanitizeId(ip);
+    const offs = hist.filter(e=>e.status==='Offline');
+    const filtered = offs.filter((e,i,arr)=>{
+        if (category==='SERVER') return true;
+        if (i===0) return true;
+        return (new Date(e.timestamp)-new Date(arr[i-1].timestamp))/1000 >=300;
+    });
+    const count = filtered.length;
+    const lastStatus = hist.length? hist[hist.length-1].status : 'Unknown';
+    const el = document.getElementById(`remark-${safe}`);
+    if (!el) return;
+
+    if (lastStatus==='Offline') {
+        el.innerText = count>=10 ? "Device is Offline, needs repair." : "Device is Offline.";
     }
-  }
-  console.log("Updated device status:", deviceStatus);
+    else if (lastStatus==='Online') {
+        if (count>=10) el.innerText = "Device is Online, needs repair.";
+        else if (count>0) el.innerText = `Device is Online, it had ${count} downtime occurrences.`;
+        else el.innerText = "Device is Online.";
+    }
+    else {
+        el.innerText = "Device status unknown.";
+    }
+    const dc = document.getElementById(`downtime-count-${safe}`);
+    if (dc) dc.innerText = count;
 }
-// Interval to update uptime/downtime and ping devices
-setInterval(pingDevices, 60000);
 
+function formatDuration(seconds) {
+    const d = Math.floor(seconds/86400);
+    const h = Math.floor((seconds%86400)/3600);
+    const m = Math.floor((seconds%3600)/60);
+    const s = Math.round(seconds%60);
+    const parts = [];
+    if (d) parts.push(`${d}d`);
+    if (h) parts.push(`${h}h`);
+    if (m) parts.push(`${m}m`);
+    if (s||!parts.length) parts.push(`${s}s`);
+    return parts.join('/');
+}
 
+function openDeviceHistory(ip,name) {
+    if (!window.deviceHistoryData) return console.error("No history loaded");
+    const hist = window.deviceHistoryData[ip]||[];
+    displayDeviceHistory(ip,name,hist);
+    const modal = document.getElementById('device-history-modal');
+    if (modal) modal.style.display='block';
+}
 
+function calculateDowntimeDuration(ts, hist) {
+    const start = new Date(ts).getTime();
+    const nextUp = hist.find(e=> e.status==='Online' && new Date(e.timestamp).getTime()>start);
+    if (nextUp) return formatDuration((new Date(nextUp.timestamp).getTime()-start)/1000);
+    return formatDuration((Date.now()-start)/1000);
+}
 
-// API to get real-time device status
-app.get("/api/region/devices/status", (req, res) => {
-  res.json(deviceStatus);
+function displayDeviceHistory(ip,name,hist) {
+    const header = document.getElementById('device-history-header');
+    const container = document.getElementById('device-history');
+    if (header) {
+        header.innerHTML=`
+            <h3>Device History</h3>
+            <p><strong>Device Name:</strong> ${name}</p>
+            <p><strong>Device IP:</strong> ${ip}</p>
+            <hr>`;
+    }
+    if (!container) return;
+    container.innerHTML='';
+    if (!hist.length) {
+        container.innerHTML='<p>No history available for this device.</p>';
+        return;
+    }
+    let html = `
+        <table border="1" style="width:100%; text-align:center; border-collapse:collapse;">
+            <thead><tr>
+                <th>Sr. No</th><th>Date</th><th>Day</th><th>Time</th><th>Status</th><th>Downtime Duration</th>
+            </tr></thead><tbody>`;
+    let lastOff = null;
+    hist.forEach((e,i)=>{
+        const d = new Date(e.timestamp);
+        const date = d.toLocaleDateString();
+        const day = d.toLocaleString('en-US',{weekday:'long'});
+        const time = d.toLocaleTimeString();
+        let dur = '-';
+        if (e.status==='Offline') lastOff = e.timestamp;
+        else if (e.status==='Online' && lastOff) {
+            dur = calculateDowntimeDuration(lastOff,hist);
+            lastOff = null;
+        }
+        html+=`
+            <tr>
+                <td>${i+1}</td><td>${date}</td><td>${day}</td><td>${time}</td>
+                <td style="color:${e.status==='Online'?'green':'red'}">${e.status}</td>
+                <td>${dur}</td>
+            </tr>`;
+    });
+    html+=`</tbody></table>`;
+    container.innerHTML=html;
+}
+
+function closeHistoryModal() {
+    const modal = document.getElementById('device-history-modal');
+    if (modal) modal.style.display='none';
+}
+
+function filterData() {
+    const typeSel = document.getElementById('device-type').value.toUpperCase();
+    const remarkSel = document.getElementById('remark-filter').value.toUpperCase();
+    const rows = document.getElementById('device-table').getElementsByTagName('tbody')[0].rows;
+    let count = 0;
+    for (let row of rows) {
+        const type = row.cells[3].textContent.toUpperCase();
+        const remark = row.cells[9].textContent.trim().toUpperCase();
+        const show = (typeSel==='ALL'||type===typeSel) && (remarkSel==='ALL'||remark.includes(remarkSel));
+        row.style.display = show? '':'none';
+        if (show) count++;
+    }
+    updateDisplayedDeviceCount(count);
+}
+
+function updateDisplayedDeviceCount(count) {
+    const el = document.getElementById('device-count');
+    if (el) el.innerText = `Displayed Devices: ${count}`;
+}
+
+document.addEventListener("DOMContentLoaded", ()=>{
+    const r = document.getElementById('region');
+    if (r) r.addEventListener('change', fetchDeviceData);
+    const t = document.getElementById('device-type');
+    if (t) t.addEventListener('change', filterData);
+    const f = document.getElementById('remark-filter');
+    if (f) f.addEventListener('change', filterData);
+    fetchDeviceData();
 });
 
+function exportDeviceTableToExcel() {
+    const tbl = document.getElementById("device-table");
+    if (!tbl) return;
+    const wb = XLSX.utils.table_to_book(tbl, { sheet: "Device Table" });
+    XLSX.writeFile(wb, "Device_Table.xlsx");
+}
 
-// API to fetch device history for all devices
-app.get("/api/devices/history", (req, res) => {
-  res.json(deviceLogs);
-});
-
-// API to fetch device history region-wise
-app.get("/api/region/:region/history", (req, res) => {
-  const region = req.params.region; // Region parameter from URL
-  const deviceLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
-
-  // Filter devices by the given region
-  const regionLogs = {};
-
-  Object.keys(deviceLogs).forEach(ip => {
-      const device = deviceLogs[ip];
-      if (device.region === region) {
-          regionLogs[ip] = device;
-      }
-  });
-
-  // Check if there are any devices for the region
-  if (Object.keys(regionLogs).length === 0) {
-      return res.status(404).json({ message: `No device history found for region: ${region}` });
-  }
-
-  res.json(regionLogs);
-});
-
-
-
-// API to fetch history of a specific device by IP address
-app.get("/api/device/history/:ip", async (req, res) => {
-  const ip = req.params.ip;
-  const devicesLogs = fs.existsSync(logFile) ? JSON.parse(fs.readFileSync(logFile, "utf8")) : {};
-
-  if (!devicesLogs[ip]) {
-      return res.status(404).json({ message: "No history found for this device" });
-  }
-
-  // Find the device in your allData
-  const device = Object.values(allData).flat().find(d => d.ip_address === ip);
-
-  if (!device) {
-      return res.status(404).json({ message: "Device not found in records" });
-  }
-
-  const history = devicesLogs[ip].map(log => ({
-      status: log.status,
-      timestamp: DateTime.fromISO(log.timestamp, { zone: 'utc' }).setZone('Asia/Kolkata').toISO()
-  }));
-
-  res.json({
-      device_type: device.device_type || "Unknown",
-      device_name: device.device_name || "Unknown",
-      device_ip: device.ip_address,
-      history: history
-  });
-});
+function exportDeviceHistoryToExcel() {
+    const histTbl = document.querySelector("#device-history-modal table");
+    if (!histTbl) return alert("Please open a device's history first.");
+    const wb = XLSX.utils.table_to_book(histTbl, { sheet: "Device History" });
+    XLSX.writeFile(wb, "Device_History.xlsx");
+}
 
 
 
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  pingDevices(); // Initial ping on startup
-});
+
+
+
+
+Summary.html
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devices Summary</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+ <header>
+    <h1  style=" text-align: center;
+    padding: 20px;
+   background-color: hsla(62, 67%, 48%, 0);
+   background-color:black;
+   border-radius: 8px;
+   box-shadow: 0px 4px 6px rgba(178, 190, 11, 0.296);
+   transition: transform 0.3s ease-in-out;
+   color: rgb(198, 210, 18);
+   font-size: 36px;
+   margin: 0;
+   transition: color 0.3s ease;"">Devices Summary</h1>
+   </header>
+
+     <div id="sidebar-content">
+
+
+          <div class="summary-container">
+
+    <div class="summary-card" id="total-devices">Total Devices: 0</div>
+    <div class="summary-card" id="total-online">Total Online Devices: 0</div>
+    <div class="summary-card" id="total-cameras">Total Cameras: 0</div>
+    <div class="summary-card" id="total-controllers">Total Controllers: 0</div>
+    <div class="summary-card" id="total-archivers">Total Archivers: 0</div>
+    <div class="summary-card" id="total-servers">Total Servers: 0</div>
+     </div>
+  <div class="summary-container" 
+
+  style=" display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;">
+    <div class="summary-card">
+
+      <p id="count-downtime-over-15">0</p>
+    </div>
+    <div class="summary-card">
+    
+      <p id="count-currently-offline">0</p>
+    
+    </div>
+  </div>
+                
+     <button style="align-items: center;padding-top: 10px;margin-left: 10px;margin-top: 10px;" onclick="window.location.href='index.html'">Back to Dashboard</button>
+    <button onclick="exportDeviceTableToExcel()">Export Device Table</button>
+           
+            <label for="region">Select Region:</label>
+            <select id="region" onchange="fetchDeviceData()">
+                <option value="global">Global</option>
+                <option value="apac">APAC</option>
+                <option value="emea">EMEA</option>
+                <option value="laca">LACA</option>
+                <option value="namer">NAMER</option>
+            </select>
+
+            <label for="device-type">Filter by Device Type:</label>
+            <select id="device-type" onchange="filterData()">
+                <option value="ALL">All</option>
+                <option value="CONTROLLER">Controller</option>
+
+                <option value="ARCHIVER">Archiver</option>
+
+                <option value="CAMERA">Camera</option>
+
+                <option value="SERVER">Server</option>
+                
+            </select>
+
+             <label for="remark-filter">Filter by Remark:</label>
+             <select id="remark-filter" onchange="filterData()">
+                 <option value="ALL">All</option>
+                 <option value="Device needs repair">Device needs repair</option>
+                 <option value="Device is Online">Device is Online</option>
+                 <option value="Device is Offline">Device is Offline</option>
+             </select>
+
+        </div>
+    </div>
+
+
+    <div class="container">
+        <table id="device-table">
+            <thead>
+                <tr>
+                    <th>Sr . No</th>
+                    <th>Device IP</th>
+                    <th>Device Name</th>
+                    <th>Device Type</th>
+                    <th>Device Region</th>
+                    <!-- <th>Device Status</th> -->
+                    <th>Uptime Duration</th>
+                    <th>Downtime Count</th>
+                    <th>Downtime Duration</th>
+                    <th>Details</th>
+                    <th>Remark</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Device History Modal -->
+    <div id="device-history-modal" class="modal">
+
+        <div class="modal-content">
+
+            
+            <div id="device-history-header"></div> <!-- Header for Device Name and IP -->
+          
+            <div id="device-history"></div>
+            <!-- <<span class="close" onclick="closeHistoryModal()">&times;</span> -->
+
+            <span class="close" onclick="closeHistoryModal()">&times;</span>
+            <div id="device-history"></div>
+            <button onclick="exportDeviceHistoryToExcel()">Export Device History</button>
+            
+
+            
+        </div>
+    </div>
+    
+<script>
+    document.addEventListener("DOMContentLoaded" , function (){
+        fetchDeviceData();
+    });
+</script>
+    <script src="summary.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+
+   <!-- Footer -->
+   <footer class="footer">
+    <img src="images/FooterLogo.png" alt="Company Logo" class="footer-logo">
+    <p>&copy;2025 VisionWatch | Powered by <strong>Western Union Services India Pvt Ltd.</strong></p>
+    <p>Contact: 
+        <a href="mailto:gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com">gsoc-globalsecurityoperationcenter.sharedmailbox@westernunion.com</a> | 
+        <a href="tel:+91 20 67632394">+91 2067632394</a>
+    </p>
+</footer>
+
+</body>
+</html>
+
+</body>
+</html>
+
+
+
