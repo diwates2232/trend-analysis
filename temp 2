@@ -6,6 +6,7 @@ then dont calculate its downtime count. also if Devices back online Within 5 min
 mention its offline Entry When device status is offline greater than 5 minutes.
 
 Only mention each downtime uptime entry for server.
+read carefully below js file and Update file and give me updated js file.
 
 
 let deviceUptimeTimers = {};
