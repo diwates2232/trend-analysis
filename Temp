@@ -1,17 +1,3 @@
-Read below Js file carefully .issue is thier 
-When i hit api for summary as well details We are not getting any api responce.it still stuck on loading condtion
-check each function also no any data displays on console ,
-
-for more information in previous it will all work fine .
-
-my DeviceLogs.json file more also when i open this file We got 
-
-deviceLogs.json: tokenization, wrapping, folding, codelens, word highlighting and sticky scroll have been turned off for this large file in order to reduce memory usage and avoid freezing or crashing.
-
-this pop up .
-update all function correctly and give me updated files .
-
-
 
 app.js
 
