@@ -1,0 +1,306 @@
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const fs = require("fs");
+const path = require("path");
+const ping = require("ping");
+const { DateTime } = require("luxon");
+const regionRoutes = require("./routes/regionRoutes");
+const { fetchAllIpAddress } = require("./services/excelService");
+
+const app = express();
+const PORT = process.env.PORT || 80;
+
+// Middleware
+app.use(cors({ origin: "http://127.0.0.1:5500" }));
+app.use(bodyParser.json());
+app.use("/api/regions", regionRoutes);
+
+// Prepare devices list
+const devices = fetchAllIpAddress();
+let deviceStatus = {};
+
+// Logs folder
+const logDir = path.join(__dirname, "logs");
+if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
+
+// Helpers for daily log files
+function getTodayLogFile() {
+  const date = DateTime.now().toFormat("yyyy-LL-dd");
+  return path.join(logDir, `deviceLogs-${date}.json`);
+}
+function loadTodayLogs() {
+  const file = getTodayLogFile();
+  return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : {};
+}
+function saveTodayLogs(logs) {
+  fs.writeFileSync(getTodayLogFile(), JSON.stringify(logs, null, 2));
+}
+function pruneOldFiles(days = 30) {
+  const cutoff = DateTime.now().minus({ days });
+  fs.readdirSync(logDir).forEach(f => {
+    const m = f.match(/^deviceLogs-(\d{4}-\d{2}-\d{2})\.json$/);
+    if (m && DateTime.fromFormat(m[1], "yyyy-LL-dd") < cutoff) {
+      fs.unlinkSync(path.join(logDir, f));
+    }
+  });
+}
+
+// Log status changes
+function logDeviceChange(ip, status) {
+  const ts = DateTime.now().setZone("Asia/Kolkata").toISO();
+  const logs = loadTodayLogs();
+  logs[ip] = logs[ip] || [];
+  const last = logs[ip].slice(-1)[0];
+  if (!last || last.status !== status) {
+    logs[ip].push({ status, timestamp: ts });
+    saveTodayLogs(logs);
+  }
+}
+
+// Ping loop
+async function pingDevices() {
+  await Promise.all(devices.map(async ip => {
+    try {
+      const res = await ping.promise.probe(ip, { timeout: 5 });
+      const newStatus = res.alive ? "Online" : "Offline";
+      if (deviceStatus[ip] !== newStatus) logDeviceChange(ip, newStatus);
+      deviceStatus[ip] = newStatus;
+    } catch (e) {
+      console.error("Ping error:", e);
+      deviceStatus[ip] = "Offline";
+    }
+  }));
+  console.log("Statuses:", deviceStatus);
+}
+
+// Startup
+pruneOldFiles();
+pingDevices();
+setInterval(pingDevices, 60_000);
+
+// Endpoints
+app.get("/api/region/devices/status", (req, res) => res.json(deviceStatus));
+
+app.get("/api/devices/history", (req, res) => {
+  const all = {};
+  fs.readdirSync(logDir).forEach(f => {
+    if (f.endsWith(".json")) {
+      const day = JSON.parse(fs.readFileSync(path.join(logDir, f)));
+      Object.entries(day).forEach(([ip, arr]) => {
+        all[ip] = (all[ip] || []).concat(arr);
+      });
+    }
+  });
+  res.json(all);
+});
+
+app.get("/api/device/history/:ip", (req, res) => {
+  const ip = req.params.ip, hist = [];
+  fs.readdirSync(logDir).forEach(f => {
+    if (f.endsWith(".json")) {
+      const day = JSON.parse(fs.readFileSync(path.join(logDir, f)));
+      if (day[ip]) hist.push(...day[ip]);
+    }
+  });
+  if (!hist.length) return res.status(404).json({ message: "No history" });
+  res.json({ ip, history: hist });
+});
+
+app.listen(PORT, () => {
+  console.log(`Server on http://localhost:${PORT}`);
+});
+
+
+
+
+
+
+
+const fs = require("fs");
+const xlsx = require("xlsx");
+const path = require("path");
+const ping = require("ping");
+const pLimit = require("p-limit");
+const { DateTime } = require("luxon");
+
+const archiverPath   = path.join(__dirname, "../data/ArchiverData.xlsx");
+const controllerPath = path.join(__dirname, "../data/ControllerData.xlsx");
+const cameraPath     = path.join(__dirname, "../data/CameraData.xlsx");
+const serverPath     = path.join(__dirname, "../data/ServerData.xlsx");
+
+let allData = {};
+const cache = new Map();
+
+// Normalize headers
+function normalizeHeaders(rows) {
+  return rows.map(r => {
+    const o = {};
+    for (const k in r) {
+      o[k.trim().toLowerCase().replace(/\s+/g, "_")] = r[k];
+    }
+    return o;
+  });
+}
+
+// Load Excel once
+function loadExcelData() {
+  if (Object.keys(allData).length) return;
+  const load = file => normalizeHeaders(
+    xlsx.utils.sheet_to_json(
+      xlsx.readFile(file).Sheets[xlsx.readFile(file).SheetNames[0]]
+    )
+  );
+  allData = {
+    archivers:   load(archiverPath),
+    controllers: load(controllerPath),
+    cameras:     load(cameraPath),
+    servers:     load(serverPath),
+  };
+}
+
+// Return list of all IPs
+function fetchAllIpAddress() {
+  loadExcelData();
+  return Object.values(allData).flatMap(list =>
+    list.map(d => d.ip_address).filter(Boolean)
+  );
+}
+
+// Ping helper
+function pingDevice(ip) {
+  return new Promise(res =>
+    ping.sys.probe(ip, alive => res(alive ? "Online" : "Offline"))
+  );
+}
+
+// Bulk ping with cache & limit
+async function pingDevices(devices) {
+  const limit = pLimit(10);
+  await Promise.all(devices.map(d => limit(async () => {
+    if (!d.ip_address) { d.status = "No IP"; return; }
+    if (cache.has(d.ip_address)) {
+      d.status = cache.get(d.ip_address);
+    } else {
+      d.status = await pingDevice(d.ip_address);
+      cache.set(d.ip_address, d.status);
+    }
+  })));
+}
+
+// Summarize
+function calculateSummary(groups) {
+  const summary = {};
+  for (const [k, list] of Object.entries(groups)) {
+    const total  = list.length;
+    const online = list.filter(d => d.status==="Online").length;
+    summary[k] = { total, online, offline: total-online };
+  }
+  const totals = Object.values(summary).reduce((a,{total,online,offline})=>({
+    totalDevices:       a.totalDevices       + total,
+    totalOnlineDevices: a.totalOnlineDevices + online,
+    totalOfflineDevices:a.totalOfflineDevices+ offline
+  }), { totalDevices:0, totalOnlineDevices:0, totalOfflineDevices:0 });
+  return { ...totals, ...summary };
+}
+
+// Global fetch
+async function fetchGlobalData() {
+  loadExcelData();
+  const devs = [
+    ...allData.cameras,
+    ...allData.archivers,
+    ...allData.controllers,
+    ...allData.servers
+  ];
+  await pingDevices(devs);
+  return { summary: calculateSummary(allData), details: allData };
+}
+
+// Region fetch
+async function fetchRegionData(regionName) {
+  loadExcelData();
+  const filter = list => list.filter(d =>
+    (d.location||"").toLowerCase()===regionName.toLowerCase()
+  );
+  const region = {
+    cameras:     filter(allData.cameras),
+    archivers:   filter(allData.archivers),
+    controllers: filter(allData.controllers),
+    servers:     filter(allData.servers),
+  };
+  await pingDevices(Object.values(region).flat());
+  return { summary: calculateSummary(region), details: region };
+}
+
+module.exports = { fetchAllIpAddress, fetchGlobalData, fetchRegionData };
+
+
+
+
+const { fetchGlobalData, fetchRegionData } = require("../services/excelService");
+
+async function getGlobalSummary(req, res) {
+  try {
+    const { summary } = await fetchGlobalData();
+    res.json({ summary });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+}
+
+async function getGlobalDetails(req, res) {
+  try {
+    const { details } = await fetchGlobalData();
+    res.json({ details });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+}
+
+async function getRegionSummary(req, res) {
+  try {
+    const { summary } = await fetchRegionData(req.params.regionName);
+    res.json({ summary });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+}
+
+async function getRegionDetails(req, res) {
+  try {
+    const { details } = await fetchRegionData(req.params.regionName);
+    res.json({ details });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+}
+
+module.exports = {
+  getGlobalSummary,
+  getGlobalDetails,
+  getRegionSummary,
+  getRegionDetails
+};
+
+
+
+
+
+
+
+const express = require("express");
+const {
+  getGlobalSummary,
+  getGlobalDetails,
+  getRegionSummary,
+  getRegionDetails
+} = require("../controllers/regionController");
+
+const router = express.Router();
+router.get("/summary/global", getGlobalSummary);
+router.get("/details/global",  getGlobalDetails);
+router.get("/summary/:regionName", getRegionSummary);
+router.get("/details/:regionName", getRegionDetails);
+module.exports = router;
