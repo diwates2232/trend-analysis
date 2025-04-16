@@ -1,11 +1,12 @@
-read carefully my backend files 
-issue is there When i check API for details and summary they are not given any responce on JSON format it still on loading 
-Correct the issue on my files and give me Updated js file carefully
+Read Carefully Backend js file and 
+issue is their i want store device logs for 1 month but after some days like 10 day 10 to  15 after device logs store more then our pingdevice function get lag .
+ suggest me how we prevent this issue ,
+or after some device logs create new device log file Automatically.
 
+make changes and give me updated js files
 
 
 app.js
-
 
 require("dotenv").config();
 const express = require("express");
@@ -21,7 +22,7 @@ const app = express();
 const PORT = process.env.PORT || 80;
 
 // Helper: prune entries older than N days
-function pruneOldEntries(entries, days = 30) {
+function pruneOldEntries(entries, days = 10) {
   const cutoff = DateTime.now().minus({ days }).toMillis();
   return entries.filter(e => {
     try {
@@ -154,9 +155,6 @@ app.listen(PORT, () => {
 regionController.js
 
 
-// my working code 
-
-
 const { fetchGlobalData, fetchRegionData} = require("../services/excelService");
 
 
@@ -212,7 +210,6 @@ module.exports = {
 
 
 
-
 regionRoutes.js
 
 //  my code working 
@@ -240,8 +237,9 @@ regionRoutes.js
 
 
 
-
 excelService.js
+
+
 
 
 
@@ -267,7 +265,7 @@ let allData = {};
 const activeDevices = {}; // Store active monitoring sessions
 
 // Helper: prune entries older than N days
-function pruneOldEntries(entries, days = 30) {
+function pruneOldEntries(entries, days = 10) {
   const cutoff = DateTime.now().minus({ days }).toMillis();
   return entries.filter(e => {
     try {
@@ -293,7 +291,7 @@ const saveLogs = (logs) => {
   // For each IP in the incoming logs, append and prune
   for (const ip of Object.keys(logs)) {
     const combined = [...(existing[ip] || []), ...logs[ip]];
-    existing[ip] = pruneOldEntries(combined, 30);
+    existing[ip] = pruneOldEntries(combined, 10);
   }
 
   fs.writeFileSync(logFile, JSON.stringify(existing, null, 2), "utf8");
@@ -338,6 +336,8 @@ const loadExcelData = () => {
   }
 };
 
+
+
 // Fetch all IP addresses from loaded devices
 const fetchAllIpAddress = () => {
   if (!allData || Object.keys(allData).length === 0) {
@@ -348,6 +348,7 @@ const fetchAllIpAddress = () => {
   return Object.values(allData)
     .flatMap(devices => devices.map(device => device.ip_address).filter(Boolean));
 };
+
 
 const monitorDevice = (device) => {
   const logs = loadLogs();
@@ -366,6 +367,7 @@ const monitorDevice = (device) => {
   logs[device.ip_address].push({ status: device.status, timestamp: currentTime });
   saveLogs(logs);
 };
+
 
 // Update logs for uptime and downtime (also goes through saveLogs)
 const updateLogs = (device, status) => {
@@ -422,6 +424,7 @@ const pingDevices = async (devices) => {
   await Promise.all(pingPromises);
 };
 
+
 // Fetch Global Data
 const fetchGlobalData = async () => {
   if (!allData || Object.keys(allData).length === 0) {
@@ -441,6 +444,12 @@ const fetchGlobalData = async () => {
 
   return { summary, details: allData };
 };
+
+
+
+
+
+
 
 // Fetch Region Data
 const fetchRegionData = async (regionName) => {
@@ -561,6 +570,4 @@ const fetchDeviceHistory = async (device) => {
 loadExcelData();
 
 module.exports = { fetchGlobalData, fetchRegionData, fetchAllIpAddress };
-
-
 
