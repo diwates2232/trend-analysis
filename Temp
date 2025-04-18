@@ -1,3 +1,44 @@
+function pingAllDevices(regionName) {
+    fetch("http://localhost:80/api/region/devices/status")
+        .then(res => res.json())
+        .then(realTimeStatus => {
+            let statusChanged = false;
+
+            document.querySelectorAll(".device-card").forEach(card => {
+                const ip = card.dataset.ip;
+                const newStatus = (realTimeStatus[ip] || "offline").toLowerCase();
+                const oldStatus = card.dataset.status;
+
+                if (newStatus !== oldStatus) {
+                    // update the card’s data-status attribute
+                    card.dataset.status = newStatus;
+
+                    // update the dot
+                    const dot = card.querySelector(".status-dot");
+                    if (dot) dot.style.backgroundColor = newStatus === "online" ? "green" : "red";
+
+                    // update the text
+                    const text = card.querySelector(".status-text");
+                    if (text) text.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+
+                    statusChanged = true;
+                }
+            });
+
+            // if anything flipped, re-fetch summary/details after a short delay
+            if (statusChanged) {
+                setTimeout(() => fetchData(regionName), 5000);
+            }
+        })
+        .catch(err => console.error("Realtime ping failed:", err));
+}
+
+
+
+
+
+
+
 
 Read carefully my Script.js file carefully and make changes as per above discuss pn pingAllDevices
 Make sure dont change any other function
