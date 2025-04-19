@@ -1,447 +1,412 @@
-function pingAllDevices(regionName) {
-    fetch("http://localhost:80/api/region/devices/status")
-        .then(res => res.json())
-        .then(realTimeStatus => {
-            let statusChanged = false;
+Read below Backend node.js file carefully.
+there are issue on this file Which is i have notice 
+Some Devices are receiving ping responce Still its Showing Offline .Why this happen Check all Backend Files carefully.If Issue Occured then solve this issue 
+also if dont get isue on backend files i will share you frontend files then check frontend files also .
 
-            document.querySelectorAll(".device-card").forEach(card => {
-                const ip = card.dataset.ip;
-                const newStatus = (realTimeStatus[ip] || "offline").toLowerCase();
-                const oldStatus = card.dataset.status;
 
-                if (newStatus !== oldStatus) {
-                    // update the card’s data-status attribute
-                    card.dataset.status = newStatus;
 
-                    // update the dot
-                    const dot = card.querySelector(".status-dot");
-                    if (dot) dot.style.backgroundColor = newStatus === "online" ? "green" : "red";
+app.js
 
-                    // update the text
-                    const text = card.querySelector(".status-text");
-                    if (text) text.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const fs = require("fs");
+const { pingHost } = require("./services/pingService");
+const { DateTime } = require("luxon");
+const regionRoutes = require("./routes/regionRoutes");
+const { fetchAllIpAddress, ipRegionMap } = require("./services/excelService");
 
-                    statusChanged = true;
-                }
-            });
+const app = express();
+const PORT = process.env.PORT || 80;
 
-            // if anything flipped, re-fetch summary/details after a short delay
-            if (statusChanged) {
-                setTimeout(() => fetchData(regionName), 5000);
-            }
-        })
-        .catch(err => console.error("Realtime ping failed:", err));
+// Helpers
+function pruneOldEntries(entries, days = 30) {
+  const cutoff = DateTime.now().minus({ days }).toMillis();
+  return entries.filter(e => DateTime.fromISO(e.timestamp).toMillis() >= cutoff);
+}
+function getLogFileForDate(dt) {
+  return `./deviceLogs-${dt.toISODate()}.json`;
 }
 
+// Middleware
+app.use(cors({
+  origin: "http://127.0.0.1:5500",
+  methods: "GET,POST,PUT,DELETE",
+  allowedHeaders: "Content-Type,Authorization",
+}));
+app.use(bodyParser.json());
+
+// Routes
+app.use("/api/regions", regionRoutes);
+
+// Device Status Tracking
+const devices = fetchAllIpAddress();
+let deviceStatus = {};
+
+// Load only today's logs
+const today = DateTime.now().setZone("Asia/Kolkata");
+const todayLogFile = getLogFileForDate(today);
+let todayLogs = fs.existsSync(todayLogFile)
+  ? JSON.parse(fs.readFileSync(todayLogFile, "utf8"))
+  : {};
+
+// Persist today's logs
+function saveTodayLogs() {
+  fs.writeFileSync(todayLogFile, JSON.stringify(todayLogs, null, 2));
+}
+
+// Log a status change
+function logDeviceChange(ip, status) {
+  const timestamp = DateTime.now().setZone("Asia/Kolkata").toISO();
+  const arr = (todayLogs[ip] = todayLogs[ip] || []);
+  const last = arr[arr.length - 1];
+  if (!last || last.status !== status) {
+    arr.push({ status, timestamp });
+    todayLogs[ip] = pruneOldEntries(arr, 30);
+    saveTodayLogs();
+  }
+}
+
+// Ping devices
+async function pingDevices() {
+const limit = require("p-limit")(20);
+  await Promise.all(
+    devices.map(ip =>
+      limit(async () => {
+        const newStatus = await pingHost(ip);
+        if (deviceStatus[ip] !== newStatus) {
+          logDeviceChange(ip, newStatus);
+        }
+        deviceStatus[ip] = newStatus;
+      })
+    )
+  );
+  console.log("Updated device status:", deviceStatus);
+ }
+
+
+// Start ping loop
+setInterval(pingDevices, 60_000);
+pingDevices();
+
+// Real‑time status
+app.get("/api/region/devices/status", (req, res) => {
+  res.json(deviceStatus);
+});
+
+// Full history: stitch together all daily files
+app.get("/api/devices/history", (req, res) => {
+  const files = fs.readdirSync(".")
+    .filter(f => f.startsWith("deviceLogs-") && f.endsWith(".json"));
+  const combined = {};
+  for (const f of files) {
+    const dayLogs = JSON.parse(fs.readFileSync(f, "utf8"));
+    for (const ip of Object.keys(dayLogs)) {
+      combined[ip] = (combined[ip] || []).concat(dayLogs[ip]);
+    }
+  }
+  // prune to last 30 days
+  for (const ip of Object.keys(combined)) {
+    combined[ip] = pruneOldEntries(combined[ip], 30);
+  }
+  res.json(combined);
+});
+
+// Region‑wise history
+app.get("/api/region/:region/history", (req, res) => {
+  const region = req.params.region.toLowerCase();
+  const files = fs.readdirSync(".")
+    .filter(f => f.startsWith("deviceLogs-") && f.endsWith(".json"));
+  const regionLogs = {};
+
+  for (const f of files) {
+    const dayLogs = JSON.parse(fs.readFileSync(f, "utf8"));
+    for (const ip of Object.keys(dayLogs)) {
+      if (ipRegionMap[ip] === region) {
+        regionLogs[ip] = (regionLogs[ip] || []).concat(dayLogs[ip]);
+      }
+    }
+  }
+
+  if (!Object.keys(regionLogs).length) {
+    return res.status(404).json({ message: `No device history found for region: ${region}` });
+  }
+  // prune per‑IP
+  for (const ip of Object.keys(regionLogs)) {
+    regionLogs[ip] = pruneOldEntries(regionLogs[ip], 30);
+  }
+  res.json(regionLogs);
+});
+
+// Single‑device history
+app.get("/api/device/history/:ip", (req, res) => {
+  const ip = req.params.ip;
+  const files = fs.readdirSync(".")
+    .filter(f => f.startsWith("deviceLogs-") && f.endsWith(".json"));
+  let history = [];
+  for (const f of files) {
+    const dayLogs = JSON.parse(fs.readFileSync(f, "utf8"));
+    if (dayLogs[ip]) history = history.concat(dayLogs[ip]);
+  }
+  if (!history.length) {
+    return res.status(404).json({ message: "No history found for this device" });
+  }
+  history.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  res.json({ ip, history });
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
 
 
 
 
+file 2 
 
+excelSErvice.js
 
+const fs = require("fs");
+const xlsx = require("xlsx");
+const path = require("path");
+const pLimit = require("p-limit");
+const { pingHost } = require("./pingService");
 
-Read carefully my Script.js file carefully and make changes as per above discuss pn pingAllDevices
-Make sure dont change any other function
+const { DateTime } = require("luxon");
 
-Script.js
+// Excel paths
+const archiverPath = path.join(__dirname, "../data/ArchiverData.xlsx");
+const controllerPath = path.join(__dirname, "../data/ControllerData.xlsx");
+const cameraPath = path.join(__dirname, "../data/CameraData.xlsx");
+const serverPath = path.join(__dirname, "../data/ServerData.xlsx");
 
+// In‑memory cache
+let allData = {};
 
-    const baseUrl = "http://localhost:80/api/regions";
-    let refreshInterval = 300000; // 5 minutes
-    let pingInterval = 30000; // 30 seconds
-    let countdownTime = refreshInterval / 1000; // Convert to seconds
-    let currentRegion = "global";
-    let deviceDetailsCache = {}; // Store previous details to prevent redundant updates
-    let latestDetails = null; // Cache the latest fetched details
-    
-    document.addEventListener("DOMContentLoaded", () => {
-        fetchData("global"); // Load initial data
-        startAutoRefresh("global");
-    
-        document.querySelectorAll(".region-button").forEach((button) => {
-            button.addEventListener("click", () => {
-                const region = button.getAttribute("data-region");
-                document.getElementById("region-title").textContent = `${region.toUpperCase()} Summary`;
-                switchRegion(region);
-            });
-        });
-    
-        document.getElementById("close-modal").addEventListener("click", () => {
-            document.getElementById("modal").style.display = "none";
-        });
+// Helper: prune old entries
+function pruneOldEntries(entries, days = 30) {
+  const cutoff = DateTime.now().minus({ days }).toMillis();
+  return entries.filter(e => DateTime.fromISO(e.timestamp).toMillis() >= cutoff);
+}
+
+// Load Excel sheets once
+function loadExcelData() {
+  if (Object.keys(allData).length) return;
+  const loadSheet = file => {
+    const wb = xlsx.readFile(file);
+    const rows = xlsx.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+    return rows.map(r => {
+      const norm = {};
+      Object.entries(r).forEach(([k, v]) => {
+        norm[k.trim().toLowerCase().replace(/\s+/g, "_")] = v;
+      });
+      norm.history = [];
+      return norm;
     });
-    
-    function switchRegion(region) {
-        clearExistingIntervals(); // Avoid interval duplication
-        currentRegion = region;
-        deviceDetailsCache = {};
-        fetchData(region);
-        startAutoRefresh(region);
-    }
-    
-    // **Auto-refresh mechanism**
-    function startAutoRefresh(regionName) {
-        fetchData(regionName); // Fetch initial data
-    
-        clearExistingIntervals();
-    
-        // Start countdown timer
-        window.countdownTimer = setInterval(() => {
-            document.getElementById("countdown").innerText = `Refreshing in ${countdownTime} seconds`;
-            countdownTime--;
-            if (countdownTime < 0) countdownTime = refreshInterval / 1000;
-        }, 1000);
-    
-        // Refresh summary & details every 5 minutes
-        window.refreshTimer = setInterval(() => {
-            fetchData(regionName);
-            countdownTime = refreshInterval / 1000;
-        }, refreshInterval);
-    
-        // Ping devices every 30 seconds using history API
-        window.pingTimer = setInterval(() => {
-            pingAllDevices(regionName);
-        }, pingInterval);
-    }
-    
-    function clearExistingIntervals() {
-        clearInterval(window.countdownTimer);
-        clearInterval(window.refreshTimer);
-        clearInterval(window.pingTimer);
-    }
-    
-    // **Fetch summary and details together**
-    function fetchData(regionName) {
-        Promise.all([
-            fetch(`${baseUrl}/summary/${regionName}`).then(res => res.json()),
-            fetch(`${baseUrl}/details/${regionName}`).then(res => res.json())
-        ])
-        .then(([summary, details]) => {
-            console.log("Summary Data:", summary);
-            console.log("Details Data:", details);
-    
-            updateSummary(summary);
-            
-            if (JSON.stringify(details) !== JSON.stringify(deviceDetailsCache)) {
-                updateDetails(details);
-                deviceDetailsCache = details; // Update cache
-            }
-            // Cache details for pinging
-            latestDetails = details;
+  };
+  allData = {
+    archivers: loadSheet(archiverPath),
+    controllers: loadSheet(controllerPath),
+    cameras: loadSheet(cameraPath),
+    servers: loadSheet(serverPath),
+  };
+  console.log("Excel Data Loaded:", Object.keys(allData));
+}
+loadExcelData();
+
+// Build IP→region map
+const ipRegionMap = {};
+Object.values(allData).flat().forEach(dev => {
+  if (dev.ip_address && dev.location) {
+    ipRegionMap[dev.ip_address] = dev.location.toLowerCase();
+  }
+});
+
+// Fetch all IPs
+function fetchAllIpAddress() {
+  return Object.values(allData)
+    .flat()
+    .map(d => d.ip_address)
+    .filter(Boolean);
+}
+
+// Ping helpers
+const cache = new Map();
+
+async function pingDevice(ip) {
+    if (!ip) return "IP Address Missing";
+     return await pingHost(ip);
+   }
+
+
+cache.clear();
+ async function pingDevices(devices) {
+    // cache.clear();
+    const limit = pLimit(20);
+    await Promise.all(
+      devices.map(dev =>
+        limit(async () => {
+          const status = cache.get(dev.ip_address) || await pingDevice(dev.ip_address);
+          cache.set(dev.ip_address, status);
+          dev.status = status;
         })
-        .catch((error) => console.error("Error fetching data:", error));
+      )
+    );
+  }
+
+  
+// Summary calculators
+function calculateSummary(groups) {
+  const summary = {};
+  for (const [k, list] of Object.entries(groups)) {
+    const total = list.length;
+    const online = list.filter(d => d.status === "Online").length;
+    summary[k] = { total, online, offline: total - online };
+  }
+  return {
+    totalDevices: Object.values(summary).reduce((s, g) => s + g.total, 0),
+    totalOnlineDevices: Object.values(summary).reduce((s, g) => s + g.online, 0),
+    totalOfflineDevices: Object.values(summary).reduce((s, g) => s + g.offline, 0),
+    ...summary
+  };
+}
+
+// Public APIs
+async function fetchGlobalData() {
+  const all = [...allData.cameras, ...allData.archivers, ...allData.controllers, ...allData.servers];
+  await pingDevices(all);
+  return { summary: calculateSummary(allData), details: allData };
+}
+
+async function fetchRegionData(regionName) {
+  const filter = list => list.filter(d => d.location?.toLowerCase() === regionName.toLowerCase());
+  const regionDevices = {
+    cameras: filter(allData.cameras),
+    archivers: filter(allData.archivers),
+    controllers: filter(allData.controllers),
+    servers: filter(allData.servers),
+  };
+  await pingDevices([].concat(...Object.values(regionDevices)));
+  return { summary: calculateSummary(regionDevices), details: regionDevices };
+}
+
+module.exports = {
+  fetchGlobalData,
+  fetchRegionData,
+  fetchAllIpAddress,
+  ipRegionMap
+};
+
+
+
+
+file 3
+
+pingService.js
+
+const ping = require("ping");
+const DEFAULT_TIMEOUT = 5; // seconds
+const ICMP_COUNT_FLAG = process.platform === "win32" ? "-n" : "-c";
+
+async function pingHost(ip) {
+  try {
+    const res = await ping.promise.probe(ip, {
+      timeout: DEFAULT_TIMEOUT,
+      extra: [ICMP_COUNT_FLAG, "1"],
+    });
+    return res.alive ? "Online" : "Offline";
+  } catch {
+    return "Offline";
+  }
+}
+
+module.exports = { pingHost };
+
+
+regionController.js
+
+const { fetchGlobalData, fetchRegionData} = require("../services/excelService");
+
+
+// Global Summary Controller
+const getGlobalSummary = async (req, res) => {
+    try {
+        const globalData = await fetchGlobalData();
+        res.status(200).json({ summary: globalData.summary });
+    } catch (error) {
+        res.status(500).json({ error: "Internal server error", details: error.message });
     }
-    
-    /*
-       Updated pingAllDevices:
-       Instead of calling a non-existent ping endpoint, we now use the history API to fetch 
-       device history and update each device’s status by updating the separate status dot and text.
-    */
-    function pingAllDevices(regionName) {
-        let details = latestDetails;
-        if (!details || !details.details) return;
-    
-        fetch("http://localhost/api/devices/history")
-            .then(response => response.json())
-            .then(historyData => {
-                let statusChanged = false;
-    
-                for (const [key, devices] of Object.entries(details.details)) {
-                    if (!Array.isArray(devices) || devices.length === 0) continue;
-    
-                    devices.forEach((device) => {
-                        const ip = device.ip_address || "N/A";
-                        const card = document.querySelector(`[data-ip="${ip}"]`);
-                        if (!card) return;
-    
-                        // Determine new status from history API if available.
-                        const historyArray = historyData[ip];
-                        let newStatus = (device.status || "offline").toLowerCase();
-                        if (Array.isArray(historyArray) && historyArray.length > 0) {
-                            const latestEntry = historyArray[historyArray.length - 1];
-                            newStatus = (latestEntry.status || "offline").toLowerCase();
-                        }
-                        const currentStatus = card.dataset.status;
-    
-                        // Update UI: update the dot and the text.
-                        const statusDot = card.querySelector(".status-dot");
-                        const statusText = card.querySelector(".status-text");
-                        if (statusDot) {
-                            statusDot.style.backgroundColor = (newStatus === "online") ? "green" : "red";
-                        } else {
-                            console.warn(`Status dot element not found for IP: ${ip}`);
-                        }
-                        if (statusText) {
-                            statusText.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
-                        } else {
-                            console.warn(`Status text element not found for IP: ${ip}`);
-                        }
-    
-                        if (newStatus !== currentStatus) {
-                            statusChanged = true;
-                            card.dataset.status = newStatus;
-                        }
-                    });
-                }
-    
-                setTimeout(() => {
-                    if (statusChanged) {
-                        fetchData(regionName);
-                    }
-                }, 5000);
-            })
-            .catch(error => {
-                console.error("Error fetching device history:", error);
-            });
+};
+
+// Global Details Controller
+const getGlobalDetails = async (req, res) => {
+    try {
+        const globalData = await fetchGlobalData();
+        res.status(200).json({ details: globalData.details });
+    } catch (error) {
+        res.status(500).json({ error: "Internal server error", details: error.message });
     }
-    
-    function updateSummary(data) {
-        document.getElementById("total-devices").textContent = data.summary?.totalDevices || "0";
-        document.getElementById("online-devices").textContent = data.summary?.totalOnlineDevices || "0";
-        document.getElementById("offline-devices").textContent = data.summary?.totalOfflineDevices || "0";
-    
-        document.getElementById("camera-total").textContent = data.summary?.cameras?.total || "0";
-        document.getElementById("camera-online").textContent = data.summary?.cameras?.online || "0";
-        document.getElementById("camera-offline").textContent = data.summary?.cameras?.offline || "0";
-    
-        document.getElementById("archiver-total").textContent = data.summary?.archivers?.total || "0";
-        document.getElementById("archiver-online").textContent = data.summary?.archivers?.online || "0";
-        document.getElementById("archiver-offline").textContent = data.summary?.archivers?.offline || "0";
-    
-        document.getElementById("controller-total").textContent = data.summary?.controllers?.total || "0";
-        document.getElementById("controller-online").textContent = data.summary?.controllers?.online || "0";
-        document.getElementById("controller-offline").textContent = data.summary?.controllers?.offline || "0";
-    
-        document.getElementById("server-total").textContent = data.summary?.servers?.total || "0";
-        document.getElementById("server-online").textContent = data.summary?.servers?.online || "0";
-        document.getElementById("server-offline").textContent = data.summary?.servers?.offline || "0";
+};
+
+// Region Summary Controller
+const getRegionSummary = async (req, res) => {
+    const { regionName } = req.params;
+    try {
+        const regionData = await fetchRegionData(regionName);
+        res.status(200).json({ summary: regionData.summary });
+    } catch (error) {
+        res.status(500).json({ error: "Internal server error", details: error.message });
     }
-    
-    /*
-       Updated updateDetails:
-       Each device card is built with separate elements for the status dot and status text.
-       This ensures that later updates from pingAllDevices can reliably find and update them.
-    */
-    function updateDetails(data) {
-        const detailsContainer = document.getElementById("device-details");
-        const deviceFilter = document.getElementById("device-filter");
-        const onlineFilterButton = document.getElementById("filter-online");
-        const offlineFilterButton = document.getElementById("filter-offline");
-        const allFilterButton = document.getElementById("filter-all");
-        const cityFilter = document.getElementById("city-filter");
-    
-        detailsContainer.innerHTML = "";
-        cityFilter.innerHTML = '<option value="all">All Cities</option>';
-    
-        let combinedDevices = [];
-        let citySet = new Set();
-    
-        // Fetch real-time status if available.
-        fetch("http://localhost:80/api/region/devices/status")
-            .then((response) => response.json())
-            .then((realTimeStatus) => {
-                console.log("Live Status Data:", realTimeStatus);
-    
-                for (const [key, devices] of Object.entries(data.details)) {
-                    if (!Array.isArray(devices) || devices.length === 0) continue;
-                    const deviceType = key.toLowerCase();
-    
-                    devices.forEach((device) => {
-                        const deviceIP = device.ip_address || "N/A";
-                        let currentStatus = (realTimeStatus[deviceIP] || device.status || "offline").toLowerCase();
-                        const city = device.city || "Unknown";
-                        citySet.add(city);
-    
-                        // Create card element.
-                        const card = document.createElement("div");
-                        card.className = "device-card";
-                        card.dataset.type = deviceType;
-                        card.dataset.status = currentStatus;
-                        card.dataset.city = city;
-                        card.setAttribute("data-ip", deviceIP);
-    
-                        // Create a container for status.
-                        const statusContainer = document.createElement("p");
-                        statusContainer.className = "device-status";
-                        statusContainer.textContent = "Status: ";
-    
-                        // Create the status text element.
-                        const statusText = document.createElement("span");
-                        statusText.className = "status-text";
-                        statusText.textContent = currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1);
-    
-                        // Create the status dot element.
-                        const statusDot = document.createElement("span");
-                        statusDot.className = "status-dot";
-                        statusDot.style.backgroundColor = (currentStatus === "online") ? "green" : "red";
-                        statusDot.style.display = "inline-block";
-                        statusDot.style.width = "10px";
-                        statusDot.style.height = "10px";
-                        statusDot.style.marginLeft = "5px";
-                        statusDot.style.borderRadius = "50%";
-    
-                        // Append status text and dot to the container.
-                        statusContainer.appendChild(statusText);
-                        statusContainer.appendChild(statusDot);
-    
-                        card.innerHTML = `
-                            <h3>${device.cameraname || device.controllername || device.archivername || device.servername || "Unknown Device"}</h3>
-                            <p>DEVICE TYPE: ${deviceType.toUpperCase()}</p>
-                            <p>IP: ${deviceIP}</p>
-                            <p>LOCATION: ${device.location || "N/A"}</p>
-                            <p>CITY: ${city}</p>
-                        `;
-                        card.appendChild(statusContainer);
-                        card.innerHTML += `
-                            <button class="details-button" onclick="showModal('${device.cameraname || device.controllername || device.archivername || device.servername || "Unknown Device"}', '${deviceIP}', '${device.location || "N/A"}', '${currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}', '${city}')">Details</button>
-                        `;
-    
-                        combinedDevices.push({
-                            card: card,
-                            device: {
-                                type: deviceType,
-                                status: currentStatus,
-                                city: city
-                            }
-                        });
-                    });
-                }
-    
-                combinedDevices.sort((a, b) => {
-                    const statusA = (a.device.status === "offline") ? 0 : 1;
-                    const statusB = (b.device.status === "offline") ? 0 : 1;
-                    return statusA - statusB;
-                });
-    
-                const allDevices = combinedDevices.map(item => item.card);
-                const deviceObjects = combinedDevices.map(item => item.device);
-    
-                citySet.forEach((city) => {
-                    const option = document.createElement("option");
-                    option.value = city;
-                    option.textContent = city;
-                    cityFilter.appendChild(option);
-                });
-    
-                deviceFilter.value = "all";
-                cityFilter.value = "all";
-                document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
-                allFilterButton.classList.add("active");
-    
-                function filterDevices() {
-                    const selectedType = deviceFilter.value;
-                    const selectedStatus = document.querySelector(".status-filter.active")?.dataset.status || "all";
-                    const selectedCity = cityFilter.value;
-    
-                    detailsContainer.innerHTML = "";
-    
-                    const filteredDevices = allDevices.filter((device) =>
-                        (selectedType === "all" || device.dataset.type === selectedType) &&
-                        (selectedStatus === "all" || device.dataset.status === selectedStatus) &&
-                        (selectedCity === "all" || device.dataset.city === selectedCity)
-                    );
-    
-                    filteredDevices.forEach((deviceCard) => {
-                        detailsContainer.appendChild(deviceCard);
-                    });
-    
-                    const region = currentRegion?.toUpperCase() || "GLOBAL";
-                    if (selectedCity !== "all") {
-                        document.getElementById("region-title").textContent = `${region}, ${selectedCity} Summary`;
-                    } else {
-                        document.getElementById("region-title").textContent = `${region} Summary`;
-                    }
-    
-                    const filteredSummaryDevices = deviceObjects.filter((deviceObj, index) => {
-                        const correspondingCard = allDevices[index];
-                        return (
-                            (selectedType === "all" || correspondingCard.dataset.type === selectedType) &&
-                            (selectedStatus === "all" || correspondingCard.dataset.status === selectedStatus) &&
-                            (selectedCity === "all" || correspondingCard.dataset.city === selectedCity)
-                        );
-                    });
-    
-                    const summary = calculateCitySummary(filteredSummaryDevices);
-                    updateSummary(summary);
-                }
-    
-                function calculateCitySummary(devices) {
-                    const summary = {
-                        summary: {
-                            totalDevices: devices.length,
-                            totalOnlineDevices: devices.filter(d => d.status === "online").length,
-                            totalOfflineDevices: devices.filter(d => d.status === "offline").length,
-                            cameras: { total: 0, online: 0, offline: 0 },
-                            archivers: { total: 0, online: 0, offline: 0 },
-                            controllers: { total: 0, online: 0, offline: 0 },
-                            servers: { total: 0, online: 0, offline: 0 },
-                        }
-                    };
-    
-                    devices.forEach((device) => {
-                        if (!summary.summary[device.type]) return;
-                        summary.summary[device.type].total += 1;
-                        if (device.status === "online") summary.summary[device.type].online += 1;
-                        else summary.summary[device.type].offline += 1;
-                    });
-    
-                    return summary;
-                }
-    
-                filterDevices();
-    
-                setTimeout(() => {
-                    const selectedCity = cityFilter.value;
-                    const selectedType = deviceFilter.value;
-                    const selectedStatus = document.querySelector(".status-filter.active")?.dataset.status || "all";
-    
-                    const filteredSummaryDevices = deviceObjects.filter((deviceObj, index) => {
-                        const correspondingCard = allDevices[index];
-                        return (
-                            (selectedType === "all" || correspondingCard.dataset.type === selectedType) &&
-                            (selectedStatus === "all" || correspondingCard.dataset.status === selectedStatus) &&
-                            (selectedCity === "all" || correspondingCard.dataset.city === selectedCity)
-                        );
-                    });
-    
-                    const summary = calculateCitySummary(filteredSummaryDevices);
-                    updateSummary(summary);
-                }, 100);
-    
-                deviceFilter.addEventListener("change", filterDevices);
-                cityFilter.addEventListener("change", filterDevices);
-                allFilterButton.addEventListener("click", () => {
-                    document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
-                    allFilterButton.classList.add("active");
-                    filterDevices();
-                });
-                onlineFilterButton.addEventListener("click", () => {
-                    document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
-                    onlineFilterButton.classList.add("active");
-                    filterDevices();
-                });
-                offlineFilterButton.addEventListener("click", () => {
-                    document.querySelectorAll(".status-filter").forEach(btn => btn.classList.remove("active"));
-                    offlineFilterButton.classList.add("active");
-                    filterDevices();
-                });
-            })
-            .catch((error) => {
-                console.error("Error fetching real-time device status:", error);
-                detailsContainer.innerHTML = "<p>Failed to load device details.</p>";
-            });
+};
+
+
+// Region Details Controller
+const getRegionDetails = async (req, res) => {
+    const { regionName } = req.params;
+    try {
+        const regionData = await fetchRegionData(regionName);
+        res.status(200).json({ details: regionData.details });
+    } catch (error) {
+        res.status(500).json({ error: "Internal server error", details: error.message });
     }
-    
-    function showModal(name, ip, location, status, city) {
-        document.getElementById("modal-title").textContent = `Details for ${name}`;
-        document.getElementById("modal-body").innerHTML = `
-            <li><strong>Name:</strong> ${name}</li>
-            <li><strong>IP:</strong> ${ip}</li>
-            <li><strong>Location:</strong> ${location}</li>
-            <li><strong>Status:</strong> ${status}</li>
-            <li><strong>City:</strong> ${city}</li>
-        `;
-        document.getElementById("modal").style.display = "block";
-    }
+};
+
+module.exports = {
+    getGlobalSummary,
+    getGlobalDetails,
+    getRegionSummary,
+    getRegionDetails,
+};
+
+
+
+
+file-4
+
+regionRoutes.js
+
+//  my code working 
+ const express = require("express");
+ const {
+     getGlobalSummary,
+     getGlobalDetails,
+     getRegionSummary,
+     getRegionDetails,
+ } = require("../controllers/regionControllers");
+ 
+ const router = express.Router();
+ 
+ // Global Routes
+ router.get("/summary/global", getGlobalSummary);
+ router.get("/details/global", getGlobalDetails);
+ 
+ 
+ // Region Routes
+ router.get("/summary/:regionName", getRegionSummary);
+ router.get("/details/:regionName", getRegionDetails)
+ 
+ module.exports = router;
 
 
