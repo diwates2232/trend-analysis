@@ -1,3 +1,49 @@
+--- services/excelService.js
++++ services/excelService.js
+@@
+// Remove this cache entirely
+-// const cache = new Map();
+-
+-async function pingDevice(ip) {
+-    if (!ip) return "IP Address Missing";
+-    return await pingHost(ip);
+-}
+-
+-// cache.clear();
+- async function pingDevices(devices) {
+-    // cache.clear();
+-    const limit = pLimit(20);
+-    await Promise.all(
+-      devices.map(dev =>
+-        limit(async () => {
+-          // always re-ping; drop the cache.get
+--          const status = cache.get(dev.ip_address) || await pingDevice(dev.ip_address);
+--          cache.set(dev.ip_address, status);
+-          const status = await pingHost(dev.ip_address);
+-          dev.status = status;
+-        })
+-      )
+-    );
+-  }
++async function pingDevices(devices) {
++  const limit = pLimit(20);
++  await Promise.all(
++    devices.map(dev =>
++      limit(async () => {
++        // always call pingHost, don’t cache
++        dev.status = await pingHost(dev.ip_address);
++      })
++    )
++  );
++}
+
+
+
+
+
+
+
+
 Read below Backend node.js file carefully.
 there are issue on this file Which is i have notice 
 Some Devices are receiving ping responce Still its Showing Offline .Why this happen Check all Backend Files carefully.If Issue Occured then solve this issue 
