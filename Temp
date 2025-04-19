@@ -1,3 +1,29 @@
+async function pingDevices(devices) {
+  const limit = pLimit(50);   // bump concurrency if your CPU/network can handle it
+
+  await Promise.all(devices.map(dev =>
+    limit(async () => {
+      const ip = dev.ip_address;
+      const entry = cache.get(ip);
+
+      // if we have a cached result and it’s still fresh, use it
+      if (entry && (Date.now() - entry.lastCheckedMs) < CACHE_TTL_MS) {
+        dev.status = entry.status;
+        return;
+      }
+
+      // otherwise do a real ping…
+      const status = await pingDevice(ip);
+
+      // …and store it along with the timestamp
+      cache.set(ip, { status, lastCheckedMs: Date.now() });
+      dev.status = status;
+    })
+  ));
+}
+
+
+
 
 //Ping helpers
 const cache = new Map();
