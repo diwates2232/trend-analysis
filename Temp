@@ -1,458 +1,369 @@
---- services/excelService.js
-+++ services/excelService.js
-@@
-// Remove this cache entirely
--// const cache = new Map();
--
--async function pingDevice(ip) {
--    if (!ip) return "IP Address Missing";
--    return await pingHost(ip);
--}
--
--// cache.clear();
-- async function pingDevices(devices) {
--    // cache.clear();
--    const limit = pLimit(20);
--    await Promise.all(
--      devices.map(dev =>
--        limit(async () => {
--          // always re-ping; drop the cache.get
---          const status = cache.get(dev.ip_address) || await pingDevice(dev.ip_address);
---          cache.set(dev.ip_address, status);
--          const status = await pingHost(dev.ip_address);
--          dev.status = status;
--        })
--      )
--    );
--  }
-+async function pingDevices(devices) {
-+  const limit = pLimit(20);
-+  await Promise.all(
-+    devices.map(dev =>
-+      limit(async () => {
-+        // always call pingHost, don’t cache
-+        dev.status = await pingHost(dev.ip_address);
-+      })
-+    )
-+  );
-+}
+read below trend.js file carefully .
+issue is there in Remark Section
+if device status is offline and there is downtime occurance 
+then Currently its shows Device is inline but it has Offline Occurance.
+When device status is offline and it has 1 or any downtime occurance 
+
+Expected output is 
+
+Device is Offline .
+Dont change another function just solve this issue and give me correct file
 
 
+let deviceUptimeTimers = {};
+let deviceDowntimeTimers = {};
 
-
-
-
-
-
-Read below Backend node.js file carefully.
-there are issue on this file Which is i have notice 
-Some Devices are receiving ping responce Still its Showing Offline .Why this happen Check all Backend Files carefully.If Issue Occured then solve this issue 
-also if dont get isue on backend files i will share you frontend files then check frontend files also .
-
-
-
-app.js
-
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-const fs = require("fs");
-const { pingHost } = require("./services/pingService");
-const { DateTime } = require("luxon");
-const regionRoutes = require("./routes/regionRoutes");
-const { fetchAllIpAddress, ipRegionMap } = require("./services/excelService");
-
-const app = express();
-const PORT = process.env.PORT || 80;
-
-// Helpers
-function pruneOldEntries(entries, days = 30) {
-  const cutoff = DateTime.now().minus({ days }).toMillis();
-  return entries.filter(e => DateTime.fromISO(e.timestamp).toMillis() >= cutoff);
-}
-function getLogFileForDate(dt) {
-  return `./deviceLogs-${dt.toISODate()}.json`;
+// Utility to turn an IP (or any string) into a safe DOM‑ID fragment
+function sanitizeId(str) {
+    return str.replace(/[^a-zA-Z0-9]/g, '_');
 }
 
-// Middleware
-app.use(cors({
-  origin: "http://127.0.0.1:5500",
-  methods: "GET,POST,PUT,DELETE",
-  allowedHeaders: "Content-Type,Authorization",
-}));
-app.use(bodyParser.json());
-
-// Routes
-app.use("/api/regions", regionRoutes);
-
-// Device Status Tracking
-const devices = fetchAllIpAddress();
-let deviceStatus = {};
-
-// Load only today's logs
-const today = DateTime.now().setZone("Asia/Kolkata");
-const todayLogFile = getLogFileForDate(today);
-let todayLogs = fs.existsSync(todayLogFile)
-  ? JSON.parse(fs.readFileSync(todayLogFile, "utf8"))
-  : {};
-
-// Persist today's logs
-function saveTodayLogs() {
-  fs.writeFileSync(todayLogFile, JSON.stringify(todayLogs, null, 2));
-}
-
-// Log a status change
-function logDeviceChange(ip, status) {
-  const timestamp = DateTime.now().setZone("Asia/Kolkata").toISO();
-  const arr = (todayLogs[ip] = todayLogs[ip] || []);
-  const last = arr[arr.length - 1];
-  if (!last || last.status !== status) {
-    arr.push({ status, timestamp });
-    todayLogs[ip] = pruneOldEntries(arr, 30);
-    saveTodayLogs();
-  }
-}
-
-// Ping devices
-async function pingDevices() {
-const limit = require("p-limit")(20);
-  await Promise.all(
-    devices.map(ip =>
-      limit(async () => {
-        const newStatus = await pingHost(ip);
-        if (deviceStatus[ip] !== newStatus) {
-          logDeviceChange(ip, newStatus);
-        }
-        deviceStatus[ip] = newStatus;
-      })
-    )
-  );
-  console.log("Updated device status:", deviceStatus);
- }
-
-
-// Start ping loop
-setInterval(pingDevices, 60_000);
-pingDevices();
-
-// Real‑time status
-app.get("/api/region/devices/status", (req, res) => {
-  res.json(deviceStatus);
-});
-
-// Full history: stitch together all daily files
-app.get("/api/devices/history", (req, res) => {
-  const files = fs.readdirSync(".")
-    .filter(f => f.startsWith("deviceLogs-") && f.endsWith(".json"));
-  const combined = {};
-  for (const f of files) {
-    const dayLogs = JSON.parse(fs.readFileSync(f, "utf8"));
-    for (const ip of Object.keys(dayLogs)) {
-      combined[ip] = (combined[ip] || []).concat(dayLogs[ip]);
-    }
-  }
-  // prune to last 30 days
-  for (const ip of Object.keys(combined)) {
-    combined[ip] = pruneOldEntries(combined[ip], 30);
-  }
-  res.json(combined);
-});
-
-// Region‑wise history
-app.get("/api/region/:region/history", (req, res) => {
-  const region = req.params.region.toLowerCase();
-  const files = fs.readdirSync(".")
-    .filter(f => f.startsWith("deviceLogs-") && f.endsWith(".json"));
-  const regionLogs = {};
-
-  for (const f of files) {
-    const dayLogs = JSON.parse(fs.readFileSync(f, "utf8"));
-    for (const ip of Object.keys(dayLogs)) {
-      if (ipRegionMap[ip] === region) {
-        regionLogs[ip] = (regionLogs[ip] || []).concat(dayLogs[ip]);
-      }
-    }
-  }
-
-  if (!Object.keys(regionLogs).length) {
-    return res.status(404).json({ message: `No device history found for region: ${region}` });
-  }
-  // prune per‑IP
-  for (const ip of Object.keys(regionLogs)) {
-    regionLogs[ip] = pruneOldEntries(regionLogs[ip], 30);
-  }
-  res.json(regionLogs);
-});
-
-// Single‑device history
-app.get("/api/device/history/:ip", (req, res) => {
-  const ip = req.params.ip;
-  const files = fs.readdirSync(".")
-    .filter(f => f.startsWith("deviceLogs-") && f.endsWith(".json"));
-  let history = [];
-  for (const f of files) {
-    const dayLogs = JSON.parse(fs.readFileSync(f, "utf8"));
-    if (dayLogs[ip]) history = history.concat(dayLogs[ip]);
-  }
-  if (!history.length) {
-    return res.status(404).json({ message: "No history found for this device" });
-  }
-  history.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-  res.json({ ip, history });
-});
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
-
-
-
-
-file 2 
-
-excelSErvice.js
-
-const fs = require("fs");
-const xlsx = require("xlsx");
-const path = require("path");
-const pLimit = require("p-limit");
-const { pingHost } = require("./pingService");
-
-const { DateTime } = require("luxon");
-
-// Excel paths
-const archiverPath = path.join(__dirname, "../data/ArchiverData.xlsx");
-const controllerPath = path.join(__dirname, "../data/ControllerData.xlsx");
-const cameraPath = path.join(__dirname, "../data/CameraData.xlsx");
-const serverPath = path.join(__dirname, "../data/ServerData.xlsx");
-
-// In‑memory cache
-let allData = {};
-
-// Helper: prune old entries
-function pruneOldEntries(entries, days = 30) {
-  const cutoff = DateTime.now().minus({ days }).toMillis();
-  return entries.filter(e => DateTime.fromISO(e.timestamp).toMillis() >= cutoff);
-}
-
-// Load Excel sheets once
-function loadExcelData() {
-  if (Object.keys(allData).length) return;
-  const loadSheet = file => {
-    const wb = xlsx.readFile(file);
-    const rows = xlsx.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-    return rows.map(r => {
-      const norm = {};
-      Object.entries(r).forEach(([k, v]) => {
-        norm[k.trim().toLowerCase().replace(/\s+/g, "_")] = v;
-      });
-      norm.history = [];
-      return norm;
-    });
-  };
-  allData = {
-    archivers: loadSheet(archiverPath),
-    controllers: loadSheet(controllerPath),
-    cameras: loadSheet(cameraPath),
-    servers: loadSheet(serverPath),
-  };
-  console.log("Excel Data Loaded:", Object.keys(allData));
-}
-loadExcelData();
-
-// Build IP→region map
-const ipRegionMap = {};
-Object.values(allData).flat().forEach(dev => {
-  if (dev.ip_address && dev.location) {
-    ipRegionMap[dev.ip_address] = dev.location.toLowerCase();
-  }
-});
-
-// Fetch all IPs
-function fetchAllIpAddress() {
-  return Object.values(allData)
-    .flat()
-    .map(d => d.ip_address)
-    .filter(Boolean);
-}
-
-// Ping helpers
-const cache = new Map();
-
-async function pingDevice(ip) {
-    if (!ip) return "IP Address Missing";
-     return await pingHost(ip);
-   }
-
-
-cache.clear();
- async function pingDevices(devices) {
-    // cache.clear();
-    const limit = pLimit(20);
-    await Promise.all(
-      devices.map(dev =>
-        limit(async () => {
-          const status = cache.get(dev.ip_address) || await pingDevice(dev.ip_address);
-          cache.set(dev.ip_address, status);
-          dev.status = status;
+function fetchDeviceData() {
+    const selectedRegion = document.getElementById('region').value;
+    fetch(`http://localhost/api/regions/details/${selectedRegion}`)
+        .then(response => response.json())
+        .then(regionData => {
+            fetchDeviceHistory(regionData.details);
         })
-      )
-    );
-  }
-
-  
-// Summary calculators
-function calculateSummary(groups) {
-  const summary = {};
-  for (const [k, list] of Object.entries(groups)) {
-    const total = list.length;
-    const online = list.filter(d => d.status === "Online").length;
-    summary[k] = { total, online, offline: total - online };
-  }
-  return {
-    totalDevices: Object.values(summary).reduce((s, g) => s + g.total, 0),
-    totalOnlineDevices: Object.values(summary).reduce((s, g) => s + g.online, 0),
-    totalOfflineDevices: Object.values(summary).reduce((s, g) => s + g.offline, 0),
-    ...summary
-  };
+        .catch(error => console.error('Error fetching device data:', error));
 }
 
-// Public APIs
-async function fetchGlobalData() {
-  const all = [...allData.cameras, ...allData.archivers, ...allData.controllers, ...allData.servers];
-  await pingDevices(all);
-  return { summary: calculateSummary(allData), details: allData };
+function fetchDeviceHistory(regionDetails) {
+    fetch(`http://localhost/api/devices/history`)
+        .then(response => response.json())
+        .then(historyData => {
+            populateDeviceTable(regionDetails, historyData);
+            window.deviceHistoryData = historyData; // Store history for reuse
+        })
+        .catch(error => console.error('Error fetching device history:', error));
 }
 
-async function fetchRegionData(regionName) {
-  const filter = list => list.filter(d => d.location?.toLowerCase() === regionName.toLowerCase());
-  const regionDevices = {
-    cameras: filter(allData.cameras),
-    archivers: filter(allData.archivers),
-    controllers: filter(allData.controllers),
-    servers: filter(allData.servers),
-  };
-  await pingDevices([].concat(...Object.values(regionDevices)));
-  return { summary: calculateSummary(regionDevices), details: regionDevices };
+function populateDeviceTable(details, historyData) {
+    const table = document.getElementById('device-table');
+    let tableBody = table.getElementsByTagName('tbody')[0];
+    if (!tableBody) {
+        tableBody = document.createElement('tbody');
+        table.appendChild(tableBody);
+    }
+    tableBody.innerHTML = ''; // Clear existing rows
+
+    let deviceList = [];
+
+    if (details) {
+        ['cameras', 'archivers', 'controllers', 'servers'].forEach(deviceType => {
+            details[deviceType]?.forEach(device => {
+                const deviceIp = device.ip_address;
+                const safeIp = sanitizeId(deviceIp);
+                const deviceName = device[deviceType.slice(0, -1) + 'name'];
+                const deviceCategory = deviceType.slice(0, -1).toUpperCase();
+
+                const deviceHistory = historyData[deviceIp] || [];
+                const lastStatusEntry = deviceHistory.length > 0 ? deviceHistory[deviceHistory.length - 1] : null;
+                const currentStatus = lastStatusEntry ? lastStatusEntry.status : "Unknown";
+
+                // Calculate downtime count
+                let downtimeCount = deviceHistory.filter(entry => entry.status === "Offline").length;
+
+                deviceList.push({
+                    deviceIp,
+                    safeIp,
+                    deviceName,
+                    deviceCategory,
+                    currentStatus,
+                    deviceHistory,
+                    downtimeCount
+                });
+            });
+        });
+
+        // Sort devices by downtime count (descending order)
+        deviceList.sort((a, b) => b.downtimeCount - a.downtimeCount);
+
+        deviceList.forEach(({ deviceIp, safeIp, deviceName, deviceCategory, currentStatus, deviceHistory, downtimeCount }, index) => {
+            const row = tableBody.insertRow();
+            row.style.border = "1px solid black";
+
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${deviceIp}</td>
+                <td>${deviceName}</td>
+                <td>${deviceCategory}</td>
+                <td id="uptime-${safeIp}">0h/0m/0s</td>
+                <td id="downtime-count-${safeIp}">${downtimeCount}</td>
+                <td id="downtime-${safeIp}">0h/0m/0s</td>
+                <td><button onclick="openDeviceHistory('${deviceIp}', '${deviceName}')">View History</button></td>
+                <td id="remark-${safeIp}">Device working properly</td>
+            `;
+
+            const color = currentStatus === "Online" ? "green" : "red";
+            row.style.color = color;
+
+            if (currentStatus === "Online") {
+                startUptime(deviceIp, deviceHistory);
+            } else {
+                startDowntime(deviceIp, deviceHistory, deviceCategory);
+            }
+
+            // Automatically update remark for each row based on downtime and status
+            updateRemarks(deviceIp, deviceHistory, deviceCategory);
+        });
+    } else {
+        console.error('No details found in the response');
+    }
+
+    filterData();
 }
 
-module.exports = {
-  fetchGlobalData,
-  fetchRegionData,
-  fetchAllIpAddress,
-  ipRegionMap
-};
+function startUptime(deviceIp, history) {
+    const safeIp = sanitizeId(deviceIp);
+    clearInterval(deviceDowntimeTimers[safeIp]);
+    let lastOnlineEntry = history.filter(entry => entry.status === "Online").pop();
+    if (!lastOnlineEntry) return;
 
+    let startTime = new Date(lastOnlineEntry.timestamp).getTime();
+    deviceUptimeTimers[safeIp] = setInterval(() => {
+        let elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById(`uptime-${safeIp}`).innerText = formatDuration(elapsedTime);
+    }, 1000);
+}
 
+function startDowntime(deviceIp, history, deviceCategory) {
+    const safeIp = sanitizeId(deviceIp);
+    clearInterval(deviceUptimeTimers[safeIp]);
+    let lastOfflineEntry = history.filter(entry => entry.status === "Offline").pop();
+    if (!lastOfflineEntry) return;
 
+    let startTime = new Date(lastOfflineEntry.timestamp).getTime();
+    deviceDowntimeTimers[safeIp] = setInterval(() => {
+        let elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById(`downtime-${safeIp}`).innerText = formatDuration(elapsedTime);
+        updateDowntimeCount(deviceIp, history, deviceCategory);
+    }, 1000);
+}
 
-file 3
+// **Fix Downtime Count and Remarks Update (with proper filtering)**
+function updateDowntimeCount(deviceIp, history, deviceCategory) {
+    const safeIp = sanitizeId(deviceIp);
+    let downtimeEntries = history.filter(entry => entry.status === "Offline");
 
-pingService.js
-
-const ping = require("ping");
-const DEFAULT_TIMEOUT = 5; // seconds
-const ICMP_COUNT_FLAG = process.platform === "win32" ? "-n" : "-c";
-
-async function pingHost(ip) {
-  try {
-    const res = await ping.promise.probe(ip, {
-      timeout: DEFAULT_TIMEOUT,
-      extra: [ICMP_COUNT_FLAG, "1"],
+    // Only count downtimes that last more than 5 minutes, except for servers
+    let filteredDowntimeEntries = downtimeEntries.filter((entry, index, arr) => {
+        if (deviceCategory === "SERVER") return true;
+        if (index === 0) return true;
+        let previousEntry = arr[index - 1];
+        let duration = (new Date(entry.timestamp) - new Date(previousEntry.timestamp)) / 1000;
+        return duration >= 300;
     });
-    return res.alive ? "Online" : "Offline";
-  } catch {
-    return "Offline";
-  }
+
+    let downtimeCount = filteredDowntimeEntries.length;
+    let downtimeElement = document.getElementById(`downtime-count-${safeIp}`);
+    if (downtimeElement) downtimeElement.innerText = downtimeCount;
+
+    // Update remarks based on downtime count
+    let remarkElement = document.getElementById(`remark-${safeIp}`);
+    if (remarkElement) {
+        if (downtimeCount === 0) {
+            remarkElement.innerText = "Device is Online.";
+        } else if (downtimeCount >= 15) {
+            remarkElement.innerText = `Device is Online, but it had ${downtimeCount} offline occurrences. Needs repair!`;
+        } else {
+            remarkElement.innerText = `Device is Online, but it had ${downtimeCount} offline occurrences.`;
+        }
+    }
 }
 
-module.exports = { pingHost };
+function updateRemarks(deviceIp, history, deviceCategory) {
+    const safeIp = sanitizeId(deviceIp);
+    let downtimeEntries = history.filter(entry => entry.status === "Offline");
 
+    // Filter downtimes that lasted more than 5 minutes (except for servers)
+    let filteredDowntimeEntries = downtimeEntries.filter((entry, index, arr) => {
+        if (deviceCategory === "SERVER") return true;
+        if (index === 0) return true;
+        let previousEntry = arr[index - 1];
+        let duration = (new Date(entry.timestamp) - new Date(previousEntry.timestamp)) / 1000;
+        return duration >= 300;
+    });
 
-regionController.js
+    let downtimeCount = filteredDowntimeEntries.length;
+    let lastStatus = history.length > 0 ? history[history.length - 1].status : "Unknown";
+    let remarkElement = document.getElementById(`remark-${safeIp}`);
 
-const { fetchGlobalData, fetchRegionData} = require("../services/excelService");
-
-
-// Global Summary Controller
-const getGlobalSummary = async (req, res) => {
-    try {
-        const globalData = await fetchGlobalData();
-        res.status(200).json({ summary: globalData.summary });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
+    // Calculate total offline duration
+    let totalOfflineTime = 0;
+    let lastOfflineTime = null;
+    history.forEach(entry => {
+        if (entry.status === "Offline") {
+            if (!lastOfflineTime) lastOfflineTime = new Date(entry.timestamp);
+        } else if (entry.status === "Online" && lastOfflineTime) {
+            totalOfflineTime += (new Date(entry.timestamp) - lastOfflineTime) / 1000;
+            lastOfflineTime = null;
+        }
+    });
+    if (lastOfflineTime) {
+        totalOfflineTime += (new Date() - lastOfflineTime) / 1000;
     }
-};
+    let totalOfflineDays = Math.floor(totalOfflineTime / 86400);
 
-// Global Details Controller
-const getGlobalDetails = async (req, res) => {
-    try {
-        const globalData = await fetchGlobalData();
-        res.status(200).json({ details: globalData.details });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
+    let needsRepair = downtimeCount >= 15 || totalOfflineDays >= 1;
+
+    if (remarkElement) {
+        if (lastStatus === "Offline") {
+            remarkElement.innerText = needsRepair ? "Device is Offline, needs repair." : "Device is Offline.";
+        } else if (lastStatus === "Online") {
+            if (needsRepair) {
+                remarkElement.innerText = "Device is Online, needs repair.";
+            } else if (downtimeCount > 0) {
+                remarkElement.innerText = `Device is Online, it had ${downtimeCount} downtime occurrences.`;
+            } else {
+                remarkElement.innerText = "Device is Online.";
+            }
+        } else {
+            remarkElement.innerText = "Device status unknown.";
+        }
     }
-};
 
-// Region Summary Controller
-const getRegionSummary = async (req, res) => {
-    const { regionName } = req.params;
-    try {
-        const regionData = await fetchRegionData(regionName);
-        res.status(200).json({ summary: regionData.summary });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
+    let downtimeElement = document.getElementById(`downtime-count-${safeIp}`);
+    if (downtimeElement) downtimeElement.innerText = downtimeCount;
+}
+
+// **Updated function to format duration properly**
+function formatDuration(seconds) {
+    let days = Math.floor(seconds / 86400);
+    let hours = Math.floor((seconds % 86400) / 3600);
+    let minutes = Math.floor((seconds % 3600) / 60);
+    let secs = Math.round(seconds % 60);
+
+    let result = [];
+    if (days > 0) result.push(`${days}d`);
+    if (hours > 0) result.push(`${hours}h`);
+    if (minutes > 0) result.push(`${minutes}m`);
+    if (secs > 0 || result.length === 0) result.push(`${secs}s`);
+
+    return result.join('/');
+}
+
+function openDeviceHistory(deviceIp, deviceName) {
+    if (!window.deviceHistoryData) {
+        console.error("Device history data not loaded.");
+        return;
     }
-};
+    const history = window.deviceHistoryData[deviceIp] || [];
+    displayDeviceHistory(deviceIp, deviceName, history);
+    document.getElementById('device-history-modal').style.display = 'block';
+}
 
-
-// Region Details Controller
-const getRegionDetails = async (req, res) => {
-    const { regionName } = req.params;
-    try {
-        const regionData = await fetchRegionData(regionName);
-        res.status(200).json({ details: regionData.details });
-    } catch (error) {
-        res.status(500).json({ error: "Internal server error", details: error.message });
+function calculateDowntimeDuration(timestamp, history) {
+    let downtimeStart = new Date(timestamp).getTime();
+    let nextOnlineEntry = history.find(entry =>
+        entry.status === "Online" && new Date(entry.timestamp).getTime() > downtimeStart
+    );
+    if (nextOnlineEntry) {
+        let downtimeEnd = new Date(nextOnlineEntry.timestamp).getTime();
+        let durationInSeconds = (downtimeEnd - downtimeStart) / 1000;
+        return formatDuration(durationInSeconds);
     }
-};
+    let durationInSeconds = (Date.now() - downtimeStart) / 1000;
+    return formatDuration(durationInSeconds);
+}
 
-module.exports = {
-    getGlobalSummary,
-    getGlobalDetails,
-    getRegionSummary,
-    getRegionDetails,
-};
+function displayDeviceHistory(deviceIp, deviceName, history) {
+    const modalHeader = document.getElementById('device-history-header');
+    const historyContainer = document.getElementById('device-history');
+    modalHeader.innerHTML = `
+        <h3>Device History</h3>
+        <p><strong>Device Name:</strong> ${deviceName}</p>
+        <p><strong>Device IP:</strong> ${deviceIp}</p>
+        <hr>
+    `;
+    historyContainer.innerHTML = '';
+    if (history.length === 0) {
+        historyContainer.innerHTML = `<p>No history available for this device.</p>`;
+        return;
+    }
+    let tableHTML = `
+        <table border="1" style="width:100%; text-align:center; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th>Sr.No</th>
+                    <th>Date</th>
+                    <th>Day</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>Downtime Duration</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    let lastOfflineTimestamp = null;
+    history.forEach((entry, index) => {
+        let entryDate = new Date(entry.timestamp);
+        let formattedDate = entryDate.toLocaleDateString();
+        let formattedTime = entryDate.toLocaleTimeString();
+        let formattedDay = entryDate.toLocaleString('en-US', { weekday: 'long' });
+        let downtimeDuration = "-";
+        if (entry.status === "Offline") {
+            lastOfflineTimestamp = entry.timestamp;
+        } else if (entry.status === "Online" && lastOfflineTimestamp) {
+            downtimeDuration = calculateDowntimeDuration(lastOfflineTimestamp, history);
+            lastOfflineTimestamp = null;
+        }
+        tableHTML += `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${formattedDate}</td>
+                <td>${formattedDay}</td>
+                <td>${formattedTime}</td>
+                <td style="color: ${entry.status === "Online" ? 'green' : 'red'};">${entry.status}</td>
+                <td>${downtimeDuration}</td>
+            </tr>
+        `;
+    });
+    tableHTML += `</tbody></table>`;
+    historyContainer.innerHTML = tableHTML;
+}
 
+function closeHistoryModal() {
+    document.getElementById('device-history-modal').style.display = 'none';
+}
 
+function exportDeviceTableToExcel() {
+    const table = document.getElementById("device-table");
+    const workbook = XLSX.utils.table_to_book(table, { sheet: "Device Table" });
+    XLSX.writeFile(workbook, "Device_Table.xlsx");
+}
 
+function exportDeviceHistoryToExcel() {
+    const historyTable = document.querySelector("#device-history-modal table");
+    if (!historyTable) {
+        alert("Please open a device's history first.");
+        return;
+    }
+    const workbook = XLSX.utils.table_to_book(historyTable, { sheet: "Device History" });
+    XLSX.writeFile(workbook, "Device_History.xlsx");
+}
 
-file-4
+function filterData() {
+    const selectedType = document.getElementById('device-type').value.toUpperCase();
+    const selectedRemark = document.getElementById('remark-filter').value.toUpperCase();
 
-regionRoutes.js
+    const table = document.getElementById('device-table');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
 
-//  my code working 
- const express = require("express");
- const {
-     getGlobalSummary,
-     getGlobalDetails,
-     getRegionSummary,
-     getRegionDetails,
- } = require("../controllers/regionControllers");
- 
- const router = express.Router();
- 
- // Global Routes
- router.get("/summary/global", getGlobalSummary);
- router.get("/details/global", getGlobalDetails);
- 
- 
- // Region Routes
- router.get("/summary/:regionName", getRegionSummary);
- router.get("/details/:regionName", getRegionDetails)
- 
- module.exports = router;
+    // Note: device type is in the 4th cell and remark in the 9th cell
+    for (let row of rows) {
+        const type = row.cells[3].textContent.toUpperCase();
+        const remark = row.cells[8].textContent.toUpperCase();
+        const matchesType = selectedType === "ALL" || type === selectedType;
+        const matchesRemark = selectedRemark === "ALL" || remark.includes(selectedRemark);
+        row.style.display = (matchesType && matchesRemark) ? "" : "none";
+    }
+}
 
-
+document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById('region').addEventListener('change', fetchDeviceData);
+    // Automatically filter when dropdowns change
+    document.getElementById('device-type').addEventListener('change', filterData);
+    document.getElementById('remark-filter').addEventListener('change', filterData);
+    fetchDeviceData(); // Initial load
+});
