@@ -1,4 +1,16 @@
- function loadSheet(file) {
+// Trim any string IPs so no leading/trailing spaces sneak through
+const devices = fetchAllIpAddress().map(ip =>
+  (typeof ip === "string") ? ip.trim() : ip
+);
+
+
+
+
+
+
+
+
+function loadSheet(file) {
    const wb   = xlsx.readFile(file);
    const rows = xlsx.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
    return rows.map(r => {
