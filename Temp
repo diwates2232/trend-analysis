@@ -1,3 +1,31 @@
+
+//Ping helpers
+const cache = new Map();
+async function pingDevice(ip) {
+     if (!ip) return "IP Address Missing";
+     return await pingHost(ip);
+   }
+  
+cache.clear();
+ async function pingDevices(devices) {
+     //cache.clear();
+    const limit = pLimit(20);
+    await Promise.all(
+      devices.map(dev =>
+        limit(async () => {
+          // const status = cache.get(dev.ip_address) || await pingDevice(dev.ip_address);
+          // cache.set(dev.ip_address, status);
+          const status =await pingDevice(dev.ip_address);
+          dev.status = status;
+        })
+      )
+    );
+  }
+
+
+
+
+
 // Trim any string IPs so no leading/trailing spaces sneak through
 const devices = fetchAllIpAddress().map(ip =>
   (typeof ip === "string") ? ip.trim() : ip
