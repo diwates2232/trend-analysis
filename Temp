@@ -1,3 +1,13 @@
+import nmap
+
+scanner = nmap.PortScanner()
+scanner.scan('127.0.0.1', '22-443')
+print(scanner.all_hosts())
+
+
+
+
+
 winget search Python
 
 
