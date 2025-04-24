@@ -1,3 +1,11 @@
+https://aka.ms/vs/17/release/vs_BuildTools.exe
+
+
+
+
+
+
+
 (tf_env) C:\Users\326131>pip install nmap
 
 ERROR: Could not find a version that satisfies the requirement nmap (from versions: none) ERROR: No matching distribution found for nuaр
