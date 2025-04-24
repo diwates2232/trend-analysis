@@ -1,3 +1,43 @@
+# requirements.txt
+dask
+sqlalchemy
+pyspark
+scikit-learn
+torch
+xgboost
+catboost
+pyod
+river
+pygod
+seaborn
+plotly
+dash
+streamlit
+bokeh
+altair
+flask
+fastapi
+django
+tornado
+pymongo
+elasticsearch
+kafka-python
+happybase
+redis
+pycryptodome
+tika
+pdfminer.six
+nmap
+loguru
+sentry-sdk
+google-cloud-logging
+pydantic
+celery
+apscheduler
+pytest
+
+
+
 py -3.10 -m venv tf_env
 .\tf_env\Scripts\activate
 pip install tensorflow
