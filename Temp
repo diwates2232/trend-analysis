@@ -1,3 +1,31 @@
+(tf_env) C:\Users\326131>pip install nmap
+
+ERROR: Could not find a version that satisfies the requirement nmap (from versions: none) ERROR: No matching distribution found for nuaр
+
+(tf_env) C:\Users\326131>
+
+DELL
+
+LAO
+
+
+
+
+
+curl -LO https://aka.ms/vs/17/release/vs_BuildTools.exe
+
+
+
+vs_BuildTools.exe --quiet --wait --norestart --nocache ^
+--add Microsoft.VisualStudio.Workload.VCTools ^
+--add Microsoft.VisualStudio.Component.VC.CMake.Project ^
+--add Microsoft.VisualStudio.Component.Windows10SDK.19041 ^
+--includeRecommended
+
+
+
+
+
 https://visualstudio.microsoft.com/visual-cpp-build-tools/
 
 
