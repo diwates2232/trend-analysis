@@ -1,3 +1,143 @@
+
+const fs = require("fs");
+const xlsx = require("xlsx");
+const path = require("path");
+const pLimit = require("p-limit");
+const { pingHost } = require("./pingService");
+const { DateTime } = require("luxon");
+
+// Excel paths
+const archiverPath  = path.join(__dirname, "../data/ArchiverData.xlsx");
+const controllerPath= path.join(__dirname, "../data/ControllerData.xlsx");
+const cameraPath    = path.join(__dirname, "../data/CameraData.xlsx");
+const serverPath    = path.join(__dirname, "../data/ServerData.xlsx");
+
+// In-memory data & ping cache
+let allData = {};
+const cache = new Map();
+const CACHE_TTL_MS = 60 * 1000;    // cache each IP’s status for 60s
+const PING_CONCURRENCY = 50;       // up to 50 pings in parallel
+
+// Load Excel sheets once
+function loadExcelData() {
+  if (Object.keys(allData).length) return;
+  const loadSheet = file => {
+    const wb = xlsx.readFile(file);
+    const rows = xlsx.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+    return rows.map(r => {
+      const norm = {};
+      Object.entries(r).forEach(([rawKey, rawValue]) => {
+        const key = rawKey.trim().toLowerCase().replace(/\s+/g, "_");
+        norm[key] = typeof rawValue === "string" ? rawValue.trim() : rawValue;
+      });
+      norm.history = [];
+      norm.status = "Unknown";    // initial placeholder
+      return norm;
+    });
+  };
+  allData = {
+    archivers:   loadSheet(archiverPath),
+    controllers: loadSheet(controllerPath),
+    cameras:     loadSheet(cameraPath),
+    servers:     loadSheet(serverPath),
+  };
+  console.log("Excel Data Loaded:", Object.keys(allData));
+}
+loadExcelData();
+
+// Build a flat array of all devices for background pinging
+function getAllDevices() {
+  return [
+    ...allData.archivers,
+    ...allData.controllers,
+    ...allData.cameras,
+    ...allData.servers,
+  ];
+}
+
+// Ping devices with TTL cache
+const limit = pLimit(PING_CONCURRENCY);
+async function pingDevices(devices) {
+  await Promise.all(devices.map(dev =>
+    limit(async () => {
+      const ip = dev.ip_address?.trim();
+      if (!ip) {
+        dev.status = "No IP";
+        return;
+      }
+      const entry = cache.get(ip);
+      if (entry && (Date.now() - entry.lastChecked) < CACHE_TTL_MS) {
+        dev.status = entry.status;
+        return;
+      }
+      const status = await pingHost(ip);
+      cache.set(ip, { status, lastChecked: Date.now() });
+      dev.status = status;
+    })
+  ));
+}
+
+// Initial and scheduled pings
+(async () => {
+  const devices = getAllDevices();
+  await pingDevices(devices);
+  setInterval(() => pingDevices(getAllDevices()), CACHE_TTL_MS);
+})();
+
+// Summary helpers
+function calculateSummary(groups) {
+  const summary = {};
+  for (const [k, list] of Object.entries(groups)) {
+    const total  = list.length;
+    const online = list.filter(d => d.status === "Online").length;
+    summary[k] = { total, online, offline: total - online };
+  }
+  return {
+    totalDevices:       Object.values(summary).reduce((s,g) => s + g.total, 0),
+    totalOnlineDevices: Object.values(summary).reduce((s,g) => s + g.online,0),
+    totalOfflineDevices:Object.values(summary).reduce((s,g) => s + g.offline,0),
+    ...summary
+  };
+}
+
+// Public APIs (no more on-demand pings!)
+async function fetchGlobalData() {
+  return {
+    summary: calculateSummary(allData),
+    details: allData
+  };
+}
+
+async function fetchRegionData(regionName) {
+  const filterByRegion = list =>
+    list.filter(d => d.location?.toLowerCase() === regionName.toLowerCase());
+  const regionDevices = {
+    cameras:     filterByRegion(allData.cameras),
+    archivers:   filterByRegion(allData.archivers),
+    controllers: filterByRegion(allData.controllers),
+    servers:     filterByRegion(allData.servers),
+  };
+  return {
+    summary: calculateSummary(regionDevices),
+    details: regionDevices
+  };
+}
+
+module.exports = {
+  fetchGlobalData,
+  fetchRegionData,
+};
+
+
+
+
+
+
+
+
+
+
+
 Read Below Backend node js file carefully and 
 issue is there When i hit any api endpoint on browser as well postmanit takes more time to display api responce also it takes more time to display Data on UI
 so read carefully file line by and solve the issue .
