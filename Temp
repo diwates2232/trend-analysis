@@ -1,128 +1,99 @@
-async function pingDevices(devices) {
-  const limit = pLimit(50);   // bump concurrency if your CPU/network can handle it
-
-  await Promise.all(devices.map(dev =>
-    limit(async () => {
-      const ip = dev.ip_address;
-      const entry = cache.get(ip);
-
-      // if we have a cached result and it’s still fresh, use it
-      if (entry && (Date.now() - entry.lastCheckedMs) < CACHE_TTL_MS) {
-        dev.status = entry.status;
-        return;
-      }
-
-      // otherwise do a real ping…
-      const status = await pingDevice(ip);
-
-      // …and store it along with the timestamp
-      cache.set(ip, { status, lastCheckedMs: Date.now() });
-      dev.status = status;
-    })
-  ));
-}
-
-
-
-
-//Ping helpers
-const cache = new Map();
-async function pingDevice(ip) {
-     if (!ip) return "IP Address Missing";
-     return await pingHost(ip);
-   }
-  
-cache.clear();
- async function pingDevices(devices) {
-     //cache.clear();
-    const limit = pLimit(20);
-    await Promise.all(
-      devices.map(dev =>
-        limit(async () => {
-          // const status = cache.get(dev.ip_address) || await pingDevice(dev.ip_address);
-          // cache.set(dev.ip_address, status);
-          const status =await pingDevice(dev.ip_address);
-          dev.status = status;
-        })
-      )
-    );
-  }
-
-
-
-
-
-// Trim any string IPs so no leading/trailing spaces sneak through
-const devices = fetchAllIpAddress().map(ip =>
-  (typeof ip === "string") ? ip.trim() : ip
-);
-
-
-
-
-
-
-
-
-function loadSheet(file) {
-   const wb   = xlsx.readFile(file);
-   const rows = xlsx.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-   return rows.map(r => {
-     const norm = {};
--    Object.entries(r).forEach(([k, v]) => {
--      norm[k.trim().toLowerCase().replace(/\s+/g, "_")] = v;
--    });
-+    Object.entries(r).forEach(([rawKey, rawValue]) => {
-+      const key = rawKey.trim().toLowerCase().replace(/\s+/g, "_");
-+      // Trim string values so “ 10.64.22.6” becomes “10.64.22.6”
-+      norm[key] = typeof rawValue === "string"
-+        ? rawValue.trim()
-+        : rawValue;
-+    });
-     norm.history = [];
-     return norm;
-   });
- }
-
-
-
-
-
-
-
-
-
-
-
-Read carefully Bcakend node.js files carefully the issue is there some devices are receiving ping responce still its showing offline .
-
-let see example -
-ip_address": " 10.64.22.6",
-        "location": "LACA",
-        "city": "Costa Rica ",
-        "history": [],
-        "status": "Offline"
-
-but We check this same With server as well local server we received ping responce
-
-let see- ping 10.64.22.6
-
-Pinging 10.64.22.6 with 32 bytes of data:
-Reply from 10.64.22.6: bytes=32 time=282ms TTL=56
-Reply from 10.64.22.6: bytes=32 time=282ms TTL=56
-Reply from 10.64.22.6: bytes=32 time=282ms TTL=56
-Reply from 10.64.22.6: bytes=32 time=282ms TTL=56
-
-Ping statistics for 10.64.22.6:
-    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
-Approximate round trip times in milli-seconds:
-    Minimum = 282ms, Maximum = 282ms, Average = 282ms
-
-
-Check each function and solve the issue 
+Read Below Backend node js file carefully and 
+issue is there When i hit any api endpoint on browser as well postmanit takes more time to display api responce also it takes more time to display Data on UI
+so read carefully file line by and solve the issue .
 
 file 1
+
+regionController.js
+
+const { fetchGlobalData, fetchRegionData} = require("../services/excelService");
+
+
+// Global Summary Controller
+const getGlobalSummary = async (req, res) => {
+    try {
+        const globalData = await fetchGlobalData();
+        res.status(200).json({ summary: globalData.summary });
+    } catch (error) {
+        res.status(500).json({ error: "Internal server error", details: error.message });
+    }
+};
+
+// Global Details Controller
+const getGlobalDetails = async (req, res) => {
+    try {
+        const globalData = await fetchGlobalData();
+        res.status(200).json({ details: globalData.details });
+    } catch (error) {
+        res.status(500).json({ error: "Internal server error", details: error.message });
+    }
+};
+
+// Region Summary Controller
+const getRegionSummary = async (req, res) => {
+    const { regionName } = req.params;
+    try {
+        const regionData = await fetchRegionData(regionName);
+        res.status(200).json({ summary: regionData.summary });
+    } catch (error) {
+        res.status(500).json({ error: "Internal server error", details: error.message });
+    }
+};
+
+
+// Region Details Controller
+const getRegionDetails = async (req, res) => {
+    const { regionName } = req.params;
+    try {
+        const regionData = await fetchRegionData(regionName);
+        res.status(200).json({ details: regionData.details });
+    } catch (error) {
+        res.status(500).json({ error: "Internal server error", details: error.message });
+    }
+};
+
+module.exports = {
+    getGlobalSummary,
+    getGlobalDetails,
+    getRegionSummary,
+    getRegionDetails,
+};
+
+
+
+
+file-2 
+
+regionRoutes.js
+
+//  my code working 
+ const express = require("express");
+ const {
+     getGlobalSummary,
+     getGlobalDetails,
+     getRegionSummary,
+     getRegionDetails,
+ } = require("../controllers/regionControllers");
+ 
+ const router = express.Router();
+ 
+ // Global Routes
+ router.get("/summary/global", getGlobalSummary);
+ router.get("/details/global", getGlobalDetails);
+ 
+ 
+ // Region Routes
+ router.get("/summary/:regionName", getRegionSummary);
+ router.get("/details/:regionName", getRegionDetails)
+ 
+ module.exports = router;
+
+
+
+file 3
+
 excelService.js
+
 
 const fs = require("fs");
 const xlsx = require("xlsx");
@@ -154,14 +125,22 @@ function loadExcelData() {
     const wb = xlsx.readFile(file);
     const rows = xlsx.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
     return rows.map(r => {
-      const norm = {};
-      Object.entries(r).forEach(([k, v]) => {
-        norm[k.trim().toLowerCase().replace(/\s+/g, "_")] = v;
-      });
+
+      
+       const norm = {};
+      Object.entries(r).forEach(([rawKey, rawValue]) => {
+              const key = rawKey.trim().toLowerCase().replace(/\s+/g, "_");
+              // Trim string values so “ 10.64.22.6” becomes “10.64.22.6”
+              norm[key] = typeof rawValue === "string"
+                ? rawValue.trim()
+                : rawValue;
+            });
       norm.history = [];
       return norm;
     });
   };
+
+
   allData = {
     archivers: loadSheet(archiverPath),
     controllers: loadSheet(controllerPath),
@@ -188,27 +167,35 @@ function fetchAllIpAddress() {
     .filter(Boolean);
 }
 
+
+
+
 //Ping helpers
+
 const cache = new Map();
+
 async function pingDevice(ip) {
      if (!ip) return "IP Address Missing";
      return await pingHost(ip);
    }
   
 
+cache.clear();
  async function pingDevices(devices) {
-    // cache.clear();
+     //cache.clear();
     const limit = pLimit(20);
     await Promise.all(
       devices.map(dev =>
         limit(async () => {
           const status = cache.get(dev.ip_address) || await pingDevice(dev.ip_address);
           cache.set(dev.ip_address, status);
-          dev.status = status;
+          // const status =await pingDevice(dev.ip_address);
+          // dev.status = status;
         })
       )
     );
   }
+
 
 // Summary calculators
 function calculateSummary(groups) {
@@ -253,18 +240,16 @@ module.exports = {
 };
 
 
-
-
-
-File -2
+File 4
 
 pingService.js
 
 const ping = require("ping");
-const DEFAULT_TIMEOUT = 10; // seconds
+const DEFAULT_TIMEOUT = 5; // seconds
 const ICMP_COUNT_FLAG = process.platform === "win32" ? "-n" : "-c";
 
 async function pingHost(ip) {
+  if(typeof ip =="string")ip=ip.trim();
   try {
     const res = await ping.promise.probe(ip, {
       timeout: DEFAULT_TIMEOUT,
@@ -279,11 +264,9 @@ async function pingHost(ip) {
 module.exports = { pingHost };
 
 
-
-
-file -3
-
+file 5
 app.js
+
 
 require("dotenv").config();
 const express = require("express");
@@ -320,7 +303,12 @@ app.use(bodyParser.json());
 app.use("/api/regions", regionRoutes);
 
 // Device Status Tracking
-const devices = fetchAllIpAddress();
+
+//const devices = fetchAllIpAddress();
+const devices = fetchAllIpAddress().map(ip =>
+  (typeof ip === "string") ? ip.trim() : ip
+);
+
 let deviceStatus = {};
 
 // Load only today's logs
@@ -438,5 +426,4 @@ app.get("/api/device/history/:ip", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-
 
