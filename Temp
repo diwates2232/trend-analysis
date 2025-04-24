@@ -1,3 +1,49 @@
+pip show dask
+pip show sqlalchemy
+pip show pyspark
+pip show scikit-learn
+pip show torch
+pip show xgboost
+pip show catboost
+pip show pyod
+pip show river
+pip show pygod
+pip show seaborn
+pip show plotly
+pip show dash
+pip show streamlit
+pip show bokeh
+pip show altair
+pip show flask
+pip show fastapi
+pip show django
+pip show tornado
+pip show pymongo
+pip show elasticsearch
+pip show kafka-python
+pip show happybase
+pip show redis
+pip show pycryptodome
+pip show tika
+pip show pdfminer.six
+pip show nmap
+pip show loguru
+pip show sentry-sdk
+pip show google-cloud-logging
+pip show pydantic
+pip show celery
+pip show apscheduler
+pip show pytest
+
+
+
+
+
+
+
+
+
+
 C:\Users\326131>pip list Package
 
 Version
