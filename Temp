@@ -1,3 +1,9 @@
+pip install happybase --only-binary=:all:
+
+
+
+
+
 https://aka.ms/vs/17/release/vs_BuildTools.exe
 
 
