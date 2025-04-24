@@ -1,6 +1,7 @@
 Read Below Backend node js file carefully and 
 issue is there When i hit any api endpoint on browser as well postmanit takes more time to display api responce also it takes more time to display Data on UI
 so read carefully file line by and solve the issue .
+Read backend file carefully and resolve issue and give me updated files.
 
 file 1
 
@@ -187,14 +188,54 @@ cache.clear();
     await Promise.all(
       devices.map(dev =>
         limit(async () => {
-          const status = cache.get(dev.ip_address) || await pingDevice(dev.ip_address);
-          cache.set(dev.ip_address, status);
-          // const status =await pingDevice(dev.ip_address);
-          // dev.status = status;
+          // const status = cache.get(dev.ip_address) || await pingDevice(dev.ip_address);
+          // cache.set(dev.ip_address, status);
+          const status =await pingDevice(dev.ip_address);
+          dev.status = status;
         })
       )
     );
   }
+
+
+//Update
+
+// const cache = new Map();
+// const CACHE_TTL_MS=60*1000;
+
+
+// async function pingDevice(ip) {
+//       if (!ip) return "IP Address Missing";
+//       return await pingHost(ip);
+//     }
+  
+
+// async function pingDevices(devices) {
+//   const limit = pLimit(50);   // bump concurrency if your CPU/network can handle it
+
+//   await Promise.all(devices.map(dev =>
+//     limit(async () => {
+//       const ip = dev.ip_address;
+//       const entry = cache.get(ip);
+
+//       // if we have a cached result and it’s still fresh, use it
+//       if (entry && (Date.now() - entry.lastCheckedMs) < CACHE_TTL_MS) {
+//         dev.status = entry.status;
+//         return;
+//       }
+
+//       // otherwise do a real ping…
+//       const status = await pingDevice(ip);
+
+//       // …and store it along with the timestamp
+//       cache.set(ip, { status, lastCheckedMs: Date.now() });
+//       dev.status = status;
+//     })
+//   ));
+// }
+
+
+
 
 
 // Summary calculators
@@ -238,6 +279,10 @@ module.exports = {
   fetchAllIpAddress,
   ipRegionMap
 };
+
+
+
+
 
 
 File 4
