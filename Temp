@@ -1,3 +1,11 @@
+python -m venv ml_env
+.\ml_env\Scripts\activate     # On Windows
+
+
+
+
+
+
 pip install dask sqlalchemy pyspark scikit-learn tensorflow torch xgboost catboost pyod river pygod seaborn plotly dash streamlit bokeh altair flask fastapi django tornado pymongo elasticsearch kafka-python happybase redis pycryptodome tika pdfminer.six nmap loguru sentry-sdk google-cloud-logging pydantic celery apscheduler pytest
 
 
