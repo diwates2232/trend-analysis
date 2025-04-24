@@ -1,3 +1,19 @@
+winget search Python
+
+
+
+winget install --id Python.Python.3.11 -e
+
+
+py -3.11 -m venv tf_env
+.\tf_env\Scripts\activate
+pip install tensorflow
+
+
+
+
+
+
 pip install \
   dask sqlalchemy pyspark scikit-learn torch \
   xgboost catboost pyod river pygod \
