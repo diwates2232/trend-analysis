@@ -1,538 +1,9 @@
-pip install happybase --only-binary=:all:
+read carefully Backend js file .
+issue is there my Ui takes more time to load live Status data 
+in previous this issue not occured .solve the isue 
 
 
-
-
-
-https://aka.ms/vs/17/release/vs_BuildTools.exe
-
-
-
-
-https://aka.ms/vs/17/release/pip install happybase --only-binary=:all:
-
-
-
-(tf_env) C:\Users\326131>pip install nmap
-
-ERROR: Could not find a version that satisfies the requirement nmap (from versions: none) ERROR: No matching distribution found for nuaр
-
-(tf_env) C:\Users\326131>
-
-DELL
-
-LAO
-
-
-
-
-
-curl -LO https://aka.ms/vs/17/release/vs_BuildTools.exe
-
-
-
-vs_BuildTools.exe --quiet --wait --norestart --nocache ^
---add Microsoft.VisualStudio.Workload.VCTools ^
---add Microsoft.VisualStudio.Component.VC.CMake.Project ^
---add Microsoft.VisualStudio.Component.Windows10SDK.19041 ^
---includeRecommended
-
-
-
-
-
-https://visualstudio.microsoft.com/visual-cpp-build-tools/
-
-
-
-pip show dask
-pip show sqlalchemy
-pip show pyspark
-pip show scikit-learn
-pip show torch
-pip show xgboost
-pip show catboost
-pip show pyod
-pip show river
-pip show pygod
-pip show seaborn
-pip show plotly
-pip show dash
-pip show streamlit
-pip show bokeh
-pip show altair
-pip show flask
-pip show fastapi
-pip show django
-pip show tornado
-pip show pymongo
-pip show elasticsearch
-pip show kafka-python
-pip show happybase
-pip show redis
-pip show pycryptodome
-pip show tika
-pip show pdfminer.six
-pip show nmap
-pip show loguru
-pip show sentry-sdk
-pip show google-cloud-logging
-pip show pydantic
-pip show celery
-pip show apscheduler
-pip show pytest
-
-
-
-
-
-
-
-
-
-
-C:\Users\326131>pip list Package
-
-Version
-
-pip
-
-25.0.1
-
-setuptools
-
-65.5.0
-
-Package
-
-C:\Users\326131>pip list
-
-Version
-
-pip
-
-25.0.1
-
-setuptools
-
-65.5.0
-
-C:\Users\326131>
-
-
-
-
-
-
-
-dask
-sqlalchemy
-pyspark
-scikit-learn
-torch
-xgboost
-catboost
-pyod
-river
-pygod
-seaborn
-plotly
-dash
-streamlit
-bokeh
-altair
-flask
-fastapi
-django
-tornado
-pymongo
-elasticsearch
-kafka-python
-happybase
-redis
-pycryptodome
-tika
-pdfminer.six
-python-nmap
-loguru
-sentry-sdk
-google-cloud-logging
-pydantic
-celery
-apscheduler
-pytest
-
-
-
-
-
-
-
-import nmap
-
-scanner = nmap.PortScanner()
-scanner.scan('127.0.0.1', '22-443')
-print(scanner.all_hosts())
-
-
-
-
-
-winget search Python
-
-
-
-winget install --id Python.Python.3.11 -e
-
-
-py -3.11 -m venv tf_env
-.\tf_env\Scripts\activate
-pip install tensorflow
-
-
-
-
-
-
-pip install \
-  dask sqlalchemy pyspark scikit-learn torch \
-  xgboost catboost pyod river pygod \
-  seaborn plotly dash streamlit bokeh altair \
-  flask fastapi django tornado \
-  pymongo elasticsearch kafka-python happybase redis \
-  pycryptodome tika pdfminer.six nmap \
-  loguru sentry-sdk google-cloud-logging \
-  pydantic celery apscheduler pytest
-
-
-
-
-# requirements.txt
-dask
-sqlalchemy
-pyspark
-scikit-learn
-torch
-xgboost
-catboost
-pyod
-river
-pygod
-seaborn
-plotly
-dash
-streamlit
-bokeh
-altair
-flask
-fastapi
-django
-tornado
-pymongo
-elasticsearch
-kafka-python
-happybase
-redis
-pycryptodome
-tika
-pdfminer.six
-nmap
-loguru
-sentry-sdk
-google-cloud-logging
-pydantic
-celery
-apscheduler
-pytest
-
-
-
-py -3.10 -m venv tf_env
-.\tf_env\Scripts\activate
-pip install tensorflow
-
-
-
-pip install dask sqlalchemy pyspark scikit-learn torch xgboost catboost pyod river pygod seaborn plotly dash streamlit bokeh altair flask fastapi django tornado pymongo elasticsearch kafka-python happybase redis pycryptodome tika pdfminer.six nmap loguru sentry-sdk google-cloud-logging pydantic celery apscheduler pytest
-
-
-
-
-python -m venv ml_env
-.\ml_env\Scripts\activate     # On Windows
-
-
-
-
-
-
-pip install dask sqlalchemy pyspark scikit-learn tensorflow torch xgboost catboost pyod river pygod seaborn plotly dash streamlit bokeh altair flask fastapi django tornado pymongo elasticsearch kafka-python happybase redis pycryptodome tika pdfminer.six nmap loguru sentry-sdk google-cloud-logging pydantic celery apscheduler pytest
-
-
-
-
-[Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\Users\326131\AppData\Local\Programs\Python\Python313", "User")
-[Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\Users\326131\AppData\Local\Programs\Python\Python313\Scripts", "User")
-
-
-
-
-
-const fs = require("fs");
-const xlsx = require("xlsx");
-const path = require("path");
-const pLimit = require("p-limit");
-const { pingHost } = require("./pingService");
-const { DateTime } = require("luxon");
-
-// Excel paths
-const archiverPath   = path.join(__dirname, "../data/ArchiverData.xlsx");
-const controllerPath = path.join(__dirname, "../data/ControllerData.xlsx");
-const cameraPath     = path.join(__dirname, "../data/CameraData.xlsx");
-const serverPath     = path.join(__dirname, "../data/ServerData.xlsx");
-
-// In-memory data & ping cache
-let allData = {};
-const cache = new Map();
-const CACHE_TTL_MS      = 60 * 1000;  // 1 minute
-const PING_CONCURRENCY  = 50;          // parallel pings
-
-// Load Excel once
-function loadExcelData() {
-  if (Object.keys(allData).length) return;
-  const loadSheet = file => {
-    const wb   = xlsx.readFile(file);
-    const rows = xlsx.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-    return rows.map(r => {
-      const norm = {};
-      Object.entries(r).forEach(([k, v]) => {
-        const key = k.trim().toLowerCase().replace(/\s+/g, "_");
-        norm[key] = typeof v === "string" ? v.trim() : v;
-      });
-      norm.history = [];
-      norm.status  = "Unknown";
-      return norm;
-    });
-  };
-
-  allData = {
-    archivers:   loadSheet(archiverPath),
-    controllers: loadSheet(controllerPath),
-    cameras:     loadSheet(cameraPath),
-    servers:     loadSheet(serverPath),
-  };
-  console.log("Excel Data Loaded:", Object.keys(allData));
-}
-loadExcelData();
-
-// Helper: return flat list of all device objects
-function getAllDevices() {
-  return [
-    ...allData.archivers,
-    ...allData.controllers,
-    ...allData.cameras,
-    ...allData.servers
-  ];
-}
-
-// Exposed: return just the IP strings (trimmed)
-function fetchAllIpAddress() {
-  return getAllDevices()
-    .map(d => typeof d.ip_address === "string" ? d.ip_address.trim() : null)
-    .filter(Boolean);
-}
-
-// Build ping loop with TTL cache
-const limit = pLimit(PING_CONCURRENCY);
-async function pingDevices(devices) {
-  await Promise.all(devices.map(dev =>
-    limit(async () => {
-      const ip = dev.ip_address?.trim();
-      if (!ip) {
-        dev.status = "No IP";
-        return;
-      }
-      const entry = cache.get(ip);
-      if (entry && (Date.now() - entry.lastChecked) < CACHE_TTL_MS) {
-        dev.status = entry.status;
-      } else {
-        const status = await pingHost(ip);
-        cache.set(ip, { status, lastChecked: Date.now() });
-        dev.status = status;
-      }
-    })
-  ));
-}
-
-// Kick off background pinging every minute
-(async () => {
-  const devices = getAllDevices();
-  await pingDevices(devices);
-  setInterval(() => pingDevices(getAllDevices()), CACHE_TTL_MS);
-})();
-
-// Summary generator
-function calculateSummary(groups) {
-  const summary = {};
-  for (const [k, list] of Object.entries(groups)) {
-    const total  = list.length;
-    const online = list.filter(d => d.status === "Online").length;
-    summary[k] = { total, online, offline: total - online };
-  }
-  return {
-    totalDevices:        Object.values(summary).reduce((a,b)=>a+b.total,0),
-    totalOnlineDevices:  Object.values(summary).reduce((a,b)=>a+b.online,0),
-    totalOfflineDevices: Object.values(summary).reduce((a,b)=>a+b.offline,0),
-    ...summary
-  };
-}
-
-// Exported fetchers (no more on-demand pinging!)
-async function fetchGlobalData() {
-  return {
-    summary: calculateSummary(allData),
-    details: allData
-  };
-}
-
-async function fetchRegionData(regionName) {
-  const filterRegion = list =>
-    list.filter(d => d.location?.toLowerCase() === regionName.toLowerCase());
-  const regionDevices = {
-    cameras:     filterRegion(allData.cameras),
-    archivers:   filterRegion(allData.archivers),
-    controllers: filterRegion(allData.controllers),
-    servers:     filterRegion(allData.servers),
-  };
-  return {
-    summary: calculateSummary(regionDevices),
-    details: regionDevices
-  };
-}
-
-module.exports = {
-  fetchGlobalData,
-  fetchRegionData,
-  fetchAllIpAddress,
-  ipRegionMap: Object.fromEntries(
-    getAllDevices()
-      .filter(d => d.ip_address && d.location)
-      .map(d => [d.ip_address.trim(), d.location.toLowerCase()])
-  )
-};
-
-
-
-
-
-
-
-
-require("dotenv").config();
-const express    = require("express");
-const cors       = require("cors");
-const bodyParser = require("body-parser");
-const fs         = require("fs");
-const { DateTime } = require("luxon");
-const regionRoutes = require("./routes/regionRoutes");
-const { fetchAllIpAddress, ipRegionMap } = require("./services/excelService");
-const { pingHost } = require("./services/pingService");
-
-const app  = express();
-const PORT = process.env.PORT || 80;
-
-// Helpers
-function pruneOldEntries(entries, days = 30) {
-  const cutoff = DateTime.now().minus({ days }).toMillis();
-  return entries.filter(e =>
-    DateTime.fromISO(e.timestamp).toMillis() >= cutoff
-  );
-}
-function getLogFileForDate(dt) {
-  return `./deviceLogs-${dt.toISODate()}.json`;
-}
-
-// Middleware
-app.use(cors({
-  origin: "http://127.0.0.1:5500",
-  methods: "GET,POST,PUT,DELETE",
-  allowedHeaders: "Content-Type,Authorization",
-}));
-app.use(bodyParser.json());
-
-// Routes
-app.use("/api/regions", regionRoutes);
-
-// Device tracking setup
-const devices = fetchAllIpAddress();  // now correctly imported
-
-let deviceStatus = {};
-const today      = DateTime.now().setZone("Asia/Kolkata");
-const todayLogFile = getLogFileForDate(today);
-let todayLogs   = fs.existsSync(todayLogFile)
-  ? JSON.parse(fs.readFileSync(todayLogFile, "utf8"))
-  : {};
-
-// Save / prune helpers
-function saveTodayLogs() {
-  fs.writeFileSync(todayLogFile, JSON.stringify(todayLogs, null, 2));
-}
-function logDeviceChange(ip, status) {
-  const ts  = DateTime.now().setZone("Asia/Kolkata").toISO();
-  const arr = (todayLogs[ip] = todayLogs[ip] || []);
-  const last = arr[arr.length - 1];
-  if (!last || last.status !== status) {
-    arr.push({ status, timestamp: ts });
-    todayLogs[ip] = pruneOldEntries(arr, 30);
-    saveTodayLogs();
-  }
-}
-
-// Background ping loop (separate from excelService)
-const pLimit = require("p-limit");
-const limit  = pLimit(20);
-
-async function pingDevices() {
-  await Promise.all(devices.map(ip =>
-    limit(async () => {
-      const newStatus = await pingHost(ip);
-      if (deviceStatus[ip] !== newStatus) {
-        logDeviceChange(ip, newStatus);
-      }
-      deviceStatus[ip] = newStatus;
-    })
-  ));
-  console.log("Updated device status:", deviceStatus);
-}
-
-setInterval(pingDevices, 60_000);
-pingDevices();
-
-// Real-time status endpoint
-app.get("/api/region/devices/status", (req, res) => {
-  res.json(deviceStatus);
-});
-
-// Full history, region history, single-device history… (unchanged)
-
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
-
-
-
-
-
-
-
-Read Below Backend node js file carefully and 
-issue is there When i hit any api endpoint on browser as well postmanit takes more time to display api responce also it takes more time to display Data on UI
-so read carefully file line by and solve the issue .
-Read backend file carefully and resolve issue and give me updated files.
-
-file 1
-
-regionController.js
+file-1 regionController.js
 
 const { fetchGlobalData, fetchRegionData} = require("../services/excelService");
 
@@ -588,11 +59,9 @@ module.exports = {
 };
 
 
-
-
-file-2 
-
+file 2 
 regionRoutes.js
+
 
 //  my code working 
  const express = require("express");
@@ -626,26 +95,26 @@ excelService.js
 const fs = require("fs");
 const xlsx = require("xlsx");
 const path = require("path");
-const pLimit = require("p-limit");
-const { pingHost } = require("./pingService");
-
+ const pLimit = require("p-limit");
+ const { pingHost } = require("./pingService");
+ 
 const { DateTime } = require("luxon");
-
+ 
 // Excel paths
 const archiverPath = path.join(__dirname, "../data/ArchiverData.xlsx");
 const controllerPath = path.join(__dirname, "../data/ControllerData.xlsx");
 const cameraPath = path.join(__dirname, "../data/CameraData.xlsx");
 const serverPath = path.join(__dirname, "../data/ServerData.xlsx");
-
+ 
 // In‑memory cache
 let allData = {};
-
+ 
 // Helper: prune old entries
 function pruneOldEntries(entries, days = 30) {
   const cutoff = DateTime.now().minus({ days }).toMillis();
   return entries.filter(e => DateTime.fromISO(e.timestamp).toMillis() >= cutoff);
 }
-
+ 
 // Load Excel sheets once
 function loadExcelData() {
   if (Object.keys(allData).length) return;
@@ -653,22 +122,14 @@ function loadExcelData() {
     const wb = xlsx.readFile(file);
     const rows = xlsx.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
     return rows.map(r => {
-
-      
-       const norm = {};
-      Object.entries(r).forEach(([rawKey, rawValue]) => {
-              const key = rawKey.trim().toLowerCase().replace(/\s+/g, "_");
-              // Trim string values so “ 10.64.22.6” becomes “10.64.22.6”
-              norm[key] = typeof rawValue === "string"
-                ? rawValue.trim()
-                : rawValue;
-            });
+      const norm = {};
+      Object.entries(r).forEach(([k, v]) => {
+        norm[k.trim().toLowerCase().replace(/\s+/g, "_")] = v;
+      });
       norm.history = [];
       return norm;
     });
   };
-
-
   allData = {
     archivers: loadSheet(archiverPath),
     controllers: loadSheet(controllerPath),
@@ -678,7 +139,7 @@ function loadExcelData() {
   console.log("Excel Data Loaded:", Object.keys(allData));
 }
 loadExcelData();
-
+ 
 // Build IP→region map
 const ipRegionMap = {};
 Object.values(allData).flat().forEach(dev => {
@@ -686,7 +147,7 @@ Object.values(allData).flat().forEach(dev => {
     ipRegionMap[dev.ip_address] = dev.location.toLowerCase();
   }
 });
-
+ 
 // Fetch all IPs
 function fetchAllIpAddress() {
   return Object.values(allData)
@@ -694,77 +155,31 @@ function fetchAllIpAddress() {
     .map(d => d.ip_address)
     .filter(Boolean);
 }
-
-
-
-
-//Ping helpers
-
-const cache = new Map();
-
-async function pingDevice(ip) {
-     if (!ip) return "IP Address Missing";
+ 
+// Ping helpers
+ const cache = new Map();
+ async function pingDevice(ip) {
+    if (!ip) return "IP Address Missing";
      return await pingHost(ip);
    }
-  
-
-cache.clear();
+ 
+ cache.clear();
+ 
  async function pingDevices(devices) {
-     //cache.clear();
-    const limit = pLimit(20);
+   //cache.clear();
+    const limit = pLimit(10);
     await Promise.all(
       devices.map(dev =>
         limit(async () => {
-          // const status = cache.get(dev.ip_address) || await pingDevice(dev.ip_address);
-          // cache.set(dev.ip_address, status);
-          const status =await pingDevice(dev.ip_address);
+          const status = cache.get(dev.ip_address) || await pingDevice(dev.ip_address);
+          cache.set(dev.ip_address, status);
           dev.status = status;
         })
       )
     );
   }
-
-
-//Update
-
-// const cache = new Map();
-// const CACHE_TTL_MS=60*1000;
-
-
-// async function pingDevice(ip) {
-//       if (!ip) return "IP Address Missing";
-//       return await pingHost(ip);
-//     }
-  
-
-// async function pingDevices(devices) {
-//   const limit = pLimit(50);   // bump concurrency if your CPU/network can handle it
-
-//   await Promise.all(devices.map(dev =>
-//     limit(async () => {
-//       const ip = dev.ip_address;
-//       const entry = cache.get(ip);
-
-//       // if we have a cached result and it’s still fresh, use it
-//       if (entry && (Date.now() - entry.lastCheckedMs) < CACHE_TTL_MS) {
-//         dev.status = entry.status;
-//         return;
-//       }
-
-//       // otherwise do a real ping…
-//       const status = await pingDevice(ip);
-
-//       // …and store it along with the timestamp
-//       cache.set(ip, { status, lastCheckedMs: Date.now() });
-//       dev.status = status;
-//     })
-//   ));
-// }
-
-
-
-
-
+ 
+ 
 // Summary calculators
 function calculateSummary(groups) {
   const summary = {};
@@ -780,14 +195,14 @@ function calculateSummary(groups) {
     ...summary
   };
 }
-
+ 
 // Public APIs
 async function fetchGlobalData() {
   const all = [...allData.cameras, ...allData.archivers, ...allData.controllers, ...allData.servers];
   await pingDevices(all);
   return { summary: calculateSummary(allData), details: allData };
 }
-
+ 
 async function fetchRegionData(regionName) {
   const filter = list => list.filter(d => d.location?.toLowerCase() === regionName.toLowerCase());
   const regionDevices = {
@@ -799,7 +214,7 @@ async function fetchRegionData(regionName) {
   await pingDevices([].concat(...Object.values(regionDevices)));
   return { summary: calculateSummary(regionDevices), details: regionDevices };
 }
-
+ 
 module.exports = {
   fetchGlobalData,
   fetchRegionData,
@@ -810,11 +225,9 @@ module.exports = {
 
 
 
+file 4 
 
-
-File 4
-
-pingService.js
+pindService.js
 
 const ping = require("ping");
 const DEFAULT_TIMEOUT = 5; // seconds
@@ -836,8 +249,12 @@ async function pingHost(ip) {
 module.exports = { pingHost };
 
 
-file 5
+
+file 5 
+
 app.js
+
+
 
 
 require("dotenv").config();
@@ -877,11 +294,9 @@ app.use("/api/regions", regionRoutes);
 // Device Status Tracking
 
 //const devices = fetchAllIpAddress();
-const devices = fetchAllIpAddress().map(ip =>
-  (typeof ip === "string") ? ip.trim() : ip
-);
-
+const devices = fetchAllIpAddress();
 let deviceStatus = {};
+ 
 
 // Load only today's logs
 const today = DateTime.now().setZone("Asia/Kolkata");
@@ -909,7 +324,7 @@ function logDeviceChange(ip, status) {
 
 // Ping devices
 async function pingDevices() {
-const limit = require("p-limit")(20);
+const limit = require("p-limit")(10);
   await Promise.all(
     devices.map(ip =>
     limit(async () => {
@@ -997,5 +412,9 @@ app.get("/api/device/history/:ip", (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
+  pingDevices();
 });
+
+
+
 
