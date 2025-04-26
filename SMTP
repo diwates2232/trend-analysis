@@ -1,1 +1,125 @@
+TEAMS_WEBHOOK_APAC=https://outlook.office.com/…​
+TEAMS_WEBHOOK_EMEA=https://outlook.office.com/…​
+TEAMS_WEBHOOK_LACA=https://outlook.office.com/…​
+TEAMS_WEBHOOK_NAMER=https://outlook.office.com/…​
+
+
+
+npm install axios
+
+
+
+
+const axios = require('axios');
+const webhooks = {
+  apac: process.env.TEAMS_WEBHOOK_APAC,
+  emea: process.env.TEAMS_WEBHOOK_EMEA,
+  laca: process.env.TEAMS_WEBHOOK_LACA,
+  namer: process.env.TEAMS_WEBHOOK_NAMER,
+};
+
+async function sendTeamsAlert(region, text) {
+  const url = webhooks[region.toLowerCase()];
+  if (!url) {
+    console.warn(`No Teams webhook configured for region ${region}`);
+    return;
+  }
+  try {
+    await axios.post(url, { text });
+  } catch (err) {
+    console.error('Failed to send Teams alert', err.message);
+  }
+}
+
+module.exports = { sendTeamsAlert };
+
+
+
+
+
+
+
+// at bottom of file, after existing exports
+function getDeviceInfo(ip) {
+  for (const list of Object.values(allData)) {
+    const dev = list.find(d => d.ip_address === ip);
+    if (dev) return dev;
+  }
+  return null;
+}
+
+module.exports = {
+  fetchGlobalData,
+  fetchRegionData,
+  fetchAllIpAddress,
+  ipRegionMap,
+  getDeviceInfo,       // ← new
+};
+
+
+
+
+
+// at top of app.js
+const { getDeviceInfo, ipRegionMap } = require("./services/excelService");
+const { sendTeamsAlert }    = require("./services/teamsService");
+
+
+
+
+// called after each pingDevices run
+async function checkNotifications() {
+  const now = DateTime.now().setZone("Asia/Kolkata");
+  for (const [ip, status] of Object.entries(deviceStatus)) {
+    // get the last timestamp this ip changed state
+    const logs = todayLogs[ip] || [];
+    const lastEntry = logs[logs.length - 1];
+    if (!lastEntry) continue;
+    const changedAt = DateTime.fromISO(lastEntry.timestamp);
+    const minutesDown = now.diff(changedAt, 'minutes').minutes;
+
+    const dev = getDeviceInfo(ip);
+    if (!dev) continue;
+    const { device_name, location, region, device_type } = dev;
+
+    // 1) OFFLINE > 5m and not yet notified
+    if (
+      status === "Offline" &&
+      minutesDown >= 5 &&
+      !notifiedOffline.has(ip)
+    ) {
+      const msg = `❗️ **${device_name}** (${ip}) in ${location}, ${region} (${device_type}) has been **OFFLINE** for over 5 minutes.`;
+      await sendTeamsAlert(region, msg);
+      notifiedOffline.add(ip);
+    }
+
+    // 2) Back ONLINE after offline alert
+    if (
+      status === "Online" &&
+      notifiedOffline.has(ip)
+    ) {
+      const msg = `✅ **${device_name}** (${ip}) in ${location}, ${region} (${device_type}) is **back ONLINE**.`;
+      await sendTeamsAlert(region, msg);
+      notifiedOffline.delete(ip);
+    }
+  }
+}
+
+
+
+
+// Start ping loop
+setInterval(async () => {
+  await pingDevices();
+  await checkNotifications();
+}, 60_000);
+
+// initial run
+(async () => {
+  await pingDevices();
+  await checkNotifications();
+})();
+
+
+
 
