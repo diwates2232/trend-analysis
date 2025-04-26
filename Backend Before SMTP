@@ -1,3 +1,16 @@
+{
+  "device_name": "TestCam1",
+  "ip": "10.0.0.5",
+  "location": "Mumbai",
+  "region": "APAC",
+  "device_type": "Camera",
+  "status": "Offline"
+}
+
+
+
+
+
 Backend Files before teams services.
 
 
