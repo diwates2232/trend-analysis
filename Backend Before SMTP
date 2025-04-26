@@ -1,14 +1,4 @@
-Read Below Backlend Node js file carefully .
-I want If Any device goes Offline for greater than 5 Minutes then Sent Message on Teams .like ....Device name ..Device Ip, Location , Region, Device Type, is Showing offline .
-We will create a Group Region Wise .
-Also Same Device back Online then also sent message on Teams like ..Device name , IP, Location, Region, Device Type Is back online....
-Also Create a Group When APAC region Device Goes Offline sent message on APAC Region Security team same..
-EMEA region devivce goes Offline Sent Alaert message on EMEA region Security team
-same for LACA & NAMER .
-
-Read Below Backend Files Carefully i u need i have Already made trend.js File for Device trend Analysis .if need we Will share you this file also .
-Kindly check Below Backend files and Guide me step by step.
-
+Backend Files before teams services.
 
 
 File -1
