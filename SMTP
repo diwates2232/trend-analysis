@@ -1,3 +1,16 @@
+Device Status Update:
+- Region: @{triggerBody()?['region']}
+- Device: @{triggerBody()?['deviceName']}
+- Type: @{triggerBody()?['deviceType']}
+- Status: @{triggerBody()?['status']}
+- Timestamp: @{triggerBody()?['timestamp']}
+
+
+
+
+
+
+
 {
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "type": "AdaptiveCard",
