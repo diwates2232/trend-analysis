@@ -1,3 +1,56 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.3",
+  "body": [
+    {
+      "type": "TextBlock",
+      "text": "📡 Device Status Alert",
+      "weight": "Bolder",
+      "size": "Medium"
+    },
+    {
+      "type": "FactSet",
+      "facts": [
+        {
+          "title": "Name",
+          "value": "@{triggerBody()?['device_name']}"
+        },
+        {
+          "title": "IP",
+          "value": "@{triggerBody()?['ip']}"
+        },
+        {
+          "title": "Location",
+          "value": "@{triggerBody()?['location']}"
+        },
+        {
+          "title": "Region",
+          "value": "@{triggerBody()?['region']}"
+        },
+        {
+          "title": "Type",
+          "value": "@{triggerBody()?['device_type']}"
+        },
+        {
+          "title": "Status",
+          "value": "@{triggerBody()?['status']}"
+        }
+      ]
+    }
+  ]
+}
+
+
+
+
+
+
+
+
+
+
+
 TEAMS_WEBHOOK_APAC=https://outlook.office.com/…​
 TEAMS_WEBHOOK_EMEA=https://outlook.office.com/…​
 TEAMS_WEBHOOK_LACA=https://outlook.office.com/…​
