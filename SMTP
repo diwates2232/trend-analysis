@@ -1,3 +1,9 @@
+cd C:\Users\W0024618\Desktop\Backend
+node testEmail.js
+
+
+
+
 const { sendDeviceAlertEmail } = require('./emailService');
 
 // Change receiverEmail to your email
