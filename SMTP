@@ -1,5 +1,43 @@
 const nodemailer = require('nodemailer');
 
+// Step 2.1: Configure the transporter (for Outlook)
+const transporter = nodemailer.createTransport({
+    host: 'smtp.office365.com',
+    port: 587,
+    secure: false, // Use TLS
+    auth: {
+        user: 'your-outlook-email@yourcompany.com',  // Your Outlook email
+        pass: 'your-outlook-password'                // Your Outlook password
+    }
+});
+
+// Step 2.2: Create a function to send email
+async function sendDeviceAlertEmail(subject, message, receiverEmail) {
+    try {
+        const info = await transporter.sendMail({
+            from: '"Device Alert" <your-outlook-email@yourcompany.com>', // Sender email
+            to: receiverEmail,                                           // Receiver email
+            subject: subject,                                            // Email subject
+            text: message                                                // Email body
+        });
+
+        console.log('Email sent: ', info.response);
+    } catch (error) {
+        console.error('Error sending email:', error);
+    }
+}
+
+module.exports = { sendDeviceAlertEmail };
+
+
+
+
+
+
+
+
+const nodemailer = require('nodemailer');
+
 // Step 2.1: Configure the transporter (use your Gmail or company SMTP)
 const transporter = nodemailer.createTransport({
     service: 'gmail',  // If you are using Gmail
