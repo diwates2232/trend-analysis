@@ -1,3 +1,25 @@
+OUTLOOK_USER=Swapnil.Diwate@westernunion.com
+OUTLOOK_PASS=Bajiravmastani@2309
+
+
+require('dotenv').config(); // Add this at the top
+
+const transporter = nodemailer.createTransport({
+    host: 'smtp.office365.com',
+    port: 587,
+    secure: false,
+    auth: {
+        user: process.env.OUTLOOK_USER,
+        pass: process.env.OUTLOOK_PASS
+    }
+});
+
+
+
+
+
+
+
 const nodemailer = require('nodemailer');
 
 // Step 2.1: Configure the transporter (for Outlook)
