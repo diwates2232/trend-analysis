@@ -1,3 +1,16 @@
+const { sendDeviceAlertEmail } = require('./emailService');
+
+// Change receiverEmail to your email
+sendDeviceAlertEmail(
+    'Test Device Alert',
+    'This is a test email for Device Monitoring Project.',
+    'Swapnil.Diwate@westernunion.com'
+);
+
+
+
+
+
 OUTLOOK_USER=Swapnil.Diwate@westernunion.com
 OUTLOOK_PASS=Bajiravmastani@2309
 
